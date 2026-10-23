@@ -1,14 +1,25 @@
 # dss5105-proj — Email Classification Project
+
+**How to work together** 
 ```bash
-git clone https://github.com/imsong7/dss5105-proj.git
-cd dss5105-proj
-git switch -c feature/your-name
-# --- (Make your code changes here) ---
-git add .
-git commit -m "Describe your changes briefly"
+# 1. Start fresh from updated main
+git switch main
 git pull origin main
+git switch -c feature/your-name
+
+# 2. Do work, then save locally
+git add .
+git commit -m "Describe your changes"
+
+# 3. Get latest main updates into your feature branch (Crucial!)
+git fetch origin
+git merge origin/main
+
+# 4. Push to GitHub
 git push -u origin feature/your-name
 ```
+
+---
 
 
 Two parts live in this repo:

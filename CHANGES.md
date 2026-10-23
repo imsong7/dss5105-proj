@@ -45,3 +45,17 @@ agent backend.
   files under `evaluation/results/`.
 - Updated the README model table to quote OOF macro-F1 instead of the old
   27-row test split.
+
+## 6. Operational benchmark
+- Added `evaluation/operational_benchmark.py`: cold/warm latency, load time,
+  process and Ollama RSS, model size, token use, CodeCarbon energy, 5-run
+  consistency, raw invalid-format rate, and first-200-char vs full-input
+  agreement.
+- Added a raw-capturing Llama chain (`with_structured_output(..., include_raw=True)`)
+  so invalid JSON/labels are counted before Pydantic coercion.
+- Added `evaluation/test_operational_benchmark.py` and
+  `evaluation/requirements.txt` (`psutil`, `codecarbon`).
+- Ran a 30-email stratified sample with 5 runs per email. Llama: warm p50/p95
+  3,298/5,334 ms, 5.7 GB peak, 0.00220 kWh, 0 invalid formats, consistency 1.000.
+  BERT: warm p50/p95 33.5/41.6 ms, 972 MB peak, 0.000042 kWh, consistency 1.000.
+- Updated the README with operational commands and headline results.

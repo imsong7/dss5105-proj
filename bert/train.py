@@ -1,189 +1,179 @@
-#!/usr/bin/env python
-"""Fine-tune an email classifier on the preprocessed Category + Action CSVs.
+"""Unified email classifier trainer.
 
-The train/test CSVs are produced by preprocess.py:
+Two modes:
+  head   (default) — frozen sentence encoder + trainable logistic-regression head.
+              Tiny, fast, no overfitting on ~80 real emails.
+              Output -> bert/models/{task}_head/
+  full   — full DistilBERT fine-tune. Slower, heavier.
+              Output -> bert/models/{task}_full/
 
-    python preprocess.py --export
-    python train.py --model distilbert-base-uncased
-    python train.py --model microsoft/deberta-v3-small
+Shared data handling: review CSV validation, Canvas sender rule, stratified split,
+synthetic rows added to TRAIN only (val/test stay real).
 
-Usage:
-    python train.py                       # train both tasks with distilbert
-    python train.py --models distilbert-base-uncased microsoft/deberta-v3-small
-    python train.py --freeze_backbone     # train only the classification head
-    python train.py --task category --epochs 4
+Examples (repo root):
+
+  # 1) Train the recommended frozen heads for the app
+  python bert/train.py --review bert/data/labels.csv --task both
+  python bert/train.py --review bert/data/labels.csv --task action --mode head \
+      --encoder e5-small-multi --synthetic bert/data/synthetic.csv
+
+  # 2) Train a full DistilBERT fine-tune on real data only
+  python bert/train.py --review bert/data/labels.csv --task both --mode full
+
+  # 3) Compare encoders / real vs real+synthetic (head mode, 10 seeds, no model saved)
+  python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
+      --mode head --compare-seeds 1,2,3,4,5,6,7,8,9,10
+  cat bert/results/compare_head_summary.txt
+
+  # 4) Compare DistilBERT vs TF-IDF (full mode, 5 seeds, no model saved)
+  python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
+      --mode full --compare-seeds 1,2,3,4,5 --task action
+  cat bert/results/compare_full_summary.txt
 """
 import argparse
-import json
 import os
-import random
+import sys
 
-import numpy as np
-import torch
-from datasets import Dataset
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, f1_score)
-from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
-                          DataCollatorWithPadding, Trainer, TrainingArguments)
+import pandas as pd
 
-from preprocess import DATA_DIR, DATASETS, SCRIPT_DIR, load_split
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Make bert.src importable when run as `python bert/train.py`
+SRC_DIR = os.path.join(SCRIPT_DIR, "src")
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+from src.data import load_taxonomy, split_dataset, synthetic_dataset, task_dataset
+from src.model import (head_compare, train_full_task, train_head_final, tfidf_run,
+                       full_compare_seeds)
 
 SEED = 42
 
-# Fixed training configuration (edit here instead of via CLI).
-MAX_LEN = 256
-BATCH_SIZE = 16
-WARMUP_RATIO = 0.1
-WEIGHT_DECAY = 0.01
-OUT_DIR = os.path.join(SCRIPT_DIR, "model")
-LR_HEAD = 1e-4          # lr when the backbone is frozen
-LR_FULL = 2e-5          # lr when fine-tuning the whole model
-
-
-# --------------------------------------------------------------------------- #
-# Modeling
-# --------------------------------------------------------------------------- #
-class WeightedTrainer(Trainer):
-    """Trainer with a per-class weighted CrossEntropyLoss on the classification head."""
-
-    def __init__(self, class_weight=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.class_weight = class_weight
-
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-        labels = inputs.get("labels")
-        outputs = model(**inputs)
-        logits = outputs.logits
-        weight = self.class_weight.to(logits.device) if self.class_weight is not None else None
-        loss = torch.nn.CrossEntropyLoss(weight=weight)(logits.view(-1, model.config.num_labels), labels.view(-1))
-        return (loss, outputs) if return_outputs else loss
-
-
-def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    preds = np.argmax(logits, axis=-1)
-    return {"accuracy": accuracy_score(labels, preds),
-            "macro_f1": f1_score(labels, preds, average="macro"),
-            "weighted_f1": f1_score(labels, preds, average="weighted")}
-
-
-def train_task(task, model_id, args):
-    label_col = DATASETS[task]
-    random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
-
-    train_df = load_split(task, "train", DATA_DIR)
-    val_df = load_split(task, "test", DATA_DIR)
-
-    labels = sorted(set(train_df[label_col]) | set(val_df[label_col]))
-    label2id = {l: i for i, l in enumerate(labels)}
-    id2label = {i: l for l, i in label2id.items()}
-    train_df["label"] = train_df[label_col].map(label2id)
-    val_df["label"] = val_df[label_col].map(label2id)
-
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    def tok(examples):
-        return tokenizer(examples["text"], padding=False, truncation=True, max_length=MAX_LEN)
-
-    train_ds = Dataset.from_pandas(train_df[["text", "label"]]).map(tok, batched=True)
-    val_ds = Dataset.from_pandas(val_df[["text", "label"]]).map(tok, batched=True)
-    train_ds.set_format("torch", columns=["input_ids", "attention_mask", "label"])
-    val_ds.set_format("torch", columns=["input_ids", "attention_mask", "label"])
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_id, num_labels=len(labels), id2label=id2label, label2id=label2id)
-
-    if args.freeze_backbone:
-        for p in model.base_model.parameters():
-            p.requires_grad = False
-    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    total = sum(p.numel() for p in model.parameters())
-    lr = LR_HEAD if args.freeze_backbone else LR_FULL
-    print(f"\nTrainable params: {trainable:,} / {total:,} ({100 * trainable / total:.1f}%) | lr={lr}")
-
-    counts = train_df["label"].value_counts().sort_index()
-    class_weight = torch.tensor((len(train_df) / (len(labels) * counts)).values, dtype=torch.float32)
-    print("Class weights:", {labels[i]: round(float(w), 3) for i, w in enumerate(class_weight)})
-
-    out_dir = os.path.join(OUT_DIR, f"{model_id.replace('/', '_')}_{task}")
-    os.makedirs(out_dir, exist_ok=True)
-
-    trainer = WeightedTrainer(
-        model=model, class_weight=class_weight, data_collator=data_collator,
-        train_dataset=train_ds, eval_dataset=val_ds, compute_metrics=compute_metrics,
-        args=TrainingArguments(
-            output_dir=os.path.join(out_dir, "checkpoints"),
-            num_train_epochs=args.epochs, learning_rate=lr,
-            per_device_train_batch_size=BATCH_SIZE, per_device_eval_batch_size=BATCH_SIZE,
-            warmup_ratio=WARMUP_RATIO, weight_decay=WEIGHT_DECAY,
-            evaluation_strategy="epoch", save_strategy="epoch", save_total_limit=1,
-            load_best_model_at_end=True, metric_for_best_model="macro_f1", greater_is_better=True,
-            logging_dir=os.path.join(out_dir, "logs"), logging_steps=10,
-            seed=SEED, report_to=[]))
-
-    trainer.train()
-    trainer.save_model(out_dir)
-    tokenizer.save_pretrained(out_dir)
-
-    pred_out = trainer.predict(val_ds)
-    preds = np.argmax(pred_out.predictions, axis=-1)
-    probs = torch.nn.functional.softmax(torch.from_numpy(pred_out.predictions), dim=-1).numpy()
-    val_df["pred"] = [id2label[p] for p in preds]
-    val_df["confidence"] = probs[np.arange(len(probs)), preds]
-    val_df[["Subject", "From", "Preview", label_col, "pred", "confidence"]].to_csv(
-        os.path.join(out_dir, "val_predictions.csv"), index=False, encoding="utf-8-sig")
-
-    report = classification_report(val_df[label_col], val_df["pred"], labels=labels,
-                                   output_dict=True, zero_division=0)
-    with open(os.path.join(out_dir, "metrics.json"), "w") as f:
-        json.dump({"task": task, "label_col": label_col, "model": model_id,
-                   "source": f"{task}_train.csv",
-                   "train_size": len(train_df), "val_size": len(val_df), "epochs": args.epochs,
-                   "freeze_backbone": args.freeze_backbone, "lr": lr,
-                   "trainable_params": trainable, "total_params": total,
-                   "class_weight": True, "metrics": report, "label_order": labels,
-                   "confusion_matrix": confusion_matrix(val_df[label_col], val_df["pred"], labels=labels).tolist()},
-                  f, indent=2, ensure_ascii=False)
-
-    acc = accuracy_score(val_df[label_col], val_df["pred"])
-    macro_f1 = f1_score(val_df[label_col], val_df["pred"], average="macro")
-    print(f"\nAccuracy : {acc:.4f}")
-    print(f"Macro-F1 : {macro_f1:.4f}")
-    print("Per-class F1:", {l: round(report[l]["f1-score"], 4) for l in labels})
-    print("Saved to:", out_dir)
-    return {"task": task, "model": model_id, "accuracy": acc, "macro_f1": macro_f1,
-            "train_size": len(train_df), "val_size": len(val_df)}
-
-
-# --------------------------------------------------------------------------- #
-def print_summary(results):
-    if not results:
-        return
-    print("\n" + "=" * 72)
-    print(f"{'task':<10} {'model':<34} {'acc':>7} {'macro_f1':>9}")
-    print("-" * 72)
-    for r in sorted(results, key=lambda r: (r["task"], -r["macro_f1"])):
-        print(f"{r['task']:<10} {r['model']:<34} {r['accuracy']:>7.4f} {r['macro_f1']:>9.4f}")
-    print("=" * 72)
-
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--task", choices=["category", "action", "both"], default="both")
-    parser.add_argument("--models", nargs="+", default=["distilbert-base-uncased"],
-                        help="one or more HF model names, e.g. --models distilbert-base-uncased microsoft/deberta-v3-small")
-    parser.add_argument("--freeze_backbone", action="store_true",
-                        help="train only the classification head (backbone frozen)")
-    parser.add_argument("--epochs", type=int, default=4)
-    args = parser.parse_args()
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--mode", choices=["head", "full"], default="head",
+                    help="head = frozen encoder + logreg head (default, recommended); "
+                         "full = full DistilBERT fine-tune")
+    ap.add_argument("--review", metavar="CSV")
+    ap.add_argument("--export-review", metavar="CSV",
+                    help="full mode only: export a review CSV from the source Excel")
+    ap.add_argument("--prefill", action="store_true",
+                    help="full mode only: pre-fill suggested labels (provisional)")
+    ap.add_argument("--check-only", action="store_true",
+                    help="validate labels and print splits, no training")
+    ap.add_argument("--task", choices=["category", "action", "both"], default="both")
+    ap.add_argument("--allow-missing-labels", action="store_true")
+    ap.add_argument("--model", default="distilbert-base-uncased",
+                    help="full mode only: HF model id")
+    ap.add_argument("--epochs", type=int, default=10,
+                    help="full mode only: training epochs")
+    ap.add_argument("--lr", type=float, default=5e-5,
+                    help="full mode only: learning rate")
+    ap.add_argument("--encoder", choices=list(__import__("src.model", fromlist=["ENCODERS"]).ENCODERS),
+                    default="bge-small-en",
+                    help="head mode only: frozen encoder name")
+    ap.add_argument("--out-dir", metavar="DIR",
+                    help="output dir (default: models/)")
+    ap.add_argument("--synthetic", metavar="CSV",
+                    help="synthetic emails, added to the TRAIN split only")
+    ap.add_argument("--synthetic-tasks", choices=["category", "action", "both"], default="action",
+                    help="which tasks use the synthetic rows (default: action)")
+    ap.add_argument("--compare-seeds", metavar="LIST",
+                    help="e.g. 1,2,3,4,5 : repeat training on several splits, real-only vs "
+                         "real+synthetic (models are NOT saved)")
+    ap.add_argument("--compare-dir", metavar="DIR",
+                    help="comparison output dir (default: results/)")
+    ap.add_argument("--encoders", default=",".join(
+        __import__("src.model", fromlist=["ENCODERS"]).ENCODERS),
+                    help="head mode only: encoders used with --compare-seeds")
+    ap.add_argument("--tfidf-only", action="store_true",
+                    help="full mode only: with --compare-seeds, skip BERT, run TF-IDF only (fast)")
+    args = ap.parse_args()
 
+    if args.export_review:
+        from src.data import export_review
+        export_review(args.export_review, args.prefill)
+        return
+    if not args.review:
+        ap.error("--review CSV is required (or use --export-review)")
+
+    labels, digest = load_taxonomy()
+    review = pd_read_csv(args.review)
+    args.provisional = bool((review.get("label_source", pd.Series(dtype=str)) == "provisional").any())
     tasks = ["category", "action"] if args.task == "both" else [args.task]
-    results = [train_task(task, model, args) for model in args.models for task in tasks]
-    print_summary(results)
+    data, syn_data = {}, {}
+    ok = True
+    for t in tasks:
+        try:
+            data[t] = task_dataset(review, t, labels[t], args.allow_missing_labels)
+            print(f"[{t}] OK rows={data[t][1]['rows_used']} counts={data[t][1]['counts']} "
+                  f"rule={data[t][1]['rule_labels']} (excluded {data[t][1]['rule_rows_excluded']}) "
+                  f"unsupported={data[t][1]['unsupported_labels']}")
+        except Exception as e:  # DataError
+            ok = False
+            print("ERROR", e)
+    if args.synthetic and ok:
+        st = ["category", "action"] if args.synthetic_tasks == "both" else [args.synthetic_tasks]
+        for t in [t for t in tasks if t in st]:
+            try:
+                syn_data[t] = synthetic_dataset(args.synthetic, t, labels[t], data[t][0])
+                si = syn_data[t][1]
+                print(f"[{t}] synthetic OK rows={si['rows']} counts={si['counts']} "
+                      f"(dropped: duplicates {si['removed_duplicates']}, "
+                      f"too similar to real {si['removed_near_real']})")
+            except Exception as e:  # DataError
+                ok = False
+                print("ERROR", e)
+    if not ok:
+        sys.exit(2)
+
+    # Resolve output / compare dirs by mode
+    if args.out_dir is None:
+        args.out_dir = os.path.join(SCRIPT_DIR, "models")
+    if args.compare_dir is None:
+        args.compare_dir = os.path.join(SCRIPT_DIR, "results")
+
+    seeds = [int(x) for x in args.compare_seeds.split(",") if x.strip()] if args.compare_seeds else None
+
+    if args.check_only:
+        for t, (df, _) in data.items():
+            for sd in (seeds or [SEED]):
+                tr, va, te = split_dataset(df, seed=sd)
+                print(f"[{t}] seed={sd} split train/val/test = {len(tr)}/{len(va)}/{len(te)} "
+                      f"test counts={te['label_key'].value_counts().to_dict()}")
+        return
+
+    if seeds:
+        if args.mode == "head":
+            enc_list = [e.strip() for e in args.encoders.split(",") if e.strip()]
+            head_compare(data, syn_data, enc_list, seeds, args.compare_dir)
+        else:
+            full_compare_seeds(data, syn_data, labels, digest, args, seeds)
+
+        # Display comparison results
+        summary_name = "compare_head_summary.txt" if args.mode == "head" else "compare_full_summary.txt"
+        summary_path = os.path.join(args.compare_dir, summary_name)
+        if os.path.exists(summary_path):
+            print("\n" + "=" * 70)
+            print(f"Comparison results -> {summary_path}")
+            print("=" * 70)
+            with open(summary_path) as f:
+                print(f.read())
+        return
+
+    for t, (df, info) in data.items():
+        syn, si = syn_data.get(t, (None, None))
+        if args.mode == "head":
+            train_head_final(t, df, info, syn, si, args.encoder, labels[t], digest, args)
+        else:
+            train_full_task(t, df, info, labels[t], digest, args, syn, si)
+
+
+def pd_read_csv(path):
+    import pandas as pd
+    return pd.read_csv(path, dtype=str, keep_default_na=False)
 
 
 if __name__ == "__main__":

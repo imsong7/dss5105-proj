@@ -3,6 +3,7 @@ import logging
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from .classifier_base import BaseClassifier
 from .config import settings
 from .models import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
@@ -33,7 +34,11 @@ def _defs(table: dict) -> str:
     return "\n".join(f"- {key}: {item['desc']}" for key, item in table.items())
 
 
-class EmailClassifier:
+class EmailClassifier(BaseClassifier):
+    """Llama / Ollama backend."""
+
+    name = "llama"
+
     def __init__(self):
         llm = ChatOllama(
             model=settings.ollama_model,

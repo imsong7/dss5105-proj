@@ -1,0 +1,46 @@
+{
+  "task": "action",
+  "type": "frozen_encoder+logreg",
+  "encoder": "e5-small-multi",
+  "encoder_model_id": "intfloat/multilingual-e5-small",
+  "text_prefix": "query: ",
+  "pooling": "mean",
+  "normalize": true,
+  "head_C": 10.0,
+  "labels": [
+    "needs_action",
+    "needs_reply",
+    "no_immediate_action",
+    "reminder"
+  ],
+  "app_label_keys": [
+    "needs_action",
+    "needs_reply",
+    "reminder",
+    "no_immediate_action"
+  ],
+  "rule_labels": [],
+  "sender_rules": {},
+  "input": {
+    "format": "Subject: {subject}\\n{preview}",
+    "strip_sender": true,
+    "max_len": 256
+  },
+  "head_trained_on": "train+val (+synthetic)",
+  "n_head_rows": 198,
+  "synthetic": {
+    "csv": "synthetic.csv",
+    "rows": 91,
+    "removed_duplicates": 0,
+    "removed_near_real": 0,
+    "counts": {
+      "needs_action": 24,
+      "needs_reply": 28,
+      "reminder": 21,
+      "no_immediate_action": 18
+    }
+  },
+  "taxonomy_sha256_16": "99e9c2be07f026dd",
+  "review_csv": "labels.csv",
+  "seed": 42
+}

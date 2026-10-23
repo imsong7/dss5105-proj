@@ -1,0 +1,13 @@
+diff --git a/bert/preprocess.py b/bert/preprocess.py
+index f6d6360..af871ed 100644
+--- a/bert/preprocess.py
++++ b/bert/preprocess.py
+@@ -88,7 +88,7 @@ def _clean(df):
+ 
+ 
+ def _key(df):
+-    mid = df["Internet Message ID"].astype(str).str.strip()
++    mid = df["Internet Message ID"].fillna("").astype(str).str.strip()  # fillna: pandas 3 keeps NaN in astype(str)
+     content = (df["Subject"].str.lower() + "||" + df["From"].str.lower() + "||" + df["Preview"].str.lower())
+     return mid.where(~mid.str.lower().isin(["", "nan", "none"]), content)
+ 

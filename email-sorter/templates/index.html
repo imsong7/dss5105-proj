@@ -25,6 +25,9 @@ textarea{width:100%;min-height:76px;padding:8px 10px;border:1px solid var(--line
 button{font:inherit;border:0;border-radius:6px;padding:10px 14px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;width:100%;margin-top:14px}
 button:hover{background:var(--accent-dark)}
 button:disabled{background:#98a3b3;cursor:wait}
+.btn-backend{font:inherit;border:1px solid var(--line);border-radius:6px;padding:8px 12px;background:#fff;color:var(--ink);cursor:pointer;font-weight:600;font-size:13px;width:auto}
+.btn-backend:hover{background:#f2f4f7}
+.btn-backend.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .dot{width:9px;height:9px;border-radius:50%;background:#98a3b3;flex:none}
@@ -52,6 +55,7 @@ details.mail summary::-webkit-details-marker{display:none}
 .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,#98a3b3)}
 .tag.pending{font-weight:400;color:var(--muted)}
 .tag.pending::before{background:transparent;border:1.5px solid #98a3b3}
+.tag.dur{background:#eef1f5;color:#5b6876;border-color:var(--line)}
 .more{padding:0 14px 14px;border-top:1px solid var(--line);margin-top:0}
 .more p{margin:10px 0 0}
 .more .k{color:var(--muted);font-size:13px}
@@ -104,10 +108,19 @@ details.mail summary::-webkit-details-marker{display:none}
     <fieldset><legend>Content type</legend><div id="f-content"></div></fieldset>
     <fieldset><legend>Reply and action</legend><div id="f-reply"></div></fieldset>
   </section>
+
+  <section>
+    <h2>Model backend</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-backend" id="btn-llama" data-backend="llama">Llama</button>
+      <button class="btn-backend" id="btn-bert" data-backend="bert">BERT</button>
+    </div>
+    <p class="sub" id="backend-note">Using: <span id="backend-current">—</span></p>
+  </section>
 </aside>
 
 <main>
-  <div class="bar"><h1 id="title">Your emails</h1><span class="sub" id="count-label"></span></div>
+  <div class="bar"><h1 id="title">Your emails</h1><span class="sub" id="count-label"></span><span class="sub" id="latency-label" style="margin-left:auto"></span></div>
   <div class="progress" id="progress" hidden><div></div></div>
   <div id="notice"></div>
   <div id="list"><p class="empty">Connect a mailbox on the left to see your emails sorted into content type and reply type.</p></div>
@@ -117,7 +130,19 @@ details.mail summary::-webkit-details-marker{display:none}
 <script>
 const $ = s => document.querySelector(s);
 let tax = null, emails = [], results = {}, rows = {}, run = 0;
+let selectedBackend = null; // backend selection: "llama" | "bert"
+let firstLatency = null;    // first classification time (ms)
 const filters = { content: new Set(), reply: new Set() };
+
+function formatLatency(ms) {
+  if (ms < 1000) return ms + "ms";
+  const seconds = Math.floor(ms / 1000);
+  const remainingMs = ms % 1000;
+  if (seconds < 60) return seconds + "s " + remainingMs + "ms";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes + "m " + remainingSeconds + "s";
+}
 
 async function api(path, body) {
   const r = await fetch(path, {
@@ -228,6 +253,8 @@ async function start() {
   const btn = $("#go");
   btn.disabled = true; notice(""); results = {}; rows = {}; emails = [];
   filters.content.clear(); filters.reply.clear();
+  firstLatency = null;
+  $("#latency-label").textContent = "";
   buildFilters(); updateCounts();
   btn.textContent = "Fetching...";
   try {
@@ -247,8 +274,12 @@ async function start() {
       if (my !== run) return;
       btn.textContent = `Sorting ${done + 1} of ${emails.length}...`;
       try {
-        const r = await api("/api/classify", { email: m });
+        const r = await api("/api/classify", { email: m, backend: selectedBackend });
         results[m.id] = r; showResult(m, r);
+        if (firstLatency === null && r.duration_ms) {
+          firstLatency = r.duration_ms;
+          $("#latency-label").textContent = `First classified in ${formatLatency(firstLatency)}`;
+        }
       } catch (e) {
         failed++; showFailure(m, e.message);
         if (failed === 1) notice(e.message + " Check that Ollama is running and the model is pulled.", true);
@@ -267,13 +298,39 @@ async function init() {
   tax = await api("/api/taxonomy");
   $("#count").max = tax.max_emails;
   buildFilters();
-  try {
-    const h = await api("/api/health");
-    const dot = $("#dot");
-    if (!h.ollama) { dot.className = "dot bad"; $("#health").textContent = "Ollama is not running. Start it, then reload."; }
-    else if (!h.model_ready) { dot.className = "dot bad"; $("#health").textContent = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`; }
-    else { dot.className = "dot ok"; $("#health").textContent = `Local model ready: ${h.model}`; }
-  } catch { $("#health").textContent = "Could not check the local model."; }
+
+  // Backend selection state
+  function setBackend(name, save = true) {
+    selectedBackend = name;
+    $("#btn-llama").className = name === "llama" ? "btn-backend active" : "btn-backend";
+    $("#btn-bert").className = name === "bert" ? "btn-backend active" : "btn-backend";
+    $("#backend-current").textContent = name;
+    if (save) localStorage.setItem("email_backend", name);
+  }
+
+  // Restore saved backend or default to llama
+  const saved = localStorage.getItem("email_backend");
+  if (saved === "llama" || saved === "bert") {
+    setBackend(saved, false);
+  } else {
+    setBackend("llama", false);
+  }
+
+  $("#btn-llama").addEventListener("click", () => setBackend("llama"));
+  $("#btn-bert").addEventListener("click", () => setBackend("bert"));
+
+  // Health check is async — don't block page load on Ollama timeout
+  (async () => {
+    try {
+      const h = await api("/api/health");
+      const dot = $("#dot");
+      if (!h.ollama) { dot.className = "dot bad"; $("#health").textContent = "Ollama is not running. Start it, then reload."; }
+      else if (!h.model_ready) { dot.className = "dot bad"; $("#health").textContent = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`; }
+      else { dot.className = "dot ok"; $("#health").textContent = `Local model ready: ${h.model}`; }
+      // Prefer the backend the server is already on, else keep user choice
+      if (h.backend) setBackend(h.backend, false);
+    } catch { $("#health").textContent = "Could not check the local model."; }
+  })();
 }
 
 $("#provider").addEventListener("change", e => {

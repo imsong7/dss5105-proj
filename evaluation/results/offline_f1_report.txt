@@ -1,0 +1,21 @@
+Offline macro-F1 — out-of-fold predictions
+Review CSV: bert/data/labels.csv
+Folds: 5 (stratified) | Bootstrap: 2000 (stratified by true label (percentile CI)) | Seed: 42
+Encoders: category=bge-small-en, action=e5-small-multi
+Synthetic: bert/data/synthetic.csv (tasks: action)
+
+Dataset                     N  Accuracy [95% CI]          Macro F1 [95% CI]         
+------------------------------------------------------------------------------------
+category_model            132  0.864 [0.811, 0.917]       0.844 [0.780, 0.905]      
+category_end_to_end       200  0.910 [0.875, 0.945]       0.870 [0.813, 0.919]      
+action                    134  0.843 [0.783, 0.903]       0.795 [0.707, 0.871]      
+both_labels               133  0.737 [0.662, 0.812]       —                         
+
+Notes:
+- category_model excludes the 68 Canvas sender-rule rows from the model;
+  category_end_to_end includes them (rule + head).
+- action uses the configured training condition (real+synthetic by default).
+- both_labels is the exact-match rate on 133 unique emails covered by
+  both tasks; action rows without a usable category label are excluded.
+- CIs are percentile bootstrap intervals; they quantify uncertainty from the
+  labelled emails, not from a single held-out split.

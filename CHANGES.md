@@ -32,3 +32,16 @@ Verified: `REPLY_NATURE.keys()` now include `reminder` instead of `deadline_ment
 
 The codebase is now cleaner and ready for integration of a custom ML model or
 agent backend.
+
+## 5. Offline evaluation
+- Added `evaluation/offline_f1.py`: 5-fold stratified out-of-fold predictions
+  for the frozen BERT heads, with 95% stratified-bootstrap confidence intervals.
+- Reports category model-only (132 rows), category end-to-end with the Canvas
+  rule (200 rows), action (134 rows), and both-label exact match (133 unique
+  emails; one action row has category `__skip__`).
+- Defaults to the deployed configuration: category real-only, action
+  real+synthetic. `--no-synthetic` gives the real-only baseline.
+- Added `evaluation/test_offline_f1.py`, `evaluation/README.md`, and flat result
+  files under `evaluation/results/`.
+- Updated the README model table to quote OOF macro-F1 instead of the old
+  27-row test split.

@@ -21,12 +21,13 @@ git push -u origin feature/your-name
 
 ---
 
-Two parts live in this repo:
+The repo has three parts:
 
 | Folder | Purpose |
 |--------|---------|
 | `email-sorter/` | The Flask app. Fetches emails, sorts them with Llama (Ollama) or BERT, and compares backends side by side. |
 | `bert/` | BERT experiment/training code. Trains and compares DistilBERT fine-tunes and frozen-encoder heads on labeled email data. |
+| `evaluation/` | Offline model evaluation: out-of-fold macro-F1 with bootstrap confidence intervals. |
 
 ---
 
@@ -70,6 +71,21 @@ python bert/train.py --review bert/data/labels.csv --mode full --task both
 ```
 
 See `bert/README.md` for full BERT training docs.
+
+**Evaluate BERT models offline** (no mailbox or Ollama needed):
+```bash
+# 5-fold out-of-fold predictions + 95% bootstrap CIs (deployed configuration)
+python evaluation/offline_f1.py
+
+# Real-only baseline
+python evaluation/offline_f1.py --no-synthetic
+
+# Unit tests for the evaluator
+python -m unittest evaluation.test_offline_f1 -v
+```
+
+Results are written to `evaluation/results/` as flat CSV/JSON/TXT files. See
+`evaluation/README.md` for the methodology and caveats.
 
 ---
 
@@ -131,6 +147,21 @@ bert/
     compare_full_runs.csv
 ```
 
+### `evaluation/` — offline evaluation
+```
+evaluation/
+  offline_f1.py             # OOF predictions + stratified bootstrap CIs
+  test_offline_f1.py        # unit tests (no encoder downloads)
+  README.md                 # methodology and current results
+  results/
+    offline_f1_summary.csv
+    offline_f1_per_class.csv
+    offline_f1_confusion.csv
+    offline_f1_oof_predictions.csv
+    offline_f1_manifest.json
+    offline_f1_report.txt
+```
+
 Large `model.safetensors` files stay on disk but are ignored by Git.
 
 ---
@@ -140,12 +171,16 @@ Large `model.safetensors` files stay on disk but are ignored by Git.
 Choose the backend in the UI. BERT loads
 `EmbedPredictor("bert/models/<task>_head")` for each task.
 
-| Task | Recommended model | Why |
-|------|-------------------|-----|
-| Category | `bert/models/category_head` (bge-small-en) | Best accuracy (0.865 macro-F1), tiny file |
-| Action | `bert/models/action_head` (e5-small-multi + synthetic) | Best accuracy (0.511 macro-F1), tiny file |
+| Task | Recommended model | OOF macro-F1 (95% CI) | Why |
+|------|-------------------|-----------------------|-----|
+| Category | `bert/models/category_head` (bge-small-en) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end | Best accuracy, tiny file |
+| Action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] real+synthetic; 0.697 real-only | Synthetic helps the head; tiny file |
 
-See `bert/README.md` for details.
+These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
+uses all labelled emails instead of the old 27-row test split. The historical
+split results remain in `bert/README.md`.
+
+See `bert/README.md` and `evaluation/README.md` for details.
 
 ---
 

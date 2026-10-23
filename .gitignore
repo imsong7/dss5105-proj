@@ -19,6 +19,13 @@ bert/data/
 bert/labels_review*.csv
 bert/models/app_real/
 bert/models/embed/
+bert/models/*_full/
+bert/models/*/model.safetensors
+bert/models/*/training_args.bin
+bert/models/*/optimizer.pt
+bert/models/*/scheduler.pt
+bert/models/*/rng_state.pth
+bert/models/*/checkpoints/
 
 # IDE
 .idea/

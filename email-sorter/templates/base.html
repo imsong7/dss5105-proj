@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Inbox sorter{% endblock %}</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div>
+    <div class="brand-name">Inbox sorter</div>
+    <p class="sub">Runs on your computer. Nothing is written back to your mailbox.</p>
+  </div>
+
+  <nav class="tabs" aria-label="Pages">
+    <a class="tab {{ 'active' if request.path == '/' else '' }}" href="{{ url_for('index') }}">Sorter</a>
+    <a class="tab {{ 'active' if request.path == '/compare' else '' }}" href="{{ url_for('compare') }}">Compare</a>
+  </nav>
+
+  {% block sidebar %}{% endblock %}
+</aside>
+
+<main>
+  {% block main %}{% endblock %}
+</main>
+</div>
+
+<script src="{{ url_for('static', filename='common.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

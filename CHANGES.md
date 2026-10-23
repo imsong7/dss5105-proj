@@ -11,8 +11,24 @@ Verified: `REPLY_NATURE.keys()` now include `reminder` instead of `deadline_ment
 - **Removed unnecessary artifacts**: Deleted `email_cl/` directory (committed venv), all `__pycache__` folders, and all `*.pyc` files. These are generated files that shouldn't be tracked.
 
 ## 3. What remains
-- Core application code (`app/`, `run.py`, `templates/index.html`)
+- Core application code (`app/`, `run.py`, `templates/`, `static/`)
 - Configuration files (`requirements.txt`, `.env.example`, `.gitignore`, `README.md`)
 - `.env` (local defaults) - still present; typically not committed but fine for local use
 
-The codebase is now cleaner and ready for integration of a custom BERT model.
+## 4. Multi-page UI and backend registry
+- Added a `/compare` page that runs the same mailbox batch through several
+  backends, reports per-backend latency (total/average/median/p95, with optional
+  warm-up excluded), shows pairwise label agreement, and exports CSV.
+- Split the frontend into `templates/base.html` + `index.html` + `compare.html`
+  and `static/style.css` + `common.js` + `sorter.js` + `compare.js`.
+- Added `BACKEND_INFO` to `app/classifier_base.py`; `/api/backends` exposes the
+  registry so future ML/agent backends appear in both pages without frontend
+  changes.
+- Sorter backend buttons are now rendered from the registry; the selected
+  backend is saved in the browser, while `MODEL_BACKEND`/`--backend` only set the
+  initial server default.
+- Added cancel/retry, request timeouts, validation, progress cleanup, and a
+  single human-readable latency summary per batch.
+
+The codebase is now cleaner and ready for integration of a custom ML model or
+agent backend.

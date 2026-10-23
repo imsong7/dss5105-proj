@@ -1,344 +1,61 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inbox sorter</title>
-<style>
-:root{
-  --ink:#1b2530; --muted:#5b6876; --bg:#e9edf2; --panel:#ffffff; --line:#d3dae3;
-  --accent:#2a55cc; --accent-dark:#1f43a6; --focus:#f2a900;
-  --font:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
-.layout{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
-aside{background:var(--panel);border-right:1px solid var(--line);padding:24px 20px;display:flex;flex-direction:column;gap:22px}
-main{padding:24px 28px;max-width:980px;width:100%}
-h1{font-size:22px;margin:0 0 2px;font-weight:650}
-h2{font-size:14px;margin:0 0 8px;font-weight:650}
-.sub{color:var(--muted);margin:0;font-size:13px}
-label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
-textarea{width:100%;min-height:76px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:12px/1.35 Consolas,monospace;resize:vertical}
-button{font:inherit;border:0;border-radius:6px;padding:10px 14px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;width:100%;margin-top:14px}
-button:hover{background:var(--accent-dark)}
-button:disabled{background:#98a3b3;cursor:wait}
-.btn-backend{font:inherit;border:1px solid var(--line);border-radius:6px;padding:8px 12px;background:#fff;color:var(--ink);cursor:pointer;font-weight:600;font-size:13px;width:auto}
-.btn-backend:hover{background:#f2f4f7}
-.btn-backend.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.dot{width:9px;height:9px;border-radius:50%;background:#98a3b3;flex:none}
-.dot.ok{background:#1f8a4c}.dot.bad{background:#c0392b}
-.filters fieldset{border:0;padding:0;margin:0 0 16px}
-.filters legend{font-weight:650;font-size:14px;padding:0;margin-bottom:6px}
-.check{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px;cursor:pointer}
-.check input{width:auto;margin:0}
-.check .n{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
-.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 18px}
-.progress>div{height:100%;width:0;background:var(--accent);transition:width .25s}
-.bar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.msg{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);padding:12px 14px;border-radius:6px;margin-bottom:14px}
-.msg.err{border-left-color:#c0392b}
-.empty{color:var(--muted);padding:40px 0}
-details.mail{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
-details.mail[hidden]{display:none}
-details.mail summary{list-style:none;display:grid;grid-template-columns:1fr auto;gap:14px;padding:12px 14px;cursor:pointer}
-details.mail summary::-webkit-details-marker{display:none}
-.from{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.subj{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.when{color:var(--muted);font-size:12px}
-.tags{display:flex;flex-direction:column;gap:5px;align-items:flex-end;min-width:170px}
-.tag{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;background:#eef1f5;border:1px solid var(--line);white-space:nowrap}
-.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,#98a3b3)}
-.tag.pending{font-weight:400;color:var(--muted)}
-.tag.pending::before{background:transparent;border:1.5px solid #98a3b3}
-.tag.dur{background:#eef1f5;color:#5b6876;border-color:var(--line)}
-.more{padding:0 14px 14px;border-top:1px solid var(--line);margin-top:0}
-.more p{margin:10px 0 0}
-.more .k{color:var(--muted);font-size:13px}
-.deadline{font-size:12.5px;color:#8a5a00;font-weight:600}
-[data-k=medical]{--c:#c0392b}[data-k=promotional]{--c:#d68910}[data-k=career]{--c:#138a72}
-[data-k=canva]{--c:#7a4fd6}[data-k=general]{--c:#5b6876}[data-k=others]{--c:#98a3b3}
-[data-k=needs_action]{--c:#c0392b}[data-k=needs_reply]{--c:#2a55cc}
-[data-k=reminder]{--c:#d68910}[data-k=no_immediate_action]{--c:#98a3b3}
-@media (max-width:820px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}main{padding:18px 14px}.tags{min-width:0}details.mail summary{grid-template-columns:1fr}.tags{align-items:flex-start;flex-direction:row;flex-wrap:wrap}}
-@media (prefers-reduced-motion:reduce){.progress>div{transition:none}}
-</style>
-</head>
-<body>
-<div class="layout">
-<aside>
-  <div>
-    <h1>Inbox sorter</h1>
-    <p class="sub">Runs on your computer. Nothing is written back to your mailbox.</p>
+{% extends "base.html" %}
+{% block title %}Inbox sorter{% endblock %}
+
+{% block sidebar %}
+<section>
+  <h2>Connect a mailbox</h2>
+  <label for="provider">Mail source</label>
+  <select id="provider">
+    <option value="outlook">Outlook (Graph token)</option>
+    <option value="imap">Gmail or other (IMAP)</option>
+  </select>
+
+  <div id="f-outlook">
+    <label for="token">Graph access token</label>
+    <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste the token from Graph Explorer"></textarea>
+  </div>
+  <div id="f-imap" hidden>
+    <label for="host">IMAP server</label>
+    <input id="host" placeholder="imap.gmail.com" autocomplete="off">
+    <label for="user">Email address</label>
+    <input id="user" autocomplete="off">
+    <label for="pass">App password</label>
+    <input id="pass" type="password" autocomplete="off">
   </div>
 
-  <section>
-    <h2>Connect a mailbox</h2>
-    <label for="provider">Mail source</label>
-    <select id="provider">
-      <option value="outlook">Outlook (Graph token)</option>
-      <option value="imap">Gmail or other (IMAP)</option>
-    </select>
+  <label for="count">How many recent emails</label>
+  <input id="count" type="number" min="1" value="10">
+  <button id="go">Fetch and sort emails</button>
+  <button id="cancel" class="btn-secondary" hidden>Cancel</button>
+  <button id="retry" class="btn-secondary" hidden>Retry failed emails</button>
+</section>
 
-    <div id="f-outlook">
-      <label for="token">Graph access token</label>
-      <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste the token from Graph Explorer"></textarea>
-    </div>
-    <div id="f-imap" hidden>
-      <label for="host">IMAP server</label>
-      <input id="host" placeholder="imap.gmail.com" autocomplete="off">
-      <label for="user">Email address</label>
-      <input id="user" autocomplete="off">
-      <label for="pass">App password</label>
-      <input id="pass" type="password" autocomplete="off">
-    </div>
+<section class="status" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking backend...</span></section>
 
-    <label for="count">How many recent emails</label>
-    <input id="count" type="number" min="1" value="10">
-    <button id="go">Fetch and sort emails</button>
-  </section>
+<section class="filters" id="filters" hidden>
+  <fieldset><legend>Content type</legend><div id="f-content"></div></fieldset>
+  <fieldset><legend>Reply and action</legend><div id="f-reply"></div></fieldset>
+</section>
 
-  <section class="status" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking local model...</span></section>
+<section>
+  <h2>Model backend</h2>
+  <div class="backend-buttons" id="backend-buttons"></div>
+  <p class="sub" id="backend-note">Next run: <span id="backend-current">—</span></p>
+  <p class="sub" id="result-note" hidden>Results from: <span id="result-backend">—</span></p>
+</section>
+{% endblock %}
 
-  <section class="filters" id="filters" hidden>
-    <fieldset><legend>Content type</legend><div id="f-content"></div></fieldset>
-    <fieldset><legend>Reply and action</legend><div id="f-reply"></div></fieldset>
-  </section>
-
-  <section>
-    <h2>Model backend</h2>
-    <div style="display:flex;gap:8px">
-      <button class="btn-backend" id="btn-llama" data-backend="llama">Llama</button>
-      <button class="btn-backend" id="btn-bert" data-backend="bert">BERT</button>
-    </div>
-    <p class="sub" id="backend-note">Using: <span id="backend-current">—</span></p>
-  </section>
-</aside>
-
-<main>
-  <div class="bar"><h1 id="title">Your emails</h1><span class="sub" id="count-label"></span><span class="sub" id="latency-label" style="margin-left:auto"></span></div>
-  <div class="progress" id="progress" hidden><div></div></div>
-  <div id="notice"></div>
-  <div id="list"><p class="empty">Connect a mailbox on the left to see your emails sorted into content type and reply type.</p></div>
-</main>
+{% block main %}
+<div class="bar">
+  <h1 id="title">Your emails</h1>
+  <span class="sub" id="count-label"></span>
+  <span class="sub" id="latency-label"></span>
 </div>
+<div class="progress" id="progress" hidden><div></div></div>
+<div id="notice"></div>
+<div id="list"><p class="empty">Connect a mailbox on the left to see your emails sorted into content type and reply type.</p></div>
+{% endblock %}
 
-<script>
-const $ = s => document.querySelector(s);
-let tax = null, emails = [], results = {}, rows = {}, run = 0;
-let selectedBackend = null; // backend selection: "llama" | "bert"
-let firstLatency = null;    // first classification time (ms)
-const filters = { content: new Set(), reply: new Set() };
-
-function formatLatency(ms) {
-  if (ms < 1000) return ms + "ms";
-  const seconds = Math.floor(ms / 1000);
-  const remainingMs = ms % 1000;
-  if (seconds < 60) return seconds + "s " + remainingMs + "ms";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return minutes + "m " + remainingSeconds + "s";
-}
-
-async function api(path, body) {
-  const r = await fetch(path, {
-    method: body ? "POST" : "GET",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || "Request failed (" + r.status + ")");
-  return j;
-}
-
-function el(tag, attrs = {}, text) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
-function notice(text, isError) {
-  const box = $("#notice");
-  box.replaceChildren();
-  if (text) box.append(el("div", { class: "msg" + (isError ? " err" : ""), role: isError ? "alert" : "status" }, text));
-}
-
-function tag(group, key) {
-  const item = tax[group][key];
-  return el("span", { class: "tag", "data-k": key }, item ? item.label : key);
-}
-
-function buildFilters() {
-  for (const [group, box] of [["content", "#f-content"], ["reply", "#f-reply"]]) {
-    const wrap = $(box);
-    wrap.replaceChildren();
-    for (const [key, item] of Object.entries(tax[group])) {
-      const lab = el("label", { class: "check", "data-k": key });
-      const cb = el("input", { type: "checkbox", value: key });
-      cb.addEventListener("change", () => {
-        cb.checked ? filters[group].add(key) : filters[group].delete(key);
-        applyFilters();
-      });
-      lab.append(cb, el("span", { "data-k": key, class: "tag" }, item.label), el("span", { class: "n", id: `n-${group}-${key}` }, "0"));
-      wrap.append(lab);
-    }
-  }
-}
-
-function updateCounts() {
-  const counts = { content: {}, reply: {} };
-  Object.values(results).forEach(r => {
-    counts.content[r.content_category] = (counts.content[r.content_category] || 0) + 1;
-    counts.reply[r.reply_nature] = (counts.reply[r.reply_nature] || 0) + 1;
-  });
-  for (const group of ["content", "reply"])
-    for (const key of Object.keys(tax[group])) {
-      const n = $(`#n-${group}-${key}`);
-      if (n) n.textContent = counts[group][key] || 0;
-    }
-}
-
-function applyFilters() {
-  emails.forEach(m => {
-    const r = results[m.id], row = rows[m.id];
-    if (!row) return;
-    const okC = !filters.content.size || (r && filters.content.has(r.content_category));
-    const okR = !filters.reply.size || (r && filters.reply.has(r.reply_nature));
-    row.hidden = !(okC && okR);
-  });
-}
-
-function buildRow(m) {
-  const d = el("details", { class: "mail" });
-  const s = el("summary");
-  const left = el("div");
-  left.append(el("div", { class: "from" }, m.sender), el("div", { class: "subj" }, m.subject),
-              el("div", { class: "when" }, m.received ? new Date(m.received).toString().slice(0, 21) : ""));
-  const tags = el("div", { class: "tags", id: `tags-${CSS.escape(m.id)}` });
-  tags.append(el("span", { class: "tag pending" }, "Sorting..."));
-  s.append(left, tags);
-  const more = el("div", { class: "more" });
-  more.append(el("p", {}, m.preview || "(no preview)"));
-  d.append(s, more);
-  d._tags = tags; d._more = more;
-  return d;
-}
-
-function showResult(m, r) {
-  const row = rows[m.id];
-  row._tags.replaceChildren(tag("content", r.content_category), tag("reply", r.reply_nature));
-  if (r.deadline) row._tags.append(el("span", { class: "deadline" }, "Deadline: " + r.deadline));
-  if (r.reason) {
-    const p = el("p"); p.append(el("span", { class: "k" }, "Why: "), document.createTextNode(r.reason));
-    row._more.append(p);
-  }
-}
-
-function showFailure(m, text) {
-  rows[m.id]._tags.replaceChildren(el("span", { class: "tag pending" }, "Could not sort"));
-  rows[m.id]._more.append(el("p", {}, text));
-}
-
-async function start() {
-  const my = ++run;
-  const provider = $("#provider").value;
-  const credentials = provider === "outlook"
-    ? { token: $("#token").value }
-    : { host: $("#host").value, user: $("#user").value, password: $("#pass").value };
-  const btn = $("#go");
-  btn.disabled = true; notice(""); results = {}; rows = {}; emails = [];
-  filters.content.clear(); filters.reply.clear();
-  firstLatency = null;
-  $("#latency-label").textContent = "";
-  buildFilters(); updateCounts();
-  btn.textContent = "Fetching...";
-  try {
-    const data = await api("/api/emails", { provider, credentials, count: +$("#count").value || 10 });
-    emails = data.emails;
-    if (!emails.length) { notice("No emails found in that mailbox."); return; }
-    $("#filters").hidden = false;
-    const list = $("#list"); list.replaceChildren();
-    emails.forEach(m => { rows[m.id] = buildRow(m); list.append(rows[m.id]); });
-    $("#progress").hidden = false;
-    let done = 0, failed = 0;
-    const bar = $("#progress > div");
-    const label = $("#count-label");
-    const tick = () => { bar.style.width = (done / emails.length * 100) + "%"; label.textContent = `Sorted ${done} of ${emails.length}`; };
-    tick();
-    for (const m of emails) {
-      if (my !== run) return;
-      btn.textContent = `Sorting ${done + 1} of ${emails.length}...`;
-      try {
-        const r = await api("/api/classify", { email: m, backend: selectedBackend });
-        results[m.id] = r; showResult(m, r);
-        if (firstLatency === null && r.duration_ms) {
-          firstLatency = r.duration_ms;
-          $("#latency-label").textContent = `First classified in ${formatLatency(firstLatency)}`;
-        }
-      } catch (e) {
-        failed++; showFailure(m, e.message);
-        if (failed === 1) notice(e.message + " Check that Ollama is running and the model is pulled.", true);
-      }
-      done++; tick(); updateCounts(); applyFilters();
-    }
-    if (!failed) notice("");
-  } catch (e) {
-    notice(e.message, true);
-  } finally {
-    if (my === run) { btn.disabled = false; btn.textContent = "Fetch and sort emails"; }
-  }
-}
-
-async function init() {
-  tax = await api("/api/taxonomy");
-  $("#count").max = tax.max_emails;
-  buildFilters();
-
-  // Backend selection state
-  function setBackend(name, save = true) {
-    selectedBackend = name;
-    $("#btn-llama").className = name === "llama" ? "btn-backend active" : "btn-backend";
-    $("#btn-bert").className = name === "bert" ? "btn-backend active" : "btn-backend";
-    $("#backend-current").textContent = name;
-    if (save) localStorage.setItem("email_backend", name);
-  }
-
-  // Restore saved backend or default to llama
-  const saved = localStorage.getItem("email_backend");
-  if (saved === "llama" || saved === "bert") {
-    setBackend(saved, false);
-  } else {
-    setBackend("llama", false);
-  }
-
-  $("#btn-llama").addEventListener("click", () => setBackend("llama"));
-  $("#btn-bert").addEventListener("click", () => setBackend("bert"));
-
-  // Health check is async — don't block page load on Ollama timeout
-  (async () => {
-    try {
-      const h = await api("/api/health");
-      const dot = $("#dot");
-      if (!h.ollama) { dot.className = "dot bad"; $("#health").textContent = "Ollama is not running. Start it, then reload."; }
-      else if (!h.model_ready) { dot.className = "dot bad"; $("#health").textContent = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`; }
-      else { dot.className = "dot ok"; $("#health").textContent = `Local model ready: ${h.model}`; }
-      // Prefer the backend the server is already on, else keep user choice
-      if (h.backend) setBackend(h.backend, false);
-    } catch { $("#health").textContent = "Could not check the local model."; }
-  })();
-}
-
-$("#provider").addEventListener("change", e => {
-  $("#f-outlook").hidden = e.target.value !== "outlook";
-  $("#f-imap").hidden = e.target.value !== "imap";
-});
-$("#go").addEventListener("click", start);
-init();
-</script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='sorter.js') }}"></script>
+{% endblock %}

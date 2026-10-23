@@ -27,20 +27,37 @@ class BaseClassifier(ABC):
 
 
 # --------------------------------------------------------------------------- #
-# Factory
+# Registry
 # --------------------------------------------------------------------------- #
+# Add a new entry here (plus a matching branch in create_classifier) when a
+# teammate contributes a model. The UI reads this registry at runtime, so no
+# frontend changes are needed.
+BACKEND_INFO: dict[str, dict[str, str]] = {
+    "llama": {
+        "label": "Llama (Ollama)",
+        "kind": "llm",
+        "description": "Local LLM served through Ollama.",
+    },
+    "bert": {
+        "label": "BERT",
+        "kind": "encoder",
+        "description": "Frozen sentence encoder with logistic-regression heads.",
+    },
+}
+
+
 def list_backends() -> list[str]:
-    """Return available backend names."""
-    return ["bert", "llama"]
+    """Return available backend names, in display order."""
+    return list(BACKEND_INFO)
 
 
 def create_classifier(backend: str | None = None) -> BaseClassifier:
-    """Create a classifier instance by backend name.
+    """Create a classifier by backend name.
 
-    Falls back to the first registered backend if ``backend`` is None or
-    unknown.
+    Defaults to the first registered backend when ``backend`` is None.
+    Raises ``ValueError`` for unknown names.
     """
-    name = (backend or "llama").lower()
+    name = (backend or next(iter(BACKEND_INFO))).lower()
 
     if name == "llama":
         from .classifier import EmailClassifier  # noqa: PLC0415

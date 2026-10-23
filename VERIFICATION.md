@@ -1,5 +1,9 @@
 # BERT training pipeline — real data verification report
 
+> **Historical snapshot** of commit `05327ce` (pre-refactor). Paths, commands,
+> and results may not match the current code. See `README.md` and
+> `bert/README.md` for the current training workflow.
+
 - Repository: imsong7/dss5105-proj (commit 05327ce)
 - Environment: CPU 2-core, Python 3 / pandas 3.0.6 / torch 2.14.1+cpu / transformers 5.20.2 / datasets 5.1.0
 - Base model: `distilbert-base-uncased` (verified download from Hugging Face)
@@ -16,7 +20,7 @@
 
 ### Found bug: pandas 3 silently drops rows
 
-`preprocess.py` `_key()` uses `astype(str)`, but in pandas 3 NaN stays as NaN instead of becoming `"nan"`. Sheets with empty Message ID (medical, promotion, ssy-*) get NaN keys and are dropped by `groupby`, leaving only 49 of 202 rows. Fixed by adding one line `fillna("")`; after the fix row counts match the repo's existing CSVs (category 129, action 65). See `preprocess_fix.diff`.
+`preprocess.py` `_key()` uses `astype(str)`, but in pandas 3 NaN stays as NaN instead of becoming `"nan"`. Sheets with empty Message ID (medical, promotion, ssy-*) get NaN keys and are dropped by `groupby`, leaving only 49 of 202 rows. Fixed by adding one line `fillna("")`; after the fix row counts match the repo's existing CSVs (category 129, action 65). The old patch file has since been removed; the change was `df["Internet Message ID"].fillna("").astype(str).str.strip()`.
 
 ### Found data characteristics
 

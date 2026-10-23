@@ -16,7 +16,6 @@ bert/
   data/                   # data files
     labels.csv            # hand-labelled real emails (~80 usable)
     synthetic.csv         # 91 synthetic emails (seed-fixed)
-    labels_review_provisional.csv
   models/                 # trained app models (flat naming: {task}_{mode})
     action_head/          # frozen encoder head for action
     action_full/          # distilbert fine-tune for action (~512MB)
@@ -24,14 +23,11 @@ bert/
     category_full/        # distilbert fine-tune for category (~512MB)
   results/                # experiment comparison records (flat files)
     compare_head_summary.txt    # head mode comparison results
-    compare_head_summary.csv
     compare_head_runs.csv
     compare_full_summary.txt    # full mode comparison results
     compare_full_summary.csv
     compare_full_runs.csv
   make_synthetic.py       # generates bert/data/synthetic.csv
-  label.html              # browser-based labeling UI
-  preprocess.py           # legacy — merges Excel sheets into labels.csv (data_1012.xlsx is gone)
   README.md               # this file
 ```
 
@@ -46,8 +42,8 @@ All training goes through `bert/train.py`. Pick `--mode head` (default, recommen
 python bert/train.py --review bert/data/labels.csv --check-only
 
 # 2) Train frozen heads for the app (recommended) -> bert/models/{task}_head/
-python bert/train.py --review bert/data/labels.csv --task both       # mode head by default
-python bert/train.py --review bert/data/labels.csv --task action --mode head \
+python bert/train.py --review bert/data/labels.csv --mode head --task category
+python bert/train.py --review bert/data/labels.csv --mode head --task action \
     --encoder e5-small-multi --synthetic bert/data/synthetic.csv
 
 # 3) Train full DistilBERT fine-tunes -> bert/models/{task}_full/
@@ -65,8 +61,14 @@ cat bert/results/compare_full_summary.txt
 
 Use in the app:
 
+The app wraps the models in `email-sorter/app/bert_classifier.py`. For a
+standalone script run from the repo root:
+
 ```python
-from train import EmbedPredictor
+import sys
+sys.path.insert(0, "bert")
+from src.model import EmbedPredictor
+
 action_clf = EmbedPredictor("bert/models/action_head")
 category_clf = EmbedPredictor("bert/models/category_head")
 label, conf = action_clf.predict(email.subject, email.body)
@@ -172,13 +174,7 @@ python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthet
 cat bert/results/compare_full_summary.txt
 ```
 
-Outputs: `compare_head_summary.txt`, `compare_head_summary.csv`, `compare_head_runs.csv` (head mode)
-or `compare_full_summary.txt`, `compare_full_summary.csv`, `compare_full_runs.csv` (full mode) — flat files,
-no per-seed subfolders. Model weights are **not** saved for compare runs.
-
----
-
-## Legacy
-
-- `bert/preprocess.py` — merges Excel sheets into labels.csv. Requires `data_1012.xlsx` which is no longer in the repo.
-- `bert/label.html` — browser-based labeling UI.
+Outputs: `compare_head_summary.txt` + `compare_head_runs.csv` (head mode) or
+`compare_full_summary.txt`, `compare_full_summary.csv`, `compare_full_runs.csv` (full mode) — flat files,
+no per-seed subfolders. Model weights are **not** saved for compare runs. `train.py` prints and
+`cat`s the summary after a compare run.

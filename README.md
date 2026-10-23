@@ -3,6 +3,9 @@
 **How to work together** 
 ```bash
 # 1. Start fresh from updated main
+git clone git@github.com:imsong7/dss5105-proj.git
+cd dss5105-proj
+
 git switch main
 git pull origin main
 git switch -c feature/your-name

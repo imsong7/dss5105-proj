@@ -1,4 +1,15 @@
 # dss5105-proj — Email Classification Project
+```bash
+git clone https://github.com/imsong7/dss5105-proj.git
+cd dss5105-proj
+git switch -c feature/your-name
+# --- (Make your code changes here) ---
+git add .
+git commit -m "Describe your changes briefly"
+git pull origin main
+git push -u origin feature/your-name
+```
+
 
 Two parts live in this repo:
 

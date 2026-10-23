@@ -1,7 +1,7 @@
 # BERT email classification experiments
 
 This directory contains the BERT-based experiments for the email-sorter project:
-- **Frozen encoder + logistic-regression head** (`train.py --mode head`) — recommended for the app; tiny, fast, no overfitting on ~80 real emails.
+- **Frozen encoder + logistic-regression head** (`train.py --mode head`) — recommended for the app; tiny, fast, and robust on the current 202 labelled emails.
 - **Full distilbert fine-tune** (`train.py --mode full`) — baseline fine-tune on real data, with optional synthetic-data augmentation.
 
 ## Directory structure
@@ -14,7 +14,7 @@ bert/
     model.py              # Encoder, head training, EmbedPredictor
   train.py                # unified CLI (--mode head|full)
   data/                   # data files
-    labels.csv            # hand-labelled real emails (~80 usable)
+    labels.csv            # hand-labelled real emails (202 rows; 132 category model rows, 134 action rows)
     synthetic.csv         # 91 synthetic emails (seed-fixed)
   models/                 # trained app models (flat naming: {task}_{mode})
     action_head/          # frozen encoder head for action
@@ -80,10 +80,16 @@ Canvas emails are still handled first by the sender rule in `email-sorter/app/ru
 
 ## Which model to use
 
-| Task | Recommended model | Test macro F1 | Notes |
-|------|-------------------|---------------|-------|
-| action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.511** | Beats the real-only distilbert fine-tune (0.484); tiny (`head.joblib` only) |
-| category | `bert/models/category_head` (bge-small-en, real only) | **0.865** | Marginally beats `models/category_full` (0.860); tiny |
+| Task | Recommended model | OOF macro F1 | Notes |
+|------|-------------------|--------------|-------|
+| action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] | Real+synthetic; tiny (`head.joblib` only) |
+| category | `bert/models/category_head` (bge-small-en, real only) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end | Tiny; end-to-end includes the Canvas sender rule |
+
+These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
+scores all labelled emails once with a model that did not train on them. The
+real-only action baseline is 0.697 [0.598, 0.788]. The tables below are the
+older 27-row held-out-split results, kept as historical experiment records; do
+not compare their absolute values directly with the OOF numbers.
 
 Synthetic data helped the frozen **action** head but **hurt** the full distilbert fine-tune action (0.484 → 0.351). Category does not benefit from synthetic data — consistent with the results below.
 

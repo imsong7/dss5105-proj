@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-10-23T12:27:58.493943+00:00",
+  "review_csv": "bert/data/labels.csv",
+  "taxonomy_sha256_16": "99e9c2be07f026dd",
+  "task": "both",
+  "folds": 5,
+  "bootstrap": 2000,
+  "bootstrap_method": "stratified by true label (percentile CI)",
+  "seed": 42,
+  "encoders": {
+    "category": "bge-small-en",
+    "action": "e5-small-multi"
+  },
+  "synthetic": "bert/data/synthetic.csv",
+  "synthetic_tasks": "action",
+  "rows": {
+    "category": 132,
+    "action": 134
+  },
+  "evaluation_rows": {
+    "category_model": 132,
+    "category_end_to_end": 200,
+    "action": 134,
+    "both_labels": 133
+  },
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "torch": "2.14.1",
+    "transformers": "5.20.2"
+  }
+}

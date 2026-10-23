@@ -1,0 +1,337 @@
+﻿review_id,Subject,From,Preview,category,action,label_source,is_synthetic
+syn_eb78172e,Availability for project consultation next week,Tan Wei Ling <weiling.tan@nus.edu.sg>,"Hi all, I would like to meet each project group for a short 20-minute consultation next week. Could you reply with two time slots that work for your group between Tuesday and Thursday afternoon? Best, Wei Ling
+
+You are receiving this email because you are a registered student of NUS.",general,needs_reply,synthetic,1
+syn_cac5d639,Re: DSS5105 group 7 - who is taking the EDA section?,Daniel Koh <e1234567@u.nus.edu>,"Hey, just following up on yesterday's call. Can you let me know by tonight whether you are fine taking the EDA part? If not I can swap with you and do the modelling instead. Thanks!
+
+Thanks,
+Daniel Koh
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_7bb0666f,quick q about the lab report,jiahui <e0987321@u.nus.edu>,"hiii sorry to bother, did u manage to get the regression output for part 3? mine keeps giving NaN for the coefficients. what did u do for the missing values?
+
+Best regards,
+jiahui
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_bf916d8d,Your interest in the Data Analyst Intern role,Priya Raman <priya.raman@gsk-talent.com>,"- External Email - Dear Candidate, thank you for applying for the Data Analyst Intern position. We would like to arrange a 30-minute phone screen. Could you please reply with your availability over the next five working days and the best number to reach you?",career,needs_reply,synthetic,1
+syn_f93a9013,Teaching assistant position - are you still interested?,Prof. Lim Chee Keong <stalimck@nus.edu.sg>,"Dear Student, you indicated interest in tutoring DSA1101 last semester. We have one opening for Semester 2. Please let me know by Friday whether you are still interested, and which tutorial slots you could take.
+
+Thanks,
+Prof. Lim Chee Keong",career,needs_reply,synthetic,1
+syn_b3931cfb,Housemate wanted - still looking?,Marcus <marcus.yeo88@gmail.com>,"- External Email - Hi, I saw your post in the PG housing group. Are you still looking for a room near Kent Ridge? The room is available from 1 December, $1,150 including utilities. Let me know if you want to view it this weekend.
+
+You are receiving this email because you are a registered student of NUS.",others,needs_reply,synthetic,1
+syn_7c2feb0c,Feedback on your draft proposal,Dr. Aisha Rahman <aisha.r@nus.edu.sg>,"Hi, I have read your draft. Overall the motivation is clear, but I am not sure which dataset you plan to use for the carbon intensity baseline. Can you clarify this in a short reply before I sign off on the proposal?
+
+Regards,
+Dr. Aisha Rahman
+Department of Statistics and Data Science
+National University of Singapore",general,needs_reply,synthetic,1
+syn_cb2e2cc7,Can you share the slides from today?,Kevin Ong <e1122334@u.nus.edu>,"Hi! I missed the last 15 minutes of the seminar because of a clash. Would you be able to send me the slides or your notes? Thanks a lot.
+
+Regards,
+Kevin Ong
+Department of Statistics and Data Science
+National University of Singapore
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_f631bfd0,Dinner on Friday?,Hana Kim <hana.kim.sg@gmail.com>,"- External Email - Hey!! A few of us from the orientation group are planning dinner at Clementi on Friday 7pm. Are you coming? Need to tell the restaurant the headcount by Thursday.
+
+Best regards,
+Hana Kim",others,needs_reply,synthetic,1
+syn_a51e0e9c,Re: Re: Data request for capstone,Liang Hao <liang.hao@sustainalytics-partner.com>,"- External Email - Thanks for your note. Before we can share the emissions dataset, could you tell me which fields you need and whether the results will be published? A short description of the project would also help.
+
+Thanks,
+Liang Hao",career,needs_reply,synthetic,1
+syn_85a5addc,Question about your Kaggle notebook,Arjun Mehta <arjun.mehta.ds@outlook.com>,"- External Email - Hi, I came across your notebook on PM2.5 forecasting and really liked the feature engineering. Did you tune the LightGBM parameters manually or with Optuna? Would you be open to a short chat about it?",others,needs_reply,synthetic,1
+syn_d244b4a5,Interview confirmation - please reply,Talent Acquisition <careers@shopee-recruit.com>,"- External Email - Hello, we have tentatively scheduled your technical interview on 14 November at 3:00pm SGT. Kindly reply to this email to confirm the timing, or propose an alternative if it does not suit you.
+
+Best regards,
+Talent Acquisition
+
+You are receiving this email because you are a registered student of NUS.",career,needs_reply,synthetic,1
+syn_501f3a07,Mentorship programme - intro call,Rachel Chua <rachel.chua@alumni.nus.edu.sg>,"Hi there, I have been matched as your alumni mentor. I would love to set up a 30-min intro call. What days usually work for you, and do you prefer Zoom or meeting in person on campus?
+
+Best regards,
+Rachel Chua",career,needs_reply,synthetic,1
+syn_fc929a92,Re: absence from tutorial,Tutor DSS5101 <dss5101.tutor@nus.edu.sg>,"Thanks for letting me know. Could you tell me which week's tutorial you will be missing so I can arrange a make-up slot? Also please confirm if you will submit the worksheet online.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_f639b32b,Which topic did your group pick?,Coordinator DSS5105 <dss5105@nus.edu.sg>,"Dear groups, a few of you have not told us your project topic yet. Please reply to this email with your group number and chosen topic so we can assign mentors.
+
+Regards,
+Coordinator DSS5105
+Department of Statistics and Data Science
+National University of Singapore
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_6e53f71d,Clinic follow-up: how are you feeling?,University Health Centre <uhc_followup@nus.edu.sg>,"Dear patient, you visited UHC last week for a persistent cough. Could you reply to let us know whether your symptoms have improved? If not, we will arrange a review with the doctor.
+
+Thanks,
+University Health Centre",medical,needs_reply,synthetic,1
+syn_a794c99f,Counselling session - preferred time?,Student Wellness <wellness_appt@nus.edu.sg>,"Hi, thank you for reaching out to Student Wellness. Our counsellor has openings on Wednesday at 10am and Thursday at 4pm. Please reply with the slot you prefer and whether you would like it online or in person.
+
+Best regards,
+Student Wellness",medical,needs_reply,synthetic,1
+syn_401cdd07,Re: volunteering at the open house,NUS Statistics Society <statsoc@u.nus.edu>,"Hi! Thanks for signing up. We still need helpers for the morning booth. Could you reply and let us know if you can do 9am to 12pm on Saturday?
+
+Thanks,
+NUS Statistics Society
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",others,needs_reply,synthetic,1
+syn_d9eea50b,Your opinion on the survey questions,Mei Ling <e0876543@u.nus.edu>,"Hey, I've drafted the user survey for our project (attached). Could you have a look and tell me whether question 4 and 7 are too leading? Want to finalise it tomorrow.
+
+You are receiving this email because you are a registered student of NUS.",general,needs_reply,synthetic,1
+syn_5d969405,Hello from your exchange buddy,Lukas Becker <lukas.becker@tum.de>,"- External Email - Hi! I'm Lukas, your buddy from TUM for the joint workshop. When are you arriving in Munich, and do you need help finding accommodation? Looking forward to hearing from you.
+
+Best regards,
+Lukas Becker",others,needs_reply,synthetic,1
+syn_dddfc50d,Recommendation letter - details needed,Prof. Wong Siew Mei <stawsm@nus.edu.sg>,"Dear student, I am happy to write the recommendation. Please reply with the list of programmes, their deadlines, and a short summary of the projects you did in my course so I can be specific.
+
+Regards,
+Prof. Wong Siew Mei
+Department of Statistics and Data Science
+National University of Singapore
+
+You are receiving this email because you are a registered student of NUS.",career,needs_reply,synthetic,1
+syn_6189d045,Re: GPU access for the course project,Research Computing <hpc-help@nus.edu.sg>,"Hello, to process your request we need a bit more information. How many GPU hours do you expect to need, and which framework will you be using? Please reply to this ticket.
+
+Regards,
+Research Computing
+Department of Statistics and Data Science
+National University of Singapore
+
+You are receiving this email because you are a registered student of NUS.",general,needs_reply,synthetic,1
+syn_04f1ed8d,你下周有空吗？,王小明 <xiaoming.wang@u.nus.edu>,"嗨！我们几个同学想周三下午一起准备期中考试，你要不要一起来？请回复我一下，我好订图书馆的讨论室。
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_ae3593ce,Want to study together?,Park Ji-min <jimin.park@u.nus.edu>,"Hi! I'm Park Ji-min from the stats class. Want to study together every Thursday evening? Please let me know.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_reply,synthetic,1
+syn_13ba255e,Freelance analysis work?,Sam Lee <sam@greenmetrics.io>,"- External Email - Hi, a friend recommended you. We are a small sustainability start-up and need help analysing energy usage data for about 10 hours a week. Would you be interested? Happy to share more details if you reply.
+
+Best regards,
+Sam Lee
+
+You are receiving this email because you are a registered student of NUS.",career,needs_reply,synthetic,1
+syn_e0664880,Re: research assistant application,Dr. Benjamin Tay <btay@nus.edu.sg>,"Thank you for your interest. Before we proceed, could you tell me how many hours per week you can commit this semester, and whether you have experience with spatial data in Python?",career,needs_reply,synthetic,1
+syn_dbe8b510,Lost water bottle?,Security Lobby S16 <s16_lobby@nus.edu.sg>,"Hello, a blue water bottle with your matric sticker was handed in at the S16 lobby. Could you reply to confirm it is yours and let us know when you can collect it?
+
+Best regards,
+Security Lobby S16
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",others,needs_reply,synthetic,1
+syn_96fade79,Re: the shared drive,Nur Aisyah <e0765432@u.nus.edu>,I moved the cleaned files into /final but I'm not sure if you wanted the raw ones deleted. Should I keep both versions? Tell me before I clean up tonight.,general,needs_reply,synthetic,1
+syn_5ac21b42,[Action Required] Update your emergency contact by 15 Nov,Registrar's Office <regbox@nus.edu.sg>,"Dear Students, our records show that your emergency contact information is incomplete. Please log in to the Student Portal and update it by 15 November 2026. Failure to do so may delay your semester registration.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_action,synthetic,1
+syn_7bce9c54,Submit your timesheet for October,Department Admin <stats_admin@nus.edu.sg>,"Dear Student Assistants, please submit your October timesheet through the HR portal by 3 November. Late submissions will be paid in the next cycle.
+
+Best regards,
+Department Admin",career,needs_action,synthetic,1
+syn_23ff7868,Complete your pre-departure health declaration,Global Relations Office <gro_exchange@nus.edu.sg>,"Dear outgoing exchange student, please complete the health declaration form at the link below before your flight. You will not be able to collect your travel insurance card until the form is submitted.",medical,needs_action,synthetic,1
+syn_0e53e26f,Verify your email to activate your account,DataCamp <no-reply@datacamp.com>,"- External Email - Welcome! Please click the button below to verify your email address and activate your free student account. This link expires in 24 hours.
+
+Thanks,
+DataCamp",others,needs_action,synthetic,1
+syn_7c4c4b36,Your library fine is overdue,NUS Libraries <libfines@nus.edu.sg>,"Dear user, you have an outstanding fine of S$4.50 for an overdue item. Please make payment via the library portal. Borrowing privileges are suspended until the fine is cleared.
+
+Thanks,
+NUS Libraries
+
+You are receiving this email because you are a registered student of NUS.",general,needs_action,synthetic,1
+syn_ba044c27,Sign your internship offer letter,HR Onboarding <onboarding@dbs-careers.com>,"- External Email - Congratulations! Your internship offer is ready. Please review and e-sign the offer letter in the candidate portal by 20 November. Once signed, we will send your onboarding checklist.
+
+Thanks,
+HR Onboarding",career,needs_action,synthetic,1
+syn_f74627e8,Register for the graduate writing workshop (limited seats),Centre for English Language <celc_pg@nus.edu.sg>,"Dear postgraduate students, registration for the thesis writing workshop is now open. Seats are limited to 30. Please register via the form below if you wish to attend.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_action,synthetic,1
+syn_1034fc3f,Upload your vaccination record,University Health Centre <uhc_records@nus.edu.sg>,"Dear student, as part of hall admission, please upload a copy of your vaccination record to the health portal before 30 November. Admission cannot be confirmed without it.",medical,needs_action,synthetic,1
+syn_c26a47f2,Book your graduation photo slot,Commencement Office <commencement@nus.edu.sg>,"Dear graduand, photo slots for the December ceremony are now open. Please choose your slot through the booking link. Unbooked graduands will be assigned a slot automatically.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,needs_action,synthetic,1
+syn_bda762b6,Complete the mandatory lab safety quiz,Faculty of Science Safety <fos_safety@nus.edu.sg>,All students using the wet labs must complete the online safety quiz on Canvas Quizzes before 10 November. Lab access cards will be deactivated for those who have not passed.,general,needs_action,synthetic,1
+syn_5cd2d985,Confirm your attendance via the RSVP form,Graduate Students' Society <gss_events@u.nus.edu>,"Hi everyone! The end-of-semester mixer is on 28 November. Please fill in the RSVP form so we can order food. Only those who RSVP will receive a ticket.
+
+Thanks,
+Graduate Students' Society",others,needs_action,synthetic,1
+syn_68b95a58,Your claim needs additional documents,Student Insurance Desk <insurance@nus.edu.sg>,"Dear student, your medical claim submitted on 12 October is incomplete. Please upload the original receipt and the doctor's memo through the claims portal within 14 days.",medical,needs_action,synthetic,1
+syn_ddc6b1e2,Pay your hostel fee for Semester 2,Office of Housing Services <ohs_fees@nus.edu.sg>,"Dear resident, the hostel fee for Semester 2 is now available in your account. Please make payment by 5 January 2027 via GIRO or PayNow to keep your room allocation.
+
+Thanks,
+Office of Housing Services",general,needs_action,synthetic,1
+syn_ffd5f6c8,Action needed: set up two-factor authentication,NUS IT Care <itcare@nus.edu.sg>,"Dear user, to protect your account please set up multi-factor authentication by 1 December. After this date you will not be able to log in to NUS systems without it.
+
+Thanks,
+NUS IT Care
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",others,needs_action,synthetic,1
+syn_bfea806c,Accept your module allocation,ModReg <modreg@nus.edu.sg>,"You have been allocated DSA5208 for Semester 2. Please log in to EduRec and accept the allocation by Round 2 closing, otherwise the seat will be released.",general,needs_action,synthetic,1
+syn_473a334d,Complete your onboarding tasks,Grab Early Talent <earlytalent@grab-careers.com>,"- External Email - Hi! Before your first day, please complete the background check form and upload a copy of your student pass in Workday. Both items must be done before 1 December.
+
+Thanks,
+Grab Early Talent",career,needs_action,synthetic,1
+syn_5cda80b0,Please fill in the module feedback survey,Student Feedback <sfeedback@nus.edu.sg>,"Dear students, the feedback exercise is mandatory and closes on 22 November. Please complete the survey for each module you are taking; grades will be released only after completion.
+
+Best regards,
+Student Feedback
+
+You are receiving this email because you are a registered student of NUS.",general,needs_action,synthetic,1
+syn_d1247bd1,Reset your password - it expires in 3 days,NUS IT Care <itcare@nus.edu.sg>,"Your NUSNET password will expire in 3 days. Please change it via the self-service portal to avoid losing access to email and Wi-Fi.
+
+Best regards,
+NUS IT Care
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",others,needs_action,synthetic,1
+syn_8544e186,Submit your CV for the career fair resume book,Centre for Future-ready Graduates <cfg_postgrad@nus.edu.sg>,"Employers attending Career Fest will receive a resume book. If you would like to be included, upload your CV in PDF to the TalentConnect portal by 10 November.
+
+Best regards,
+Centre for Future-ready Graduates
+
+You are receiving this email because you are a registered student of NUS.",career,needs_action,synthetic,1
+syn_28130b85,Your appointment needs to be confirmed online,Polyclinic Appointments <appointments@nhgp.com.sg>,"- External Email - Dear patient, your dental appointment on 19 November is pending. Please confirm or reschedule through the HealthHub app within 48 hours, otherwise the slot will be released.",medical,needs_action,synthetic,1
+syn_44c68848,（必填）活动报名表,新加坡中国学生学者联合会 <cssa_events@u.nus.edu>,各位同学好！本周六的中秋晚会需要提前报名，请大家在周四晚上之前填写报名表，链接如下。没有报名的同学可能无法入场。,others,needs_action,synthetic,1
+syn_eac80a59,[Required] Student union fee payment,NUS Korean Student Association <kosa.nus@gmail.com>,"- External Email - Hello, this is NUS Korean Student Association. The fee payment deadline for this semester is November 15. Please transfer to the account below and be sure to write your name in the Google form.
+
+You are receiving this email because you are a registered student of NUS.",others,needs_action,synthetic,1
+syn_5ec1656e,Download and sign the NDA before the hackathon,Hackathon Team <hello@greenhack.sg>,"- External Email - Thanks for registering for GreenHack 2026! Before you can access the datasets, please download the NDA, sign it, and upload it to the participant portal.
+
+Regards,
+Hackathon Team
+Department of Statistics and Data Science
+National University of Singapore
+
+You are receiving this email because you are a registered student of NUS.",career,needs_action,synthetic,1
+syn_a2554cd5,Collect your matriculation card,Student Service Centre <ssc@nus.edu.sg>,"Your student card is ready. Please collect it in person at the Student Service Centre with your passport between 9am and 5pm on weekdays.
+
+Thanks,
+Student Service Centre",general,needs_action,synthetic,1
+syn_003cbb5d,Reminder: DSS5102 lecture moved to LT27 this Friday,DSS Programme Office <dss_admin@nus.edu.sg>,"Dear students, a gentle reminder that this Friday's lecture (14 November) will take place in LT27 instead of the usual venue. The timing remains 6:30pm to 9:30pm.",general,reminder,synthetic,1
+syn_b3bc9238,See you tomorrow at the Data Science Seminar,DSDS Events <stabox1@nus.edu.sg>,"Dear registered participants, this is a reminder that the seminar on causal inference starts tomorrow at 2pm in S16-06-118. Light refreshments will be served after the talk.
+
+Regards,
+DSDS Events
+Department of Statistics and Data Science
+National University of Singapore",general,reminder,synthetic,1
+syn_c8a8d421,Your appointment is tomorrow at 10:30am,University Health Centre <uhc_appt@nus.edu.sg>,"This is a reminder of your appointment with Dr Lee tomorrow, 12 November, at 10:30am at UHC Level 2. Please arrive 10 minutes early.
+
+Thanks,
+University Health Centre",medical,reminder,synthetic,1
+syn_ddd51f09,Library closure on Deepavali,NUS Libraries <libinfo@nus.edu.sg>,"Please note that all NUS libraries will be closed on 8 November for the Deepavali public holiday. Regular opening hours resume on 9 November.
+
+Thanks,
+NUS Libraries",general,reminder,synthetic,1
+syn_2a01e7f7,Planned system maintenance this Saturday,NUS IT Care <itcare@nus.edu.sg>,"Email and Canvas services will be unavailable on Saturday, 15 November, from 2am to 6am due to scheduled maintenance. We apologise for any inconvenience.",general,reminder,synthetic,1
+syn_20bb1a25,Exam timetable released,Registrar's Office <regbox@nus.edu.sg>,The final examination timetable for Semester 1 is now available on EduRec. Examinations will be held from 22 November to 6 December 2026.,general,reminder,synthetic,1
+syn_20468af9,Reminder: Career Fest is next Wednesday,Centre for Future-ready Graduates <cfg_postgrad@nus.edu.sg>,"A quick reminder that NUS Career Fest takes place next Wednesday, 19 November, from 11am to 5pm at the MPSH. Over 80 employers will be present.",career,reminder,synthetic,1
+syn_5e4a8338,Your session starts in 1 hour,Zoom Events <no-reply@zoom.us>,"- External Email - Your registered session ""Mock Interview Clinic"" starts today at 4:00pm SGT. You can join using the link in your registration email.
+
+Regards,
+Zoom Events
+Department of Statistics and Data Science
+National University of Singapore
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",career,reminder,synthetic,1
+syn_89fe121b,Flu vaccination clinic this Thursday,University Health Centre <uhc_info@nus.edu.sg>,"UHC will be running a walk-in flu vaccination clinic this Thursday, 13 November, from 9am to 1pm at the UHC atrium.
+
+Best regards,
+University Health Centre",medical,reminder,synthetic,1
+syn_fa3e3402,Reminder: Teambuilding Day on 21 November,DSS Programme Office <dss_admin@nus.edu.sg>,"Dear students, this is a friendly reminder that the Teambuilding Day will be held on 21 November starting 9am at Sentosa. Transport will depart from UTown at 8:15am.
+
+Thanks,
+DSS Programme Office
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,reminder,synthetic,1
+syn_fd93e437,Shuttle bus schedule during recess week,Transport Office <transport@nus.edu.sg>,"Please note that internal shuttle services will run on a reduced schedule during recess week (24 to 28 November). Normal service resumes on 1 December.
+
+Thanks,
+Transport Office",general,reminder,synthetic,1
+syn_03250d56,Project presentation week - schedule,Coordinator DSS5105 <dss5105@nus.edu.sg>,"Dear all, final project presentations will take place in Week 13 on Tuesday and Thursday evenings. Your group's slot is listed in the table below.
+
+Best regards,
+Coordinator DSS5105",general,reminder,synthetic,1
+syn_d820ac99,Your physiotherapy session on Monday,Sports Medicine Centre <smc_appt@nus.edu.sg>,"This is to remind you of your physiotherapy session on Monday, 17 November, at 3pm. The session will last about 45 minutes.",medical,reminder,synthetic,1
+syn_6e868760,Reminder: Pre-departure briefing on 2 December,Global Relations Office <gro_exchange@nus.edu.sg>,"A reminder that the pre-departure briefing for outgoing exchange students will be held on 2 December at 2pm in the Shaw Foundation Alumni House auditorium.
+
+Regards,
+Global Relations Office
+Department of Statistics and Data Science
+National University of Singapore
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",general,reminder,synthetic,1
+syn_c8158d2c,Mid-term break: no tutorials next week,Tutor DSS5101 <dss5101.tutor@nus.edu.sg>,"Hi all, just a note that there will be no tutorials next week because of the mid-term break. Tutorials resume on 3 November with Worksheet 6.
+
+Regards,
+Tutor DSS5101
+Department of Statistics and Data Science
+National University of Singapore",general,reminder,synthetic,1
+syn_a6144144,Webinar tomorrow: Careers in ESG Analytics,Sustainable Finance Institute <events@sfi-asia.org>,"- External Email - Thank you for registering. The webinar ""Careers in ESG Analytics"" will begin tomorrow at 12:30pm SGT and run for one hour.
+
+Best regards,
+Sustainable Finance Institute
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",career,reminder,synthetic,1
+syn_2da6fb44,Office hours cancelled this Wednesday,Dr. Aisha Rahman <aisha.r@nus.edu.sg>,"Dear students, my office hours this Wednesday (12 Nov) are cancelled as I will be at a conference. They will resume as usual the following week.",general,reminder,synthetic,1
+syn_e09e81c3,Reminder: last day of classes is 14 November,Registrar's Office <regbox@nus.edu.sg>,"This is a reminder that the last day of instruction for Semester 1 is Friday, 14 November 2026. Reading week follows from 15 to 21 November.
+
+You are receiving this email because you are a registered student of NUS.",general,reminder,synthetic,1
+syn_5f745b99,明天的讲座提醒,新加坡中国学生学者联合会 <cssa_events@u.nus.edu>,"提醒一下：明天晚上7点在UTown有职业分享讲座，已报名的同学请准时到场。
+
+Thanks,
+新加坡中国学生学者联合会
+
+You are receiving this email because you are a registered student of NUS.",career,reminder,synthetic,1
+syn_d6289440,Regular meeting tomorrow,NUS Korean Student Association <kosa.nus@gmail.com>,"- External Email - Regular meeting tomorrow at 7pm at UTown Seminar Room 3. Please note.
+
+Best regards,
+NUS Korean Student Association",others,reminder,synthetic,1
+syn_a46c61f4,Blood donation drive on campus next week,NUS Red Cross Youth <rcy@u.nus.edu>,"The Health Sciences Authority mobile donation bus will be at the Central Library forecourt next Tuesday and Wednesday from 10am to 4pm.
+
+Best regards,
+NUS Red Cross Youth
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",medical,reminder,synthetic,1
+syn_9c75bc3f,Your submission has been received,Gradescope <no-reply@gradescope.com>,"- External Email - This email confirms that your submission for Assignment 3 was received on 10 November at 11:42pm. No further action is required.
+
+Thanks,
+Gradescope",general,no_immediate_action,synthetic,1
+syn_e7e62fb6,Receipt for your payment,NUS Student Finance <ofnbox3@nus.edu.sg>,"Thank you. We have received your payment of S$4,150.00 for Semester 1 tuition fees on 30 September 2026. This receipt is for your records.",general,no_immediate_action,synthetic,1
+syn_cc892e84,This week in sustainability: November newsletter,GreenBiz Weekly <newsletter@greenbiz-weekly.com>,"- External Email - In this issue: new carbon border rules in the EU, a profile of Singapore's green bond market, and five upcoming ESG events. Read online or forward to a friend.
+
+Best regards,
+GreenBiz Weekly",promotional,no_immediate_action,synthetic,1
+syn_a6c65d2f,50% off annual plan - ends Sunday,Notion <team@makenotion.com>,"- External Email - Students get 50% off the Plus plan this week only. Offer ends Sunday 23:59. Upgrade anytime from your workspace settings.
+
+Best regards,
+Notion
+
+You are receiving this email because you are a registered student of NUS.",promotional,no_immediate_action,synthetic,1
+syn_84beb9ca,Your order has shipped,Lazada <noreply@lazada.sg>,- External Email - Good news! Your order #SG2611039 has been shipped and is expected to arrive between 13 and 15 November.,promotional,no_immediate_action,synthetic,1
+syn_8b7df08b,Please do not reply: password changed successfully,NUS IT Care <itcare@nus.edu.sg>,"Your NUSNET password was changed on 9 November at 10:15pm. If you made this change, you can ignore this email. This mailbox is not monitored; please do not reply.
+
+Best regards,
+NUS IT Care",others,no_immediate_action,synthetic,1
+syn_d8767fb6,Recap: what we covered at the Career Talk,Centre for Future-ready Graduates <cfg_postgrad@nus.edu.sg>,Thank you to everyone who attended last week's career talk. The slides and recording are now available on the CFG website for your reference.,career,no_immediate_action,synthetic,1
+syn_f3da9d50,Department news: new faculty members,DSDS Communications <stabox1@nus.edu.sg>,We are pleased to welcome three new faculty members to the Department of Statistics and Data Science this semester. Read about their research interests below.,general,no_immediate_action,synthetic,1
+syn_5512099c,Your appointment has been completed,University Health Centre <uhc_appt@nus.edu.sg>,Thank you for visiting UHC today. Your consultation summary is available in the patient portal. Wishing you a speedy recovery.,medical,no_immediate_action,synthetic,1
+syn_b3223be6,Jobs you may be interested in,LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>,"- External Email - 15 new jobs match your preferences: Data Analyst at Grab, Junior Data Scientist at Singtel, ESG Analyst at UOB and more.
+
+Important: This email is confidential and may be privileged. If you are not the intended recipient, please delete it and notify us immediately; you should not copy or use it for any purpose, nor disclose its contents to any other person. Thank you.",career,no_immediate_action,synthetic,1
+syn_e4d0f280,Thanks for your feedback!,Student Feedback <sfeedback@nus.edu.sg>,We have recorded your feedback for DSS5101. Your responses are anonymous and will help improve the module. Thank you for taking part.,general,no_immediate_action,synthetic,1
+syn_3598e125,Weekend deals at the Co-op,NUS Co-op <coop_promo@nus.edu.sg>,"Stationery bundles from $5, 20% off hoodies and free tote bag with every purchase above $30. Valid this weekend only at the UTown outlet.
+
+You are receiving this email because you are a registered student of NUS.",promotional,no_immediate_action,synthetic,1
+syn_a4a16d0c,Re: thanks!,Kevin Ong <e1122334@u.nus.edu>,"Got the slides, thank you so much! See you in class next week.",general,no_immediate_action,synthetic,1
+syn_4c86fd88,Registration confirmed: Resume Clinic,Centre for Future-ready Graduates <cfg_postgrad@nus.edu.sg>,"You are registered for the Resume Clinic. Your registration number is RC-2611-084. We look forward to seeing you.
+
+Thanks,
+Centre for Future-ready Graduates",career,no_immediate_action,synthetic,1
+syn_01dedd40,Monthly health tips: sleep and exam stress,Student Wellness <wellness@nus.edu.sg>,"Exam season is around the corner. Here are five evidence-based tips to sleep better and manage stress, plus a list of free campus resources.",medical,no_immediate_action,synthetic,1
+syn_c937c1f2,Your Spotify Premium Student renewed,Spotify <no-reply@spotify.com>,"- External Email - Your Premium Student plan was renewed on 8 November for S$5.49. You can view your receipts in your account page.
+
+Thanks,
+Spotify",promotional,no_immediate_action,synthetic,1
+syn_07efa458,Year in review: GSS 2026,Graduate Students' Society <gss_events@u.nus.edu>,"What a year! Over 40 events, 2,000 participants, and a new mentoring scheme. Thank you for being part of the community.",others,no_immediate_action,synthetic,1
+syn_9717f9bd,Scholarship disbursement processed,NUS Student Finance <ofnbox3@nus.edu.sg>,Your scholarship stipend for November has been credited to your bank account on 5 November 2026.,general,no_immediate_action,synthetic,1

@@ -50,9 +50,6 @@ python run.py
 # Validate labels
 python bert/train.py --review bert/data/labels.csv --check-only
 
-# Train full fine-tune (DistilBERT) -> bert/models/{task}_full/
-python bert/train.py --review bert/data/labels.csv --task both --mode full
-
 # Train frozen-encoder head (recommended — tiny, fast) -> bert/models/{task}_head/
 python bert/train.py --review bert/data/labels.csv --encoder bge-small-en --task category
 python bert/train.py --review bert/data/labels.csv --encoder e5-small-multi --task action \

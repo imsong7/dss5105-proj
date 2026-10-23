@@ -1,4 +1,22 @@
-# Offline evaluation
+# Evaluation
+
+Two independent evaluators live here:
+
+| Script | Question it answers |
+|--------|---------------------|
+| `offline_f1.py` | How accurate are the BERT heads on labelled emails? |
+| `operational_benchmark.py` | How fast/heavy/consistent are Llama and BERT when actually called? |
+
+Neither script needs the Flask UI. The offline evaluator does not need Ollama;
+the operational benchmark uses Ollama for the Llama backend.
+
+Install the optional operational dependencies once (repo-root `.venv`):
+
+```bash
+.venv/bin/pip install -r evaluation/requirements.txt
+```
+
+# Offline quality: `offline_f1.py`
 
 `offline_f1.py` measures the BERT heads with **out-of-fold (OOF) predictions**
 and **95% bootstrap confidence intervals**. It is deliberately separate from the
@@ -106,10 +124,132 @@ Flat files under `evaluation/results/`:
 ## Caveats
 
 - This evaluates **BERT only**. Llama quality, latency, memory, token use,
-  energy, and invalid-format rate need the separate operational evaluator.
+  energy, and invalid-format rate are covered by the operational benchmark
+  below.
 - The CIs quantify uncertainty from the available labelled emails; they do not
   fix label noise or sampling bias in the original mailbox.
 - Synthetic rows are filtered against the real data once before CV. They are
   never in a validation fold, but the filter sees all real rows; this is a minor
   transductive step, not label leakage.
 - This is not a substitute for a fresh-mailbox benchmark before deployment.
+
+# Operational benchmark: `operational_benchmark.py`
+
+This script measures the deployed backends, not just model quality. It uses the
+same `Email` objects and classifier interfaces as the Flask app, but it does not
+start the web server or fetch a mailbox.
+
+## Run
+
+```bash
+# Default: 30-email stratified sample, 5 runs/email, both backends
+.venv/bin/python evaluation/operational_benchmark.py
+
+# Llama only, with a true cold start
+.venv/bin/python evaluation/operational_benchmark.py \
+    --backend llama --limit 20 --runs 5 --unload-ollama
+
+# Fast BERT-only smoke run
+.venv/bin/python evaluation/operational_benchmark.py \
+    --backend bert --limit 10 --runs 1 --no-energy
+
+# All 134 action-usable unique emails (slow for Llama)
+.venv/bin/python evaluation/operational_benchmark.py --limit 0 --runs 5
+```
+
+Key options:
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `--backend` | `both` | `llama`, `bert`, or both. |
+| `--limit` | `30` | Stratified sample size; `0` = all 134 action-usable unique emails. |
+| `--runs` | `5` | Calls per email for consistency and latency. |
+| `--warmup` | `2` | Warm-up calls excluded from latency/consistency stats. |
+| `--short-chars` | `200` | Short-input length for the input-length comparison. |
+| `--unload-ollama` | off | Run `ollama stop <model>` before Llama so the cold call includes model load. |
+| `--no-energy` | off | Disable CodeCarbon. |
+| `--no-memory` | off | Disable psutil RSS sampling. |
+| `--country` | `SGP` | CodeCarbon country code. |
+
+## Protocol
+
+- **Sample:** 30 emails stratified by action label, fixed seed 42. The full
+  action-usable set is 134 unique emails. The sample keeps the benchmark
+  practical for Llama; use `--limit 0` for all 134.
+- **Full input:** the email `Preview` field, which is the body text in
+  `labels.csv`. The app truncates Llama to 3,000 characters and BERT to 256
+  tokens.
+- **Short input:** the first 200 characters of `Preview`.
+- **Cold:** the first call after classifier construction. With
+  `--unload-ollama`, Ollama is stopped first so the cold call includes model
+  loading.
+- **Warm:** the `--runs` calls per email after the cold call and warm-up calls.
+  Latency is client wall-clock time.
+- **Peak memory:** sampled every 150 ms. For Llama, the benchmark process RSS and
+  all `ollama`/`llama-server` process RSS are reported separately and summed.
+- **Model size:** Llama uses the size reported by Ollama `/api/tags`; BERT sums
+  the two head directories and the current Hugging Face encoder snapshots.
+- **Tokens:** Llama uses Ollama prompt/eval counts (including the system prompt);
+  BERT counts tokenizer input tokens for the category and action heads.
+- **Energy:** CodeCarbon `OfflineEmissionsTracker` in machine-wide mode, including
+  model load and all calls. It may include the Ollama server.
+- **Invalid format:** Llama raw JSON is parsed and checked against the taxonomy
+  before Pydantic validators can coerce an invalid label to a default. BERT is
+  constrained and reported as not applicable.
+- **Consistency:** for each email, all 5 runs must produce the same category and
+  action. Per-field rates are also reported.
+- **Short/full agreement:** the first full run is compared with one short-input
+  run for each email.
+
+## Current results
+
+30 emails, 5 runs each, seed 42, CodeCarbon enabled, Ollama unloaded before the
+Llama cold call.
+
+| Backend | Load ms | Cold ms | Warm p50 ms | Warm p95 ms | Peak MB | Model MB | Input tokens | Output tokens | Energy kWh | CO2 kg | Invalid | 5-run consistency | Short/full both |
+|---------|--------:|--------:|------------:|------------:|--------:|---------:|-------------:|--------------:|-----------:|-------:|--------:|------------------:|----------------:|
+| Llama 3.1 8B | 1,388 | 4,178 | 3,298 | 5,334 | 5,746 | 4,693 | 649.5 | 55.2 | 0.002199 | 0.001035 | 0.000 | 1.000 | 0.767 |
+| BERT heads | 6,863 | 476 | 33.5 | 41.6 | 972 | 598 | 351.8 | 0.0 | 0.000042 | 0.000020 | n/a | 1.000 | 0.967 |
+
+Breakdown:
+
+| Backend | Category agreement (200 vs full) | Action agreement | Both |
+|---------|---------------------------------:|-----------------:|-----:|
+| Llama | 0.967 | 0.800 | 0.767 |
+| BERT | 1.000 | 0.967 | 0.967 |
+
+The Llama invalid-format rate was **0/180** scored calls; all 5-run label sets
+were identical. BERT is deterministic across repeated calls, so its 5-run
+consistency is 1.000.
+
+## Outputs
+
+Flat files under `evaluation/results/`:
+
+| File | Contents |
+|------|----------|
+| `operational_benchmark_summary.csv` | One row per backend: latency, memory, size, tokens, energy, consistency, agreement. |
+| `operational_benchmark_runs.csv` | Every call: phase, latency, labels, raw validity, tokens. |
+| `operational_benchmark_consistency.csv` | Per-email 5-run label sets and flags. |
+| `operational_benchmark_length.csv` | Per-email full-vs-short labels and agreement. |
+| `operational_benchmark_manifest.json` | Sample IDs, arguments, versions, input protocol. |
+| `operational_benchmark_report.txt` | Human-readable summary table. |
+
+## Caveats
+
+- This is a **30-email sample**, not the full 134-email quality evaluation.
+  Latency p95 is based on 150 warm calls; a larger sample will narrow it.
+- Llama latency and energy depend heavily on the machine, Ollama version,
+  quantization, and whether the model is already loaded. Quote the cold/warm
+  protocol with the numbers.
+- CodeCarbon reports machine-wide energy; on this macOS host it does not expose
+  a separate GPU power sensor. Treat the energy figures as relative estimates,
+  not billing-grade measurements.
+- Llama token counts include the ~350-token system prompt, so they are not
+  directly comparable to BERT head input tokens.
+- The dataset provides one `Preview` field, not a separate full MIME body. The
+  "full" condition is therefore the full available preview text after the app's
+  input limits.
+- BERT's 256-token limit means its "full" input is truncated too; the
+  short/full comparison still shows whether the first 200 characters change the
+  label.

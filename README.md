@@ -27,7 +27,7 @@ The repo has three parts:
 |--------|---------|
 | `email-sorter/` | The Flask app. Fetches emails, sorts them with Llama (Ollama) or BERT, and compares backends side by side. |
 | `bert/` | BERT experiment/training code. Trains and compares DistilBERT fine-tunes and frozen-encoder heads on labeled email data. |
-| `evaluation/` | Offline model evaluation: out-of-fold macro-F1 with bootstrap confidence intervals. |
+| `evaluation/` | Offline quality and operational benchmarks: OOF macro-F1 with bootstrap CIs, plus latency, memory, token, energy, and consistency measurements. |
 
 ---
 
@@ -72,7 +72,7 @@ python bert/train.py --review bert/data/labels.csv --mode full --task both
 
 See `bert/README.md` for full BERT training docs.
 
-**Evaluate BERT models offline** (no mailbox or Ollama needed):
+**Evaluate models** (quality + operational metrics):
 ```bash
 # 5-fold out-of-fold predictions + 95% bootstrap CIs (deployed configuration)
 python evaluation/offline_f1.py
@@ -80,8 +80,18 @@ python evaluation/offline_f1.py
 # Real-only baseline
 python evaluation/offline_f1.py --no-synthetic
 
-# Unit tests for the evaluator
+# Operational benchmark: latency, memory, tokens, energy, consistency
+# (needs Ollama for the Llama backend)
+python evaluation/operational_benchmark.py
+
+# Unit tests for both evaluators
 python -m unittest evaluation.test_offline_f1 -v
+python -m unittest evaluation.test_operational_benchmark -v
+```
+
+The operational benchmark uses two optional packages; install them once:
+```bash
+python -m pip install -r evaluation/requirements.txt
 ```
 
 Results are written to `evaluation/results/` as flat CSV/JSON/TXT files. See
@@ -147,11 +157,14 @@ bert/
     compare_full_runs.csv
 ```
 
-### `evaluation/` — offline evaluation
+### `evaluation/` — offline and operational evaluation
 ```
 evaluation/
   offline_f1.py             # OOF predictions + stratified bootstrap CIs
-  test_offline_f1.py        # unit tests (no encoder downloads)
+  operational_benchmark.py  # latency, memory, tokens, energy, consistency
+  test_offline_f1.py
+  test_operational_benchmark.py
+  requirements.txt          # optional benchmark deps (psutil, codecarbon)
   README.md                 # methodology and current results
   results/
     offline_f1_summary.csv
@@ -160,6 +173,12 @@ evaluation/
     offline_f1_oof_predictions.csv
     offline_f1_manifest.json
     offline_f1_report.txt
+    operational_benchmark_summary.csv
+    operational_benchmark_runs.csv
+    operational_benchmark_consistency.csv
+    operational_benchmark_length.csv
+    operational_benchmark_manifest.json
+    operational_benchmark_report.txt
 ```
 
 Large `model.safetensors` files stay on disk but are ignored by Git.
@@ -180,7 +199,16 @@ These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
 uses all labelled emails instead of the old 27-row test split. The historical
 split results remain in `bert/README.md`.
 
-See `bert/README.md` and `evaluation/README.md` for details.
+Operational benchmark on a 30-email stratified sample, 5 runs per email, seed
+42, CodeCarbon enabled, and a cold Ollama start:
+
+| Backend | Warm p50 / p95 | Peak memory | Energy | 5-run consistency | 200-char vs full |
+|---------|----------------|-------------|--------|-------------------|------------------|
+| Llama 3.1 8B | 3,298 / 5,334 ms | 5.7 GB | 0.00220 kWh | 1.000 | 0.767 |
+| BERT heads | 33.5 / 41.6 ms | 972 MB | 0.000042 kWh | 1.000 | 0.967 |
+
+See `evaluation/README.md` for cold-start, model-size, token, and caveat details.
+See `bert/README.md` for training details.
 
 ---
 

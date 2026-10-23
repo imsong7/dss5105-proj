@@ -1,0 +1,5 @@
+# Optional dependencies for evaluation/operational_benchmark.py.
+# Install into the repo-root .venv after the app/BERT requirements:
+#   .venv/bin/pip install -r evaluation/requirements.txt
+psutil>=5.9
+codecarbon>=2.5

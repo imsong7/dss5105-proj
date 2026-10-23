@@ -1,0 +1,1151 @@
+"""Operational benchmark for the email-sorter backends.
+
+This is separate from the offline quality evaluation: it measures how the
+backends behave when they are actually called.
+
+Measured per backend
+--------------------
+- load / cold-call / warm p50 / warm p95 latency
+- process RSS peak and, for Llama, Ollama server RSS
+- model size on disk / in Ollama
+- token use (Llama prompt+completion; BERT head input tokens)
+- CodeCarbon energy and CO2 estimate (optional)
+- 5-run label consistency
+- raw LLM invalid-format rate (before Pydantic coercion)
+- first-200-char vs full-input label agreement
+
+Input protocol
+--------------
+``full`` uses the email's ``Preview`` field, which is the body text available
+in the labelled dataset. The app truncates Llama input to
+``settings.body_char_limit`` (3000 chars) and BERT to 256 tokens. ``short`` uses
+the first ``--short-chars`` characters (default 200).
+
+Usage (repo root, root .venv activated)::
+
+    python evaluation/operational_benchmark.py
+    python evaluation/operational_benchmark.py --backend llama --limit 20
+    python evaluation/operational_benchmark.py --no-energy --no-memory
+    python evaluation/operational_benchmark.py --limit 0 --runs 5
+
+The default is a 30-email stratified sample, 5 runs per email. Use
+``--limit 0`` for all 134 action-usable unique emails. Llama calls are slow; a
+full 134 x 5 run takes a long time.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gc
+import importlib.metadata
+import json
+import os
+import statistics
+import subprocess
+import sys
+import threading
+import time
+import traceback
+from collections import Counter, defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+EMAIL_DIR = REPO_ROOT / "email-sorter"
+BERT_DIR = REPO_ROOT / "bert"
+for _path in (EMAIL_DIR, BERT_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
+
+from app.config import settings  # noqa: E402
+from app.models import Email  # noqa: E402
+from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
+from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
+
+DEFAULT_REVIEW = BERT_DIR / "data" / "labels.csv"
+DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
+
+try:
+    import psutil
+except ImportError:  # pragma: no cover - optional
+    psutil = None
+
+
+# --------------------------------------------------------------------------- #
+# Arguments and data
+# --------------------------------------------------------------------------- #
+def parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument("--review", default=str(DEFAULT_REVIEW), help="review CSV")
+    ap.add_argument(
+        "--backend",
+        choices=["both", "llama", "bert"],
+        default="both",
+        help="backend(s) to benchmark",
+    )
+    ap.add_argument(
+        "--limit",
+        type=int,
+        default=30,
+        help="stratified sample size; 0 = all action-usable unique emails",
+    )
+    ap.add_argument("--runs", type=int, default=5, help="runs per email for consistency")
+    ap.add_argument("--warmup", type=int, default=2, help="warm-up calls excluded from stats")
+    ap.add_argument("--short-chars", type=int, default=200, help="short-input length")
+    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--country", default="SGP", help="CodeCarbon country ISO code")
+    ap.add_argument(
+        "--unload-ollama",
+        action="store_true",
+        help="run `ollama stop <model>` before Llama so the cold call includes model load",
+    )
+    ap.add_argument("--no-energy", action="store_true", help="disable CodeCarbon")
+    ap.add_argument("--no-memory", action="store_true", help="disable psutil RSS sampling")
+    ap.add_argument("--out-dir", default=str(DEFAULT_OUT))
+    return ap.parse_args()
+
+
+def load_benchmark_rows(args: argparse.Namespace) -> tuple[pd.DataFrame, dict, dict]:
+    labels, tax_digest = load_taxonomy()
+    review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
+    df, info = task_dataset(review, "action", labels["action"], False)
+    df = df.copy()
+    total = len(df)
+
+    if args.limit < 0:
+        raise SystemExit("--limit must be >= 0")
+    if args.limit and args.limit < total:
+        n_classes = df["label_key"].nunique()
+        if args.limit < n_classes:
+            raise SystemExit(f"--limit must be 0 or at least {n_classes}")
+        from sklearn.model_selection import train_test_split
+
+        sample, _ = train_test_split(
+            df,
+            train_size=args.limit,
+            stratify=df["label_key"],
+            random_state=args.seed,
+        )
+        df = sample
+    df = df.sample(frac=1, random_state=args.seed).reset_index(drop=True)
+    if df.empty:
+        raise SystemExit("No benchmark rows selected")
+    if args.warmup > len(df):
+        raise SystemExit(f"--warmup {args.warmup} > sample size {len(df)}")
+
+    meta = {
+        "total_rows": total,
+        "sample_n": len(df),
+        "sample_action_counts": {
+            str(k): int(v) for k, v in df["label_key"].value_counts().items()
+        },
+        "taxonomy_sha256_16": tax_digest,
+        "sample_review_ids": df["review_id"].tolist(),
+    }
+    return df, info, meta
+
+
+def email_for(row: pd.Series, text: str) -> Email:
+    return Email(
+        id=str(row["review_id"]),
+        subject=str(row.get("Subject", "")),
+        sender=str(row.get("From", "")),
+        received=str(row.get("Received DateTime", "")),
+        preview=text,
+        body=text,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Memory and energy
+# --------------------------------------------------------------------------- #
+class MemorySampler:
+    """Sample benchmark-process RSS and (optionally) Ollama server RSS."""
+
+    def __init__(self, include_ollama: bool, enabled: bool = True):
+        self.include_ollama = include_ollama
+        self.enabled = enabled and psutil is not None
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._process = psutil.Process() if self.enabled else None
+        self.baseline = 0
+        self.peak = 0
+        self.ollama_baseline = 0
+        self.ollama_peak = 0
+
+    def _rss(self) -> int:
+        try:
+            return int(self._process.memory_info().rss)  # type: ignore[union-attr]
+        except Exception:
+            return 0
+
+    def _ollama_rss(self) -> int:
+        if not self.include_ollama or psutil is None:
+            return 0
+        total = 0
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                name = (proc.info.get("name") or "").lower()
+                cmdline = proc.info.get("cmdline") or []
+                exe = Path(cmdline[0]).name.lower() if cmdline else ""
+                if (
+                    "ollama" in name
+                    or "llama-server" in name
+                    or "ollama" in exe
+                    or "llama-server" in exe
+                ):
+                    total += int(proc.memory_info().rss)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+            except Exception:
+                continue
+        return total
+
+    def start(self) -> None:
+        if not self.enabled:
+            return
+        self.baseline = self._rss()
+        self.ollama_baseline = self._ollama_rss()
+        self.peak = self.baseline
+        self.ollama_peak = self.ollama_baseline
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def _loop(self) -> None:
+        while not self._stop.wait(0.15):
+            self.peak = max(self.peak, self._rss())
+            if self.include_ollama:
+                self.ollama_peak = max(self.ollama_peak, self._ollama_rss())
+
+    def stop(self) -> dict[str, Any]:
+        if not self.enabled:
+            return {"enabled": False}
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+        self.peak = max(self.peak, self._rss())
+        if self.include_ollama:
+            self.ollama_peak = max(self.ollama_peak, self._ollama_rss())
+        mb = 1024 * 1024
+        return {
+            "enabled": True,
+            "baseline_mb": self.baseline / mb,
+            "peak_mb": self.peak / mb,
+            "delta_mb": (self.peak - self.baseline) / mb,
+            "ollama_baseline_mb": (
+                self.ollama_baseline / mb if self.include_ollama else None
+            ),
+            "ollama_peak_mb": self.ollama_peak / mb if self.include_ollama else None,
+            "peak_total_mb": (self.peak + self.ollama_peak) / mb,
+        }
+
+
+class EnergyMeter:
+    """Optional CodeCarbon wrapper. The tracker is machine-wide."""
+
+    def __init__(self, country: str, enabled: bool = True):
+        self.enabled = enabled
+        self.country = country
+        self.tracker = None
+        self.error: str | None = None
+        if not enabled:
+            return
+        try:
+            from codecarbon import OfflineEmissionsTracker
+
+            self.tracker = OfflineEmissionsTracker(
+                project_name="email-sorter-operational",
+                country_iso_code=country,
+                measure_power_secs=1,
+                save_to_file=False,
+                log_level="error",
+            )
+        except Exception as exc:  # pragma: no cover - optional dependency
+            self.error = f"{type(exc).__name__}: {exc}"
+
+    def start(self) -> None:
+        if self.tracker is None:
+            return
+        try:
+            self.tracker.start()
+        except Exception as exc:  # pragma: no cover
+            self.error = f"{type(exc).__name__}: {exc}"
+            self.tracker = None
+
+    def stop(self) -> dict[str, Any]:
+        if self.tracker is None:
+            return {"enabled": False, "error": self.error}
+        try:
+            self.tracker.stop()
+            data = getattr(self.tracker, "final_emissions_data", None)
+            return {
+                "enabled": True,
+                "energy_kwh": getattr(data, "energy_consumed", None),
+                "co2_kg": getattr(data, "emissions", None),
+                "duration_s": getattr(data, "duration", None),
+                "cpu_power_w": getattr(data, "cpu_power", None),
+                "ram_power_w": getattr(data, "ram_power", None),
+                "tracking_mode": getattr(data, "tracking_mode", None),
+                "country": getattr(data, "country_iso_code", self.country),
+                "error": None,
+            }
+        except Exception as exc:  # pragma: no cover
+            return {"enabled": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+# --------------------------------------------------------------------------- #
+# Backends
+# --------------------------------------------------------------------------- #
+@dataclass
+class Prediction:
+    category: str
+    action: str
+    raw_valid: bool | None = None
+    invalid_reason: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    server_load_ms: float | None = None
+    raw_excerpt: str = ""
+
+
+@dataclass
+class CallRecord:
+    backend: str
+    review_id: str
+    phase: str
+    run: int
+    input_mode: str
+    input_chars: int
+    latency_ms: float
+    category: str
+    action: str
+    raw_valid: bool | None
+    invalid_reason: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    server_load_ms: float | None
+    true_action: str
+    true_category: str
+    raw_excerpt: str
+
+
+def _norm_label(value: Any) -> str:
+    return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _llama_raw_status(result: dict[str, Any]) -> tuple[bool, str | None, str]:
+    raw = result.get("raw")
+    parsed = result.get("parsed")
+    err = result.get("parsing_error")
+    content = getattr(raw, "content", "") if raw is not None else ""
+    excerpt = str(content)[:500].replace("\n", "\\n")
+
+    if err is not None:
+        return False, f"parsing_error: {str(err)[:200]}", excerpt
+    if parsed is None:
+        return False, "parsed_none", excerpt
+    if not isinstance(content, str) or not content.strip():
+        return False, "empty_raw", excerpt
+    try:
+        data = json.loads(content)
+    except Exception:
+        return False, "raw_not_json", excerpt
+    if not isinstance(data, dict):
+        return False, "raw_not_object", excerpt
+
+    category = _norm_label(data.get("content_category"))
+    action = _norm_label(data.get("reply_nature"))
+    if category not in CONTENT_CATEGORIES:
+        return False, f"invalid_category:{category or '<missing>'}", excerpt
+    if action not in REPLY_NATURE:
+        return False, f"invalid_action:{action or '<missing>'}", excerpt
+    return True, None, excerpt
+
+
+class LlamaBackend:
+    name = "llama"
+
+    def __init__(self) -> None:
+        from langchain_core.prompts import ChatPromptTemplate
+        from langchain_ollama import ChatOllama
+
+        from app.classifier import HUMAN, SYSTEM, _defs
+        from app.models import Classification
+
+        llm = ChatOllama(
+            model=settings.ollama_model,
+            base_url=settings.ollama_base_url,
+            temperature=0,
+            num_ctx=4096,
+        )
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", SYSTEM), ("human", HUMAN)]
+        ).partial(
+            content_defs=_defs(CONTENT_CATEGORIES),
+            reply_defs=_defs(REPLY_NATURE),
+        )
+        self.chain = prompt | llm.with_structured_output(
+            Classification, include_raw=True
+        )
+
+    def predict(self, email: Email) -> Prediction:
+        result = self.chain.invoke(
+            {
+                "sender": email.sender,
+                "subject": email.subject,
+                "received": email.received,
+                "body": email.body[: settings.body_char_limit] or email.preview,
+            }
+        )
+        parsed = result.get("parsed")
+        if parsed is None:
+            category, action = "__invalid__", "__invalid__"
+        elif hasattr(parsed, "content_category"):
+            category = str(parsed.content_category)
+            action = str(parsed.reply_nature)
+        elif isinstance(parsed, dict):
+            category = str(parsed.get("content_category", "__invalid__"))
+            action = str(parsed.get("reply_nature", "__invalid__"))
+        else:
+            category, action = "__invalid__", "__invalid__"
+
+        valid, reason, excerpt = _llama_raw_status(result)
+        raw = result.get("raw")
+        usage = getattr(raw, "usage_metadata", None) or {}
+        meta = getattr(raw, "response_metadata", None) or {}
+        input_tokens = usage.get("input_tokens") or meta.get("prompt_eval_count")
+        output_tokens = usage.get("output_tokens") or meta.get("eval_count")
+        load_ns = meta.get("load_duration")
+        server_load_ms = float(load_ns) / 1_000_000 if load_ns is not None else None
+        return Prediction(
+            category=category,
+            action=action,
+            raw_valid=valid,
+            invalid_reason=reason,
+            input_tokens=int(input_tokens) if input_tokens is not None else None,
+            output_tokens=int(output_tokens) if output_tokens is not None else None,
+            server_load_ms=server_load_ms,
+            raw_excerpt=excerpt,
+        )
+
+    def token_usage(self, email: Email, pred: Prediction) -> tuple[int | None, int | None]:
+        return pred.input_tokens, pred.output_tokens
+
+    def model_info(self) -> dict[str, Any]:
+        import requests
+
+        base = settings.ollama_base_url.rstrip("/")
+        info: dict[str, Any] = {
+            "model": settings.ollama_model,
+            "model_size_mb": None,
+            "loaded_size_mb": None,
+            "model_detail": "",
+        }
+        try:
+            tags = requests.get(base + "/api/tags", timeout=15).json()
+            models = tags.get("models", [])
+            match = next(
+                (
+                    m
+                    for m in models
+                    if m.get("name") == settings.ollama_model
+                    or m.get("model") == settings.ollama_model
+                    or str(m.get("name", "")).startswith(settings.ollama_model)
+                ),
+                None,
+            )
+            if match:
+                info["model_size_mb"] = float(match.get("size", 0)) / (1024 * 1024)
+                details = match.get("details") or {}
+                info["model_detail"] = ", ".join(
+                    f"{k}={v}" for k, v in details.items() if v
+                )
+        except Exception as exc:
+            info["error"] = f"tags: {type(exc).__name__}: {exc}"
+
+        try:
+            ps = requests.get(base + "/api/ps", timeout=15).json()
+            loaded = next(
+                (
+                    m
+                    for m in ps.get("models", [])
+                    if m.get("name") == settings.ollama_model
+                    or m.get("model") == settings.ollama_model
+                ),
+                None,
+            )
+            if loaded:
+                info["loaded_size_mb"] = float(loaded.get("size", 0)) / (1024 * 1024)
+        except Exception as exc:
+            info.setdefault("error", f"ps: {type(exc).__name__}: {exc}")
+        return info
+
+
+class BertBackend:
+    name = "bert"
+
+    def __init__(self) -> None:
+        from app.bert_classifier import BertClassifier
+
+        self.clf = BertClassifier()
+        if not self.clf.available:
+            raise RuntimeError("BERT models are not available")
+
+    def predict(self, email: Email) -> Prediction:
+        result = self.clf.classify(email)
+        return Prediction(
+            category=result.content_category,
+            action=result.reply_nature,
+            raw_valid=None,
+            invalid_reason=None,
+            output_tokens=0,
+        )
+
+    def _count_tokens(self, predictor: Any, email: Email) -> int:
+        if predictor is None:
+            return 0
+        text = predictor.enc.prefix + build_text(email.subject, email.sender, email.preview)
+        ids = predictor.enc.tok(
+            text, truncation=True, max_length=MAX_LEN
+        )["input_ids"]
+        return len(ids)
+
+    def token_usage(self, email: Email, pred: Prediction) -> tuple[int | None, int | None]:
+        from app.rules import category_by_rule
+
+        category_tokens = 0
+        if not category_by_rule(email.sender):
+            category_tokens = self._count_tokens(self.clf._category_clf, email)
+        action_tokens = self._count_tokens(self.clf._action_clf, email)
+        return category_tokens + action_tokens, 0
+
+    def model_info(self) -> dict[str, Any]:
+        head_dirs = [
+            BERT_DIR / "models" / "category_head",
+            BERT_DIR / "models" / "action_head",
+        ]
+        head_size = sum(
+            _dir_size_mb(d) for d in head_dirs if d.exists()
+        )
+        encoder_ids: set[str] = set()
+        for d in head_dirs:
+            manifest = d / "manifest.json"
+            if manifest.exists():
+                try:
+                    encoder_ids.add(json.loads(manifest.read_text())["encoder_model_id"])
+                except Exception:
+                    pass
+
+        encoder_size = 0.0
+        found_encoder = False
+        try:
+            from huggingface_hub.constants import HF_HUB_CACHE
+
+            cache = Path(HF_HUB_CACHE)
+            for model_id in sorted(encoder_ids):
+                folder = cache / ("models--" + model_id.replace("/", "--"))
+                if not folder.exists():
+                    continue
+                ref = folder / "refs" / "main"
+                snapshot = folder
+                if ref.exists():
+                    commit = ref.read_text(encoding="utf-8").strip()
+                    candidate = folder / "snapshots" / commit
+                    if candidate.exists():
+                        snapshot = candidate
+                size = _dir_size_mb(snapshot)
+                if size:
+                    encoder_size += size
+                    found_encoder = True
+        except Exception:
+            pass
+
+        total = head_size + (encoder_size if found_encoder else 0)
+        return {
+            "model": "bge-small-en + e5-small-multi",
+            "model_size_mb": total if (head_size or found_encoder) else None,
+            "head_size_mb": head_size if head_size else None,
+            "encoder_size_mb": encoder_size if found_encoder else None,
+            "loaded_size_mb": None,
+            "model_detail": ", ".join(sorted(encoder_ids)),
+        }
+
+
+def make_backend(name: str) -> LlamaBackend | BertBackend:
+    if name == "llama":
+        return LlamaBackend()
+    if name == "bert":
+        return BertBackend()
+    raise ValueError(f"unknown backend: {name}")
+
+
+def _dir_size_mb(path: Path) -> float:
+    try:
+        files = {p.resolve() for p in path.rglob("*") if p.is_file()}
+        return sum(p.stat().st_size for p in files) / (1024 * 1024)
+    except Exception:
+        return 0.0
+
+
+def unload_ollama() -> None:
+    env = os.environ.copy()
+    host = settings.ollama_base_url.replace("http://", "").replace("https://", "")
+    env["OLLAMA_HOST"] = host.rstrip("/")
+    try:
+        subprocess.run(
+            ["ollama", "stop", settings.ollama_model],
+            env=env,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        time.sleep(0.5)
+        print(f"[llama] requested unload of {settings.ollama_model}")
+    except Exception as exc:
+        print(f"[llama] could not unload model: {type(exc).__name__}: {exc}")
+
+
+# --------------------------------------------------------------------------- #
+# Running and stats
+# --------------------------------------------------------------------------- #
+def _timed_predict(
+    backend: LlamaBackend | BertBackend, email: Email
+) -> tuple[Prediction, float]:
+    start = time.perf_counter()
+    pred = backend.predict(email)
+    return pred, (time.perf_counter() - start) * 1000
+
+
+def _record(
+    backend: str,
+    row: pd.Series,
+    pred: Prediction,
+    latency_ms: float,
+    phase: str,
+    run: int,
+    input_mode: str,
+    text: str,
+) -> CallRecord:
+    return CallRecord(
+        backend=backend,
+        review_id=str(row["review_id"]),
+        phase=phase,
+        run=run,
+        input_mode=input_mode,
+        input_chars=len(text),
+        latency_ms=latency_ms,
+        category=pred.category,
+        action=pred.action,
+        raw_valid=pred.raw_valid,
+        invalid_reason=pred.invalid_reason,
+        input_tokens=pred.input_tokens,
+        output_tokens=pred.output_tokens,
+        server_load_ms=pred.server_load_ms,
+        true_action=str(row["label_key"]),
+        true_category=str(row.get("category", "")),
+        raw_excerpt=pred.raw_excerpt,
+    )
+
+
+def run_backend(
+    name: str, rows: pd.DataFrame, args: argparse.Namespace
+) -> tuple[dict[str, Any], list[CallRecord], list[dict], list[dict]]:
+    records: list[CallRecord] = []
+    consistency_rows: list[dict] = []
+    length_rows: list[dict] = []
+    sampler = MemorySampler(include_ollama=(name == "llama"), enabled=not args.no_memory)
+    energy = EnergyMeter(country=args.country, enabled=not args.no_energy)
+    backend: LlamaBackend | BertBackend | None = None
+    init_ms: float | None = None
+    cold: CallRecord | None = None
+    error: str | None = None
+    started = time.perf_counter()
+
+    if name == "llama" and args.unload_ollama:
+        unload_ollama()
+    gc.collect()
+    sampler.start()
+    energy.start()
+
+    try:
+        init_start = time.perf_counter()
+        backend = make_backend(name)
+        init_ms = (time.perf_counter() - init_start) * 1000
+
+        first = rows.iloc[0]
+        full_text = str(first.get("Preview", ""))
+        cold_pred, cold_latency = _timed_predict(backend, email_for(first, full_text))
+        cold_tokens = backend.token_usage(email_for(first, full_text), cold_pred)
+        cold_pred.input_tokens, cold_pred.output_tokens = cold_tokens
+        cold = _record(
+            name, first, cold_pred, cold_latency, "cold", 0, "full", full_text
+        )
+        records.append(cold)
+
+        for _, row in rows.head(args.warmup).iterrows():
+            text = str(row.get("Preview", ""))
+            pred, latency = _timed_predict(backend, email_for(row, text))
+            pred.input_tokens, pred.output_tokens = backend.token_usage(
+                email_for(row, text), pred
+            )
+            records.append(
+                _record(name, row, pred, latency, "warmup", 0, "full", text)
+            )
+
+        for run in range(1, args.runs + 1):
+            print(f"[{name}] run {run}/{args.runs} ({len(rows)} emails) ...", flush=True)
+            for _, row in rows.iterrows():
+                text = str(row.get("Preview", ""))
+                pred, latency = _timed_predict(backend, email_for(row, text))
+                pred.input_tokens, pred.output_tokens = backend.token_usage(
+                    email_for(row, text), pred
+                )
+                records.append(
+                    _record(name, row, pred, latency, "main", run, "full", text)
+                )
+
+        print(f"[{name}] short-input pass ({len(rows)} emails) ...", flush=True)
+        for _, row in rows.iterrows():
+            full = str(row.get("Preview", ""))
+            text = full[: args.short_chars]
+            pred, latency = _timed_predict(backend, email_for(row, text))
+            pred.input_tokens, pred.output_tokens = backend.token_usage(
+                email_for(row, text), pred
+            )
+            records.append(
+                _record(name, row, pred, latency, "length_short", 0, "short", text)
+            )
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        print(f"[{name}] benchmark failed: {error}")
+        traceback.print_exc()
+    finally:
+        energy_data = energy.stop()
+        memory = sampler.stop()
+
+    elapsed_s = time.perf_counter() - started
+    consistency_rows, length_rows = _agreement_rows(name, records, args)
+    summary = _summarise(
+        name=name,
+        backend=backend,
+        rows=rows,
+        records=records,
+        consistency_rows=consistency_rows,
+        length_rows=length_rows,
+        init_ms=init_ms,
+        cold=cold,
+        energy=energy_data,
+        memory=memory,
+        elapsed_s=elapsed_s,
+        error=error,
+        args=args,
+    )
+    return summary, records, consistency_rows, length_rows
+
+
+def _bootstrap_proportion(
+    flags: list[bool], n_boot: int, seed: int
+) -> tuple[float, float, float]:
+    arr = np.asarray(flags, dtype=float)
+    if len(arr) == 0:
+        return float("nan"), float("nan"), float("nan")
+    point = float(arr.mean())
+    rng = np.random.default_rng(seed)
+    boots = np.array(
+        [rng.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_boot)]
+    )
+    lo, hi = np.percentile(boots, [2.5, 97.5])
+    return point, float(lo), float(hi)
+
+
+def _agreement_rows(
+    name: str, records: list[CallRecord], args: argparse.Namespace
+) -> tuple[list[dict], list[dict]]:
+    main = [r for r in records if r.phase == "main"]
+    by_id: dict[str, list[CallRecord]] = defaultdict(list)
+    for r in main:
+        by_id[r.review_id].append(r)
+
+    consistency = []
+    for rid, group in by_id.items():
+        group = sorted(group, key=lambda r: r.run)
+        if len(group) != args.runs:
+            continue
+        cats = {r.category for r in group}
+        acts = {r.action for r in group}
+        consistency.append(
+            {
+                "backend": name,
+                "review_id": rid,
+                "runs": len(group),
+                "category_set": "|".join(sorted(cats)),
+                "action_set": "|".join(sorted(acts)),
+                "exact": len(cats) == 1 and len(acts) == 1,
+                "category_consistent": len(cats) == 1,
+                "action_consistent": len(acts) == 1,
+            }
+        )
+
+    full = {r.review_id: r for r in main if r.run == 1}
+    short = {r.review_id: r for r in records if r.phase == "length_short"}
+    length = []
+    for rid in sorted(set(full) & set(short)):
+        f, s = full[rid], short[rid]
+        length.append(
+            {
+                "backend": name,
+                "review_id": rid,
+                "full_category": f.category,
+                "full_action": f.action,
+                "short_category": s.category,
+                "short_action": s.action,
+                "category_agree": f.category == s.category,
+                "action_agree": f.action == s.action,
+                "both_agree": f.category == s.category and f.action == s.action,
+            }
+        )
+    return consistency, length
+
+
+def _pct(values: list[float], q: float) -> float | None:
+    return float(np.percentile(values, q)) if values else None
+
+
+def _mean(values: list[float]) -> float | None:
+    return float(statistics.fmean(values)) if values else None
+
+
+def _summarise(
+    *,
+    name: str,
+    backend: LlamaBackend | BertBackend | None,
+    rows: pd.DataFrame,
+    records: list[CallRecord],
+    consistency_rows: list[dict],
+    length_rows: list[dict],
+    init_ms: float | None,
+    cold: CallRecord | None,
+    energy: dict[str, Any],
+    memory: dict[str, Any],
+    elapsed_s: float,
+    error: str | None,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    main = [r for r in records if r.phase == "main"]
+    scored = [r for r in records if r.phase in {"main", "length_short"}]
+    latencies = [r.latency_ms for r in main]
+    warm_p50 = _pct(latencies, 50)
+    warm_p95 = _pct(latencies, 95)
+    warm_mean = _mean(latencies)
+    warm_min = min(latencies) if latencies else None
+    warm_max = max(latencies) if latencies else None
+
+    cold_ms = cold.latency_ms if cold else None
+    server_load_ms = cold.server_load_ms if cold else None
+    if name == "llama":
+        load_ms = (
+            (init_ms or 0) + (server_load_ms or 0) if init_ms is not None else None
+        )
+    else:
+        load_ms = init_ms
+
+    input_tokens = [r.input_tokens for r in main if r.input_tokens is not None]
+    output_tokens = [r.output_tokens for r in main if r.output_tokens is not None]
+    token_stats = {
+        "input_tokens_mean": _mean(input_tokens),
+        "input_tokens_p50": _pct(input_tokens, 50),
+        "input_tokens_p95": _pct(input_tokens, 95),
+        "output_tokens_mean": _mean(output_tokens),
+        "output_tokens_p50": _pct(output_tokens, 50),
+        "output_tokens_p95": _pct(output_tokens, 95),
+    }
+
+    invalid = [r for r in scored if r.raw_valid is False]
+    invalid_main = [r for r in main if r.raw_valid is False]
+    invalid_rate = len(invalid) / len(scored) if scored and name == "llama" else None
+    invalid_main_rate = (
+        len(invalid_main) / len(main) if main and name == "llama" else None
+    )
+    reasons = Counter(r.invalid_reason or "unknown" for r in invalid)
+
+    consistency_exact = [bool(r["exact"]) for r in consistency_rows]
+    consistency_cat = [bool(r["category_consistent"]) for r in consistency_rows]
+    consistency_act = [bool(r["action_consistent"]) for r in consistency_rows]
+    cons_exact, cons_exact_lo, cons_exact_hi = _bootstrap_proportion(
+        consistency_exact, 1000, args.seed
+    )
+    cons_cat, _, _ = _bootstrap_proportion(consistency_cat, 1000, args.seed)
+    cons_act, _, _ = _bootstrap_proportion(consistency_act, 1000, args.seed)
+
+    length_cat = [bool(r["category_agree"]) for r in length_rows]
+    length_act = [bool(r["action_agree"]) for r in length_rows]
+    length_both = [bool(r["both_agree"]) for r in length_rows]
+    len_cat, _, _ = _bootstrap_proportion(length_cat, 1000, args.seed)
+    len_act, _, _ = _bootstrap_proportion(length_act, 1000, args.seed)
+    len_both, len_both_lo, len_both_hi = _bootstrap_proportion(
+        length_both, 1000, args.seed
+    )
+
+    model_info = backend.model_info() if backend is not None else {}
+    notes = []
+    if error:
+        notes.append(f"error: {error}")
+    if name == "llama":
+        notes.append("cold call includes Ollama load if model was unloaded")
+        notes.append("invalid rate uses raw JSON/labels before Pydantic coercion")
+    else:
+        notes.append("constructor loads both encoders and heads")
+    if energy.get("error"):
+        notes.append(f"energy: {energy['error']}")
+    if model_info.get("error"):
+        notes.append(f"model_info: {model_info['error']}")
+    if reasons:
+        notes.append(
+            "invalid reasons: "
+            + "; ".join(f"{k}={v}" for k, v in reasons.most_common(5))
+        )
+
+    return {
+        "backend": name,
+        "error": error,
+        "model": model_info.get("model", ""),
+        "sample_n": len(rows),
+        "runs": args.runs,
+        "warmup": args.warmup,
+        "short_chars": args.short_chars,
+        "init_ms": init_ms,
+        "cold_call_ms": cold_ms,
+        "server_load_ms": server_load_ms,
+        "load_ms": load_ms,
+        "warm_mean_ms": warm_mean,
+        "warm_p50_ms": warm_p50,
+        "warm_p95_ms": warm_p95,
+        "warm_min_ms": warm_min,
+        "warm_max_ms": warm_max,
+        "elapsed_s": elapsed_s,
+        "baseline_rss_mb": memory.get("baseline_mb"),
+        "peak_rss_mb": memory.get("peak_mb"),
+        "rss_delta_mb": memory.get("delta_mb"),
+        "ollama_rss_peak_mb": memory.get("ollama_peak_mb"),
+        "peak_total_mb": memory.get("peak_total_mb"),
+        "model_size_mb": model_info.get("model_size_mb"),
+        "head_size_mb": model_info.get("head_size_mb"),
+        "encoder_size_mb": model_info.get("encoder_size_mb"),
+        "loaded_size_mb": model_info.get("loaded_size_mb"),
+        "model_detail": model_info.get("model_detail", ""),
+        **token_stats,
+        "energy_kwh": energy.get("energy_kwh"),
+        "co2_kg": energy.get("co2_kg"),
+        "energy_duration_s": energy.get("duration_s"),
+        "cpu_power_w": energy.get("cpu_power_w"),
+        "ram_power_w": energy.get("ram_power_w"),
+        "energy_tracking_mode": energy.get("tracking_mode"),
+        "energy_error": energy.get("error"),
+        "invalid_calls": len(invalid) if name == "llama" else None,
+        "scored_calls": len(scored) if name == "llama" else None,
+        "invalid_format_rate": invalid_rate,
+        "invalid_format_rate_main": invalid_main_rate,
+        "consistency_n": len(consistency_rows),
+        "consistency_exact": cons_exact if args.runs > 1 else None,
+        "consistency_exact_ci_low": cons_exact_lo if args.runs > 1 else None,
+        "consistency_exact_ci_high": cons_exact_hi if args.runs > 1 else None,
+        "consistency_category": cons_cat if args.runs > 1 else None,
+        "consistency_action": cons_act if args.runs > 1 else None,
+        "length_n": len(length_rows),
+        "length_category": len_cat,
+        "length_action": len_act,
+        "length_both": len_both,
+        "length_both_ci_low": len_both_lo,
+        "length_both_ci_high": len_both_hi,
+        "notes": "; ".join(notes),
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Output
+# --------------------------------------------------------------------------- #
+def _display_path(path: str) -> str:
+    resolved = Path(path).resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(resolved)
+
+
+def _version(package: str) -> str | None:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
+    def fmt(value: Any, digits: int = 1) -> str:
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            return "—"
+        if isinstance(value, (int, np.integer)):
+            return str(value)
+        if isinstance(value, (float, np.floating)):
+            return f"{float(value):.{digits}f}"
+        return str(value)
+
+    lines = [
+        "Operational benchmark — email-sorter backends",
+        f"Sample: {manifest['sample_n']} of {manifest['total_rows']} action-usable emails "
+        f"| runs/email: {manifest['runs']} | seed: {manifest['seed']}",
+        f"Input: full = Preview (Llama cap {manifest['body_char_limit']} chars); "
+        f"short = first {manifest['short_chars']} chars",
+        "",
+    ]
+    header = (
+        f"{'Backend':<8} {'N':>3} {'Load ms':>8} {'Cold ms':>8} "
+        f"{'Warm p50':>9} {'Warm p95':>9} {'Peak MB':>8} {'Model MB':>9} "
+        f"{'In tok':>7} {'Out tok':>7} {'Energy kWh':>10} {'Invalid':>7} "
+        f"{'Consist.':>8} {'Short/full':>10}"
+    )
+    lines.append(header)
+    lines.append("-" * len(header))
+    for _, row in summary.iterrows():
+        if row.get("error"):
+            lines.append(f"{row['backend']:<8} ERROR: {row['error']}")
+            continue
+        lines.append(
+            f"{row['backend']:<8} {int(row['sample_n']):>3} "
+            f"{fmt(row['load_ms']):>8} {fmt(row['cold_call_ms']):>8} "
+            f"{fmt(row['warm_p50_ms']):>9} {fmt(row['warm_p95_ms']):>9} "
+            f"{fmt(row['peak_total_mb']):>8} {fmt(row['model_size_mb']):>9} "
+            f"{fmt(row['input_tokens_mean']):>7} {fmt(row['output_tokens_mean']):>7} "
+            f"{fmt(row['energy_kwh'], 6):>10} {fmt(row['invalid_format_rate'], 3):>7} "
+            f"{fmt(row['consistency_exact'], 3):>8} {fmt(row['length_both'], 3):>10}"
+        )
+    lines.extend(
+        [
+            "",
+            "Notes:",
+            "- Load = classifier construction + Ollama model load (Llama).",
+            "- Cold = first call after construction; warm stats exclude cold/warm-up.",
+            "- Peak MB is benchmark process + Ollama server RSS (Llama); model MB is on-disk size.",
+            "- Llama tokens include the system prompt; BERT tokens are head input tokens.",
+            "- Invalid = raw JSON/labels not matching the taxonomy before Pydantic coercion.",
+            "- Consistency = all runs identical; Short/full = first full run vs first 200 chars.",
+            "- Energy is CodeCarbon machine-wide; it may include the Ollama server.",
+            "- This is a sample, not the full 134-email quality evaluation.",
+        ]
+    )
+    if manifest.get("sample_action_counts"):
+        lines.append(f"- Sample action counts: {manifest['sample_action_counts']}")
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    args = parse_args()
+    if args.runs < 1:
+        raise SystemExit("--runs must be >= 1")
+    if args.short_chars < 1:
+        raise SystemExit("--short-chars must be >= 1")
+    if args.warmup < 0:
+        raise SystemExit("--warmup must be >= 0")
+
+    rows, info, meta = load_benchmark_rows(args)
+    backends = ["llama", "bert"] if args.backend == "both" else [args.backend]
+    print(
+        f"Benchmarking {len(rows)} emails x {args.runs} runs "
+        f"({', '.join(backends)}) | counts={meta['sample_action_counts']}"
+    )
+
+    summary_rows: list[dict[str, Any]] = []
+    all_records: list[CallRecord] = []
+    all_consistency: list[dict] = []
+    all_length: list[dict] = []
+    for name in backends:
+        print(f"\n=== {name} ===", flush=True)
+        summary, records, consistency, length = run_backend(name, rows, args)
+        summary_rows.append(summary)
+        all_records.extend(records)
+        all_consistency.extend(consistency)
+        all_length.extend(length)
+        if summary.get("error"):
+            print(f"[{name}] ERROR: {summary['error']}")
+        else:
+            peak = summary.get("peak_total_mb")
+            peak_s = f"{peak:.1f}" if peak is not None else "n/a"
+            print(
+                f"[{name}] warm p50={summary['warm_p50_ms']:.1f} ms "
+                f"p95={summary['warm_p95_ms']:.1f} ms "
+                f"peak={peak_s} MB"
+            )
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    summary = pd.DataFrame(summary_rows)
+    runs = pd.DataFrame([r.__dict__ for r in all_records])
+    consistency = pd.DataFrame(all_consistency)
+    length = pd.DataFrame(all_length)
+
+    summary.to_csv(out_dir / "operational_benchmark_summary.csv", index=False, encoding="utf-8-sig")
+    runs.to_csv(out_dir / "operational_benchmark_runs.csv", index=False, encoding="utf-8-sig")
+    consistency.to_csv(
+        out_dir / "operational_benchmark_consistency.csv", index=False, encoding="utf-8-sig"
+    )
+    length.to_csv(
+        out_dir / "operational_benchmark_length.csv", index=False, encoding="utf-8-sig"
+    )
+
+    manifest = {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "review_csv": _display_path(args.review),
+        "backend": args.backend,
+        "limit": args.limit,
+        "total_rows": meta["total_rows"],
+        "sample_n": meta["sample_n"],
+        "sample_action_counts": meta["sample_action_counts"],
+        "sample_review_ids": meta["sample_review_ids"],
+        "runs": args.runs,
+        "warmup": args.warmup,
+        "short_chars": args.short_chars,
+        "seed": args.seed,
+        "country": args.country,
+        "body_char_limit": settings.body_char_limit,
+        "ollama_model": settings.ollama_model,
+        "taxonomy_sha256_16": meta["taxonomy_sha256_16"],
+        "input_protocol": {
+            "full": "Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
+            "short": f"first {args.short_chars} characters of Preview",
+        },
+        "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
+        "versions": {
+            pkg: _version(pkg)
+            for pkg in (
+                "numpy",
+                "pandas",
+                "scikit-learn",
+                "torch",
+                "transformers",
+                "langchain-core",
+                "langchain-ollama",
+                "psutil",
+                "codecarbon",
+            )
+        },
+    }
+    with open(out_dir / "operational_benchmark_manifest.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+    report = render_report(summary, manifest)
+    (out_dir / "operational_benchmark_report.txt").write_text(report, encoding="utf-8")
+    print("\n" + "=" * 100)
+    print(report)
+    print("=" * 100)
+    print(f"Saved artifacts -> {out_dir}")
+
+
+if __name__ == "__main__":
+    main()

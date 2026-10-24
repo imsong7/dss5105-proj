@@ -1014,8 +1014,9 @@ def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
     lines.append(header)
     lines.append("-" * len(header))
     for _, row in summary.iterrows():
-        if row.get("error"):
-            lines.append(f"{row['backend']:<8} ERROR: {row['error']}")
+        error = row.get("error")
+        if isinstance(error, str) and error:
+            lines.append(f"{row['backend']:<8} ERROR: {error}")
             continue
         lines.append(
             f"{row['backend']:<8} {int(row['sample_n']):>3} "

@@ -57,5 +57,16 @@ agent backend.
   `evaluation/requirements.txt` (`psutil`, `codecarbon`).
 - Ran a 30-email stratified sample with 5 runs per email. Llama: warm p50/p95
   3,298/5,334 ms, 5.7 GB peak, 0.00220 kWh, 0 invalid formats, consistency 1.000.
-  BERT: warm p50/p95 33.5/41.6 ms, 972 MB peak, 0.000042 kWh, consistency 1.000.
+  BERT: warm p50/p95 32.9/40.8 ms, 921 MB peak, 0.000032 kWh, consistency 1.000.
 - Updated the README with operational commands and headline results.
+
+## 7. Faster BERT startup
+- Added `_from_pretrained` in `bert/src/model.py`: it tries the local Hugging
+  Face cache with `local_files_only=True` and falls back to the normal download
+  path on a cache miss.
+- This removes the hub metadata round-trip that dominated BERT startup. BERT
+  load dropped from 6,863 ms to 3,398 ms in the operational benchmark; a smaller
+  BERT-only smoke run measured about 2.3 s.
+- Regenerated the BERT operational results and report. Llama results are retained
+  from the earlier run because only the BERT loader changed.
+- Made `render_report` ignore NaN `error` cells when reading a summary CSV.

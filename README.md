@@ -205,8 +205,10 @@ Operational benchmark on a 30-email stratified sample, 5 runs per email, seed
 | Backend | Warm p50 / p95 | Peak memory | Energy | 5-run consistency | 200-char vs full |
 |---------|----------------|-------------|--------|-------------------|------------------|
 | Llama 3.1 8B | 3,298 / 5,334 ms | 5.7 GB | 0.00220 kWh | 1.000 | 0.767 |
-| BERT heads | 33.5 / 41.6 ms | 972 MB | 0.000042 kWh | 1.000 | 0.967 |
+| BERT heads | 32.9 / 40.8 ms | 921 MB | 0.000032 kWh | 1.000 | 0.967 |
 
+BERT load is now **3.4 s** after forcing local-cache-only encoder loading (down
+from 6.9 s); Llama's load is 1.4 s with an already-running Ollama server.
 See `evaluation/README.md` for cold-start, model-size, token, and caveat details.
 See `bert/README.md` for training details.
 

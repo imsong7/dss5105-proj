@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+import pandas as pd
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -21,6 +23,7 @@ from evaluation.operational_benchmark import (  # noqa: E402
     _agreement_rows,
     _bootstrap_proportion,
     _llama_raw_status,
+    render_report,
 )
 
 
@@ -124,6 +127,43 @@ class AgreementTests(unittest.TestCase):
         self.assertTrue(length_by_id["a"]["both_agree"])
         self.assertTrue(length_by_id["b"]["category_agree"])
         self.assertFalse(length_by_id["b"]["action_agree"])
+
+
+class ReportTests(unittest.TestCase):
+    def test_nan_error_cell_is_not_an_error(self) -> None:
+        summary = pd.DataFrame(
+            [
+                {
+                    "backend": "bert",
+                    "error": float("nan"),
+                    "sample_n": 1,
+                    "load_ms": 100.0,
+                    "cold_call_ms": 10.0,
+                    "warm_p50_ms": 5.0,
+                    "warm_p95_ms": 6.0,
+                    "peak_total_mb": 500.0,
+                    "model_size_mb": 100.0,
+                    "input_tokens_mean": 10.0,
+                    "output_tokens_mean": 0.0,
+                    "energy_kwh": 0.0001,
+                    "invalid_format_rate": None,
+                    "consistency_exact": 1.0,
+                    "length_both": 1.0,
+                }
+            ]
+        )
+        manifest = {
+            "sample_n": 1,
+            "total_rows": 1,
+            "runs": 5,
+            "seed": 42,
+            "body_char_limit": 3000,
+            "short_chars": 200,
+            "sample_action_counts": {},
+        }
+        report = render_report(summary, manifest)
+        self.assertNotIn("ERROR", report)
+        self.assertIn("bert", report)
 
 
 if __name__ == "__main__":

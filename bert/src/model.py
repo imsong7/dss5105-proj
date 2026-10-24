@@ -29,6 +29,19 @@ from .data import (
 )
 
 
+def _from_pretrained(factory, model_id):
+    """Load a cached model/tokenizer without a Hugging Face hub round-trip.
+
+    ``from_pretrained`` can spend seconds checking the hub even when the files
+    are already cached. Try the local cache first, then fall back to the normal
+    download path on a cache miss (e.g. first-time setup).
+    """
+    try:
+        return factory.from_pretrained(model_id, local_files_only=True)
+    except OSError:
+        return factory.from_pretrained(model_id)
+
+
 class FrozenEncoder:
     """Frozen sentence encoder that produces L2-normalized embeddings."""
 
@@ -38,8 +51,8 @@ class FrozenEncoder:
         self.name = name
         self.model_id, self.prefix, self.pool = ENCODERS[name]
         self.torch = torch
-        self.tok = AutoTokenizer.from_pretrained(self.model_id)
-        self.model = AutoModel.from_pretrained(self.model_id).eval()
+        self.tok = _from_pretrained(AutoTokenizer, self.model_id)
+        self.model = _from_pretrained(AutoModel, self.model_id).eval()
         for p in self.model.parameters():
             p.requires_grad = False
 

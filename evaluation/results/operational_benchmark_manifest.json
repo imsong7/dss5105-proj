@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-10-23T12:52:19.313768+00:00",
+  "created_utc": "2026-10-24T23:54:22.308381+00:00",
   "review_csv": "bert/data/labels.csv",
   "backend": "both",
   "limit": 30,
@@ -66,5 +66,7 @@
     "langchain-ollama": "1.1.0",
     "psutil": "7.2.2",
     "codecarbon": "3.3.2"
-  }
+  },
+  "bert_rerun_utc": "2026-10-24T23:54:22.308483+00:00",
+  "notes": "Llama metrics are from the 2026-10-23 run. BERT metrics were re-measured on 2026-10-25 after enabling local-cache-only model loading."
 }

@@ -209,7 +209,13 @@ Llama cold call.
 | Backend | Load ms | Cold ms | Warm p50 ms | Warm p95 ms | Peak MB | Model MB | Input tokens | Output tokens | Energy kWh | CO2 kg | Invalid | 5-run consistency | Short/full both |
 |---------|--------:|--------:|------------:|------------:|--------:|---------:|-------------:|--------------:|-----------:|-------:|--------:|------------------:|----------------:|
 | Llama 3.1 8B | 1,388 | 4,178 | 3,298 | 5,334 | 5,746 | 4,693 | 649.5 | 55.2 | 0.002199 | 0.001035 | 0.000 | 1.000 | 0.767 |
-| BERT heads | 6,863 | 476 | 33.5 | 41.6 | 972 | 598 | 351.8 | 0.0 | 0.000042 | 0.000020 | n/a | 1.000 | 0.967 |
+| BERT heads | 3,398 | 411 | 32.9 | 40.8 | 921 | 598 | 351.8 | 0.0 | 0.000032 | 0.000015 | n/a | 1.000 | 0.967 |
+
+The BERT row was re-measured after changing `FrozenEncoder` to load from the
+local Hugging Face cache only (`local_files_only=True`, with a download fallback
+on a cache miss). BERT load dropped from **6,863 ms to 3,398 ms**; a smaller
+smoke run measured about 2.3 s. Llama metrics are from the original run and are
+unaffected by the loader change.
 
 Breakdown:
 

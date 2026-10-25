@@ -24,11 +24,6 @@
     return emailId + "\u0000" + backendId;
   }
 
-  function setProgress(done, total, text) {
-    $("#progress > div").style.width = (total ? done / total * 100 : 0) + "%";
-    if (text) $("#count-label").textContent = text;
-  }
-
   function setBusy(busy) {
     $("#go").disabled = busy;
     $("#cancel").hidden = !busy;
@@ -142,14 +137,6 @@
     state.results[email.id][backendId] = { ok: false, error: message };
   }
 
-  function classifyOne(email, backendId, signal) {
-    return api(
-      "/api/classify",
-      { email, backend: backendId },
-      { signal, timeoutMs: 180000 },
-    );
-  }
-
   function percentile(sorted, p) {
     if (!sorted.length) return null;
     const idx = Math.ceil(p / 100 * sorted.length) - 1;
@@ -256,7 +243,8 @@
   }
 
   function csvCell(value) {
-    const s = value == null ? "" : String(value);
+    let s = value == null ? "" : String(value);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;
     return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }
 
@@ -296,7 +284,7 @@
       notice("Categories are still loading. Please wait a moment and try again.", true);
       return;
     }
-    const provider = $("#provider").value;
+    const { provider, credentials } = readCredentials();
     const invalid = validateCredentials(provider);
     if (invalid) {
       notice(invalid.msg, true);
@@ -309,9 +297,6 @@
       return;
     }
     const count = readCount(state.tax.max_emails);
-    const credentials = provider === "outlook"
-      ? { token: $("#token").value }
-      : { host: $("#host").value, user: $("#user").value, password: $("#pass").value };
 
     const my = ++state.run;
     const controller = new AbortController();
@@ -360,7 +345,7 @@
           setProgress(step, totalSteps, `Warming up ${b.label}...`);
           let warmupTimedOut = false;
           try {
-            const warm = await classifyOne(state.emails[0], b.id, controller.signal);
+            const warm = await classifyEmail(state.emails[0], b.id, controller.signal);
             state.warmup[b.id] = warm.duration_ms;
           } catch (e) {
             if (e.name === "AbortError" && controller.signal.aborted) return;
@@ -390,7 +375,7 @@
           const m = state.emails[i];
           setProgress(step, totalSteps, `${b.label} · ${i + 1} of ${state.emails.length}`);
           try {
-            const r = await classifyOne(m, b.id, controller.signal);
+            const r = await classifyEmail(m, b.id, controller.signal);
             record(m, b.id, r);
             setCell(m, b.id, r);
             consecutive = 0;
@@ -479,10 +464,7 @@
   }
 
   async function init() {
-    $("#provider").addEventListener("change", e => {
-      $("#f-outlook").hidden = e.target.value !== "outlook";
-      $("#f-imap").hidden = e.target.value !== "imap";
-    });
+    initMailboxForm();
     $("#go").addEventListener("click", startCompare);
     $("#cancel").addEventListener("click", cancelCompare);
     $("#export").addEventListener("click", exportCsv);

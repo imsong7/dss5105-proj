@@ -109,7 +109,7 @@ email-sorter/
     taxonomy.py         # Category + action label definitions (single source of truth)
     classifier_base.py  # BaseClassifier, backend registry, factory
     classifier.py       # Llama/Ollama backend
-    bert_classifier.py  # BERT backend (lazy model loading)
+    bert_classifier.py  # BERT backend (loaded on first request)
     config.py           # Settings (backend default, model name, port, body limit)
     server.py           # Flask app + API routes
     models.py           # Email / Classification data models
@@ -146,9 +146,9 @@ bert/
 
   models/
     action_head/            # frozen encoder head for action (recommended)
-    action_full/            # distilbert fine-tune for action
     category_head/          # frozen encoder head for category (recommended)
-    category_full/          # distilbert fine-tune for category
+    action_full/            # optional distilbert fine-tune; generated locally
+    category_full/          # optional distilbert fine-tune; generated locally
 
   results/
     compare_head_summary.txt
@@ -220,6 +220,5 @@ See `bert/README.md` for training details.
 
 | File | Purpose |
 |------|---------|
-| `VERIFICATION.md` | Historical real-data verification report (bugs found, test results, remaining work) |
 | `CHANGES.md` | Change log for email-sorter |
 | `.gitignore` | Ignores venv, `__pycache__`, `.DS_Store`, `emails.csv`, model outputs |

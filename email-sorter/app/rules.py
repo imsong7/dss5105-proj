@@ -1,5 +1,5 @@
 """Deterministic pre-filter run before the model (architecture: "Canvas sender?").
-Must stay identical to SENDER_RULES in bert/train_full.py."""
+Keep this in sync with SENDER_RULES in bert/src/data.py."""
 from email.utils import parseaddr
 
 SENDER_RULES = {

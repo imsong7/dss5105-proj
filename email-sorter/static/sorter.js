@@ -221,12 +221,7 @@
 
   async function classifyList(targets, my, signal, backend) {
     let done = 0, success = 0, batchFailed = 0, stop = false;
-    const bar = $("#progress > div");
-    const label = $("#count-label");
-    const tick = () => {
-      bar.style.width = (done / targets.length * 100) + "%";
-      label.textContent = `Sorted ${done} of ${targets.length}`;
-    };
+    const tick = () => setProgress(done, targets.length, `Sorted ${done} of ${targets.length}`);
     tick();
     const sortStart = performance.now();
     let used = backend || null;
@@ -236,11 +231,7 @@
       if (my !== state.run) return null;
       $("#go").textContent = `Sorting ${done + 1} of ${targets.length}...`;
       try {
-        const r = await api(
-          "/api/classify",
-          { email: m, backend: used },
-          { signal, timeoutMs: 180000 },
-        );
+        const r = await classifyEmail(m, used, signal);
         state.results[m.id] = r;
         state.failedIds.delete(m.id);
         showResult(m, r);
@@ -291,7 +282,7 @@
       notice("Categories are still loading. Please wait a moment and try again.", true);
       return;
     }
-    const provider = $("#provider").value;
+    const { provider, credentials } = readCredentials();
     const invalid = validateCredentials(provider);
     if (invalid) {
       notice(invalid.msg, true);
@@ -299,9 +290,6 @@
       return;
     }
     const count = readCount(state.tax.max_emails);
-    const credentials = provider === "outlook"
-      ? { token: $("#token").value }
-      : { host: $("#host").value, user: $("#user").value, password: $("#pass").value };
 
     const my = ++state.run;
     const controller = new AbortController();
@@ -451,10 +439,7 @@
     }
   }
 
-  $("#provider").addEventListener("change", e => {
-    $("#f-outlook").hidden = e.target.value !== "outlook";
-    $("#f-imap").hidden = e.target.value !== "imap";
-  });
+  initMailboxForm();
   $("#go").addEventListener("click", start);
   $("#cancel").addEventListener("click", cancelRun);
   $("#retry").addEventListener("click", retryFailed);

@@ -34,22 +34,33 @@ def _defs(table: dict) -> str:
     return "\n".join(f"- {key}: {item['desc']}" for key, item in table.items())
 
 
+def build_chain(include_raw: bool = False):
+    """Build the shared Ollama chain; the benchmark needs the raw response."""
+    llm = ChatOllama(
+        model=settings.ollama_model,
+        base_url=settings.ollama_base_url,
+        temperature=0,
+        num_ctx=4096,
+    )
+    prompt = ChatPromptTemplate.from_messages(
+        [("system", SYSTEM), ("human", HUMAN)]
+    ).partial(
+        content_defs=_defs(CONTENT_CATEGORIES),
+        reply_defs=_defs(REPLY_NATURE),
+    )
+    output = llm.with_structured_output(Classification, include_raw=True) if include_raw else (
+        llm.with_structured_output(Classification)
+    )
+    return prompt | output
+
+
 class EmailClassifier(BaseClassifier):
     """Llama / Ollama backend."""
 
     name = "llama"
 
     def __init__(self):
-        llm = ChatOllama(
-            model=settings.ollama_model,
-            base_url=settings.ollama_base_url,
-            temperature=0,
-            num_ctx=4096,
-        )
-        prompt = ChatPromptTemplate.from_messages([("system", SYSTEM), ("human", HUMAN)]).partial(
-            content_defs=_defs(CONTENT_CATEGORIES), reply_defs=_defs(REPLY_NATURE)
-        )
-        self.chain = prompt | llm.with_structured_output(Classification)
+        self.chain = build_chain()
 
     def classify(self, email: Email) -> Classification:
         return self.chain.invoke(

@@ -18,6 +18,7 @@ emails.csv
 bert/models/*_full/
 bert/models/*/model.safetensors
 bert/models/*/training_args.bin
+bert/models/*/*_predictions.csv
 bert/models/*/optimizer.pt
 bert/models/*/scheduler.pt
 bert/models/*/rng_state.pth

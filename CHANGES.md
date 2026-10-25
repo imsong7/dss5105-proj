@@ -98,3 +98,13 @@ agent backend.
 - Stopped tracking generated full-model directories and head prediction CSVs;
   the files remain locally and are ignored by Git. Removed stale
   `VERIFICATION.md`.
+
+## 10. Simpler trainer CLI
+- Reduced `bert/train.py` from 16 flags to 8: mode, task, review, encoder,
+  synthetic, synthetic-tasks, compare-seeds, and check-only.
+- `--review` now defaults to `bert/data/labels.csv`; output paths are fixed at
+  `bert/models` and `bert/results`.
+- Removed the full-mode model/epochs/lr overrides, output-dir overrides,
+  `--allow-missing-labels`, `--encoders`, and `--tfidf-only`.
+- Head training now defaults to bge-small-en for category and e5-small-multi
+  for action; `--encoder` overrides both.

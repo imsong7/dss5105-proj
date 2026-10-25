@@ -36,25 +36,27 @@ bert/
 ## Quick start
 
 All training goes through `bert/train.py`. Pick `--mode head` (default, recommended) or `--mode full`.
+`--review` defaults to `bert/data/labels.csv`; outputs go to `bert/models` and
+`bert/results`. The default head encoders are category=bge-small-en and
+action=e5-small-multi.
 
 ```bash
 # 1) Validate labels
-python bert/train.py --review bert/data/labels.csv --check-only
+python bert/train.py --check-only
 
 # 2) Train frozen heads for the app (recommended) -> bert/models/{task}_head/
-python bert/train.py --review bert/data/labels.csv --mode head --task category
-python bert/train.py --review bert/data/labels.csv --mode head --task action \
-    --encoder e5-small-multi --synthetic bert/data/synthetic.csv
+python bert/train.py --task category
+python bert/train.py --task action --synthetic bert/data/synthetic.csv
 
 # 3) Train full DistilBERT fine-tunes -> bert/models/{task}_full/
-python bert/train.py --review bert/data/labels.csv --task both --mode full
+python bert/train.py --mode full --task both
 
 # 4) Compare encoders (head) or BERT vs TF-IDF (full), no model saved
-python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
-    --mode head --compare-seeds 1,2,3,4,5,6,7,8,9,10
+python bert/train.py --synthetic bert/data/synthetic.csv \
+    --compare-seeds 1,2,3,4,5,6,7,8,9,10
 cat bert/results/compare_head_summary.txt
 
-python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
+python bert/train.py --synthetic bert/data/synthetic.csv \
     --mode full --compare-seeds 1,2,3,4,5 --task action
 cat bert/results/compare_full_summary.txt
 ```
@@ -125,14 +127,13 @@ Fine-tunes `distilbert-base-uncased` on real data; synthetic rows can be added t
 
 ```bash
 # 1) Validate review CSV
-python bert/train.py --review bert/data/labels.csv --mode full --check-only
+python bert/train.py --mode full --check-only
 
 # 2) Train final model(s) -> bert/models/{task}_full/
-python bert/train.py --review bert/data/labels.csv --task both --mode full
+python bert/train.py --mode full --task both
 
 # 3) With synthetic data (action only by default)
-python bert/train.py --review bert/data/labels.csv --task action --mode full \
-    --synthetic bert/data/synthetic.csv
+python bert/train.py --mode full --task action --synthetic bert/data/synthetic.csv
 cat bert/models/action_full/metrics.json
 ```
 
@@ -170,12 +171,12 @@ cat bert/models/action_full/metrics.json
 
 ```bash
 # Head mode: compare encoders (no model saved)
-python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
-    --mode head --compare-seeds 1,2,3,4,5
+python bert/train.py --synthetic bert/data/synthetic.csv \
+    --compare-seeds 1,2,3,4,5
 cat bert/results/compare_head_summary.txt
 
 # Full mode: compare BERT vs TF-IDF (no model saved)
-python bert/train.py --review bert/data/labels.csv --synthetic bert/data/synthetic.csv \
+python bert/train.py --synthetic bert/data/synthetic.csv \
     --mode full --compare-seeds 1,2,3,4,5 --task action
 cat bert/results/compare_full_summary.txt
 ```

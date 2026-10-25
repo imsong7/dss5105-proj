@@ -37,6 +37,7 @@ ENCODERS = {
     "e5-small-multi": ("intfloat/multilingual-e5-small", "query: ", "mean"),
     "distilbert-mean": ("distilbert-base-uncased", "", "mean"),
 }
+DEFAULT_ENCODERS = {"category": "bge-small-en", "action": "e5-small-multi"}
 
 SKIP = "__skip__"
 NEAR_DUP_SIM = 0.8  # TF-IDF cosine; synthetic rows this close to any real email are dropped
@@ -120,7 +121,7 @@ def task_dataset(review, task, labels, allow_missing=False):
     missing = [l for l in model_labels if counts.get(l, 0) == 0]
     if missing and not allow_missing:
         raise DataError(f"[{task}] app labels with no training examples: {missing}. "
-                        f"Add labelled emails, or pass --allow-missing-labels.")
+                        f"Add labelled emails before training.")
     small = {l: int(c) for l, c in counts.items() if c < 5}
     if small:
         raise DataError(f"[{task}] labels with < 5 unique inputs (cannot split): {small}")

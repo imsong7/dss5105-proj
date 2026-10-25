@@ -70,3 +70,16 @@ agent backend.
 - Regenerated the BERT operational results and report. Llama results are retained
   from the earlier run because only the BERT loader changed.
 - Made `render_report` ignore NaN `error` cells when reading a summary CSV.
+
+## 8. Align BERT app input with evaluation
+- `BertClassifier` now uses `Email.body` first and falls back to `Email.preview`.
+  The providers keep only a 200-character preview, so the app previously
+  classified a shorter input than the offline evaluator and the standalone
+  `EmbedPredictor` example.
+- The operational benchmark now counts BERT tokens from the same body-first
+  input, and its report uses the configured `--short-chars` value instead of
+  hardcoding 200.
+- Added `evaluation/test_bert_classifier.py` for body/preview selection and
+  classification routing.
+- Updated the evaluation and root READMEs. No model retraining was needed; the
+  offline OOF scores already use the full body and are unchanged.

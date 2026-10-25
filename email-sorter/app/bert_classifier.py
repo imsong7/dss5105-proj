@@ -39,6 +39,19 @@ MODEL_DIRS = {
 }
 
 
+def _model_text(email: Email) -> str:
+    """Return the text the frozen heads were trained on.
+
+    The providers keep a short ``preview`` (first 200 characters) for display
+    and a full ``body`` for classification. The offline evaluator and the
+    standalone ``EmbedPredictor`` examples use the full body, so prefer it here
+    too and fall back to ``preview`` only when the body is empty.
+    """
+    body = (email.body or "").strip()
+    preview = (email.preview or "").strip()
+    return body or preview
+
+
 class BertClassifier(BaseClassifier):
     """Frozen-encoder BERT classifier backend.
 
@@ -100,26 +113,25 @@ class BertClassifier(BaseClassifier):
                 f"BERT model could not be loaded: {self._load_error}"
             )
 
-        from_addr = getattr(email, "from_addr", None) or getattr(email, "sender", "")
-        subject = getattr(email, "subject", "") or ""
-        body = getattr(email, "body", "") or ""
-        preview = getattr(email, "preview", "") or body
+        sender = email.sender or ""
+        subject = email.subject or ""
+        text = _model_text(email)
 
         # --- sender rules first ---
-        rule_cat = category_by_rule(from_addr)
+        rule_cat = category_by_rule(sender)
 
         # --- category ---
         if rule_cat:
             category = rule_cat
         elif self._category_clf is not None:
-            label, _conf = self._category_clf.predict(subject, preview, from_addr)
+            label, _conf = self._category_clf.predict(subject, text, sender)
             category = label if label in CONTENT_CATEGORIES else DEFAULT_CONTENT
         else:
             category = DEFAULT_CONTENT
 
         # --- action ---
         if self._action_clf is not None:
-            label, _conf = self._action_clf.predict(subject, preview, from_addr)
+            label, _conf = self._action_clf.predict(subject, text, sender)
             action = label if label in REPLY_NATURE else DEFAULT_REPLY
         else:
             action = DEFAULT_REPLY

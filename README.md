@@ -56,6 +56,13 @@ The app has two pages:
 | `/` | Sort one mailbox batch with a selected backend, filter by category/action, retry failures. |
 | `/compare` | Run the same batch through several backends, compare per-email labels and latency, and export CSV. |
 
+**Set up the repo-root environment** (BERT training + evaluation):
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1   # or: source .venv/bin/activate  (Mac/Linux)
+pip install -r requirements.txt
+```
+
 **Train BERT models** (from repo root, `.venv` activated):
 ```bash
 # Validate labels
@@ -87,10 +94,8 @@ python evaluation/operational_benchmark.py
 python -m unittest evaluation.test_evaluation -v
 ```
 
-The operational benchmark uses two optional packages; install them once:
-```bash
-python -m pip install -r evaluation/requirements.txt
-```
+The operational benchmark dependencies (`psutil`, `codecarbon`) are included
+in the repo-root `requirements.txt`.
 
 Results are written to `evaluation/results/` as flat CSV/JSON/TXT files. See
 `evaluation/README.md` for the methodology and caveats.
@@ -98,6 +103,11 @@ Results are written to `evaluation/results/` as flat CSV/JSON/TXT files. See
 ---
 
 ## Where things are
+
+### repo root
+```
+requirements.txt      # App/BERT + evaluation benchmark dependencies
+```
 
 ### `email-sorter/` — the app
 ```
@@ -161,7 +171,6 @@ evaluation/
   offline_f1.py             # OOF predictions + stratified bootstrap CIs
   operational_benchmark.py  # latency, memory, tokens, energy, consistency
   test_evaluation.py        # unit tests for both evaluators + BERT input
-  requirements.txt          # optional benchmark deps (psutil, codecarbon)
   README.md                 # methodology and current results
   results/
     offline_f1_summary.csv

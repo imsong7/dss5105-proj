@@ -10,11 +10,13 @@ Two independent evaluators live here:
 Neither script needs the Flask UI. The offline evaluator does not need Ollama;
 the operational benchmark uses Ollama for the Llama backend.
 
-Install the optional operational dependencies once (repo-root `.venv`):
+Install the repo-wide dependencies from the repo root:
 
 ```bash
-.venv/bin/pip install -r evaluation/requirements.txt
+.venv/bin/pip install -r requirements.txt
 ```
+
+This includes `psutil` and `codecarbon` for the operational benchmark.
 
 # Offline quality: `offline_f1.py`
 

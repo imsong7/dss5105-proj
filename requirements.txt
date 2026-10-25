@@ -1,0 +1,6 @@
+# Repo-wide dependencies for the app, BERT training, and evaluation.
+-r email-sorter/requirements.txt
+
+# Operational benchmark
+psutil>=5.9
+codecarbon>=2.5

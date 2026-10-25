@@ -1,6 +1,6 @@
 Operational benchmark — email-sorter backends
 Sample: 30 of 134 action-usable emails | runs/email: 5 | seed: 42
-Input: full = Preview (Llama cap 3000 chars); short = first 200 chars
+Input: full = body/Preview (Llama cap 3000 chars); short = first 200 chars
 
 Backend    N  Load ms  Cold ms  Warm p50  Warm p95  Peak MB  Model MB  In tok Out tok Energy kWh Invalid Consist. Short/full
 ----------------------------------------------------------------------------------------------------------------------------
@@ -15,5 +15,5 @@ Notes:
 - Invalid = raw JSON/labels not matching the taxonomy before Pydantic coercion.
 - Consistency = all runs identical; Short/full = first full run vs first 200 chars.
 - Energy is CodeCarbon machine-wide; it may include the Ollama server.
-- This is a sample, not the full 134-email quality evaluation.
+- This is an operational benchmark, not the offline quality evaluation.
 - Sample action counts: {'no_immediate_action': 22, 'needs_action': 4, 'reminder': 2, 'needs_reply': 2}

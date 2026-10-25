@@ -6,13 +6,13 @@ backends behave when they are actually called.
 Measured per backend
 --------------------
 - load / cold-call / warm p50 / warm p95 latency
-- process RSS peak and, for Llama, Ollama server RSS
+- peak memory (benchmark process plus Ollama server when applicable)
 - model size on disk / in Ollama
 - token use (Llama prompt+completion; BERT head input tokens)
 - CodeCarbon energy and CO2 estimate (optional)
-- 5-run label consistency
+- exact 5-run label consistency
 - raw LLM invalid-format rate (before Pydantic coercion)
-- first-200-char vs full-input label agreement
+- exact first-200-char vs full-input label agreement
 
 Input protocol
 --------------
@@ -65,11 +65,7 @@ for _path in (REPO_ROOT, EMAIL_DIR, BERT_DIR):
 from app.config import settings  # noqa: E402
 from app.models import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
-from evaluation import (  # noqa: E402
-    bootstrap_proportion,
-    display_path,
-    package_version,
-)
+from evaluation import display_path, package_version  # noqa: E402
 from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
 
 DEFAULT_REVIEW = BERT_DIR / "data" / "labels.csv"
@@ -656,7 +652,6 @@ def run_backend(
     init_ms: float | None = None
     cold: CallRecord | None = None
     error: str | None = None
-    started = time.perf_counter()
 
     if name == "llama" and args.unload_ollama:
         unload_ollama()
@@ -720,72 +715,47 @@ def run_backend(
         energy_data = energy.stop()
         memory = sampler.stop()
 
-    elapsed_s = time.perf_counter() - started
-    consistency_rows, length_rows = _agreement_rows(name, records, args)
+    consistency, length = _agreement(records, args)
     summary = _summarise(
         name=name,
         backend=backend,
         rows=rows,
         records=records,
-        consistency_rows=consistency_rows,
-        length_rows=length_rows,
+        consistency=consistency,
+        length=length,
         init_ms=init_ms,
         cold=cold,
         energy=energy_data,
         memory=memory,
-        elapsed_s=elapsed_s,
         error=error,
         args=args,
     )
     return summary, records
 
 
-def _agreement_rows(
-    name: str, records: list[CallRecord], args: argparse.Namespace
-) -> tuple[list[dict], list[dict]]:
+def _agreement(
+    records: list[CallRecord], args: argparse.Namespace
+) -> tuple[list[bool], list[bool]]:
     main = [r for r in records if r.phase == "main"]
     by_id: dict[str, list[CallRecord]] = defaultdict(list)
     for r in main:
         by_id[r.review_id].append(r)
 
     consistency = []
-    for rid, group in by_id.items():
-        group = sorted(group, key=lambda r: r.run)
+    for group in by_id.values():
         if len(group) != args.runs:
             continue
         cats = {r.category for r in group}
         acts = {r.action for r in group}
-        consistency.append(
-            {
-                "backend": name,
-                "review_id": rid,
-                "runs": len(group),
-                "category_set": "|".join(sorted(cats)),
-                "action_set": "|".join(sorted(acts)),
-                "exact": len(cats) == 1 and len(acts) == 1,
-                "category_consistent": len(cats) == 1,
-                "action_consistent": len(acts) == 1,
-            }
-        )
+        consistency.append(len(cats) == 1 and len(acts) == 1)
 
     full = {r.review_id: r for r in main if r.run == 1}
     short = {r.review_id: r for r in records if r.phase == "length_short"}
-    length = []
-    for rid in sorted(set(full) & set(short)):
-        f, s = full[rid], short[rid]
-        length.append(
-            {
-                "backend": name,
-                "review_id": rid,
-                "full_category": f.category,
-                "full_action": f.action,
-                "short_category": s.category,
-                "short_action": s.action,
-                "category_agree": f.category == s.category,
-                "action_agree": f.action == s.action,
-                "both_agree": f.category == s.category and f.action == s.action,
-            }
-        )
+    length = [
+        full[rid].category == short[rid].category
+        and full[rid].action == short[rid].action
+        for rid in sorted(set(full) & set(short))
+    ]
     return consistency, length
 
 
@@ -803,13 +773,12 @@ def _summarise(
     backend: LlamaBackend | BertBackend | None,
     rows: pd.DataFrame,
     records: list[CallRecord],
-    consistency_rows: list[dict],
-    length_rows: list[dict],
+    consistency: list[bool],
+    length: list[bool],
     init_ms: float | None,
     cold: CallRecord | None,
     energy: dict[str, Any],
     memory: dict[str, Any],
-    elapsed_s: float,
     error: str | None,
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -818,9 +787,6 @@ def _summarise(
     latencies = [r.latency_ms for r in main]
     warm_p50 = _pct(latencies, 50)
     warm_p95 = _pct(latencies, 95)
-    warm_mean = _mean(latencies)
-    warm_min = min(latencies) if latencies else None
-    warm_max = max(latencies) if latencies else None
 
     cold_ms = cold.latency_ms if cold else None
     server_load_ms = cold.server_load_ms if cold else None
@@ -833,14 +799,6 @@ def _summarise(
 
     input_tokens = [r.input_tokens for r in main if r.input_tokens is not None]
     output_tokens = [r.output_tokens for r in main if r.output_tokens is not None]
-    token_stats = {
-        "input_tokens_mean": _mean(input_tokens),
-        "input_tokens_p50": _pct(input_tokens, 50),
-        "input_tokens_p95": _pct(input_tokens, 95),
-        "output_tokens_mean": _mean(output_tokens),
-        "output_tokens_p50": _pct(output_tokens, 50),
-        "output_tokens_p95": _pct(output_tokens, 95),
-    }
 
     invalid = [r for r in scored if r.raw_valid is False]
     invalid_main = [r for r in main if r.raw_valid is False]
@@ -850,23 +808,8 @@ def _summarise(
     )
     reasons = Counter(r.invalid_reason or "unknown" for r in invalid)
 
-    consistency_exact = [bool(r["exact"]) for r in consistency_rows]
-    consistency_cat = [bool(r["category_consistent"]) for r in consistency_rows]
-    consistency_act = [bool(r["action_consistent"]) for r in consistency_rows]
-    cons_exact, cons_exact_lo, cons_exact_hi = bootstrap_proportion(
-        consistency_exact, 1000, args.seed
-    )
-    cons_cat, _, _ = bootstrap_proportion(consistency_cat, 1000, args.seed)
-    cons_act, _, _ = bootstrap_proportion(consistency_act, 1000, args.seed)
-
-    length_cat = [bool(r["category_agree"]) for r in length_rows]
-    length_act = [bool(r["action_agree"]) for r in length_rows]
-    length_both = [bool(r["both_agree"]) for r in length_rows]
-    len_cat, _, _ = bootstrap_proportion(length_cat, 1000, args.seed)
-    len_act, _, _ = bootstrap_proportion(length_act, 1000, args.seed)
-    len_both, len_both_lo, len_both_hi = bootstrap_proportion(
-        length_both, 1000, args.seed
-    )
+    consistency_rate = _mean(consistency) if args.runs > 1 else None
+    length_rate = _mean(length)
 
     model_info = backend.model_info() if backend is not None else {}
     notes = []
@@ -893,52 +836,20 @@ def _summarise(
         "model": model_info.get("model", ""),
         "sample_n": len(rows),
         "runs": args.runs,
-        "warmup": args.warmup,
-        "short_chars": args.short_chars,
-        "init_ms": init_ms,
-        "cold_call_ms": cold_ms,
-        "server_load_ms": server_load_ms,
         "load_ms": load_ms,
-        "warm_mean_ms": warm_mean,
+        "cold_call_ms": cold_ms,
         "warm_p50_ms": warm_p50,
         "warm_p95_ms": warm_p95,
-        "warm_min_ms": warm_min,
-        "warm_max_ms": warm_max,
-        "elapsed_s": elapsed_s,
-        "baseline_rss_mb": memory.get("baseline_mb"),
-        "peak_rss_mb": memory.get("peak_mb"),
-        "rss_delta_mb": memory.get("delta_mb"),
-        "ollama_rss_peak_mb": memory.get("ollama_peak_mb"),
         "peak_total_mb": memory.get("peak_total_mb"),
         "model_size_mb": model_info.get("model_size_mb"),
-        "head_size_mb": model_info.get("head_size_mb"),
-        "encoder_size_mb": model_info.get("encoder_size_mb"),
-        "loaded_size_mb": model_info.get("loaded_size_mb"),
-        "model_detail": model_info.get("model_detail", ""),
-        **token_stats,
+        "input_tokens_mean": _mean(input_tokens),
+        "output_tokens_mean": _mean(output_tokens),
         "energy_kwh": energy.get("energy_kwh"),
         "co2_kg": energy.get("co2_kg"),
-        "energy_duration_s": energy.get("duration_s"),
-        "cpu_power_w": energy.get("cpu_power_w"),
-        "ram_power_w": energy.get("ram_power_w"),
-        "energy_tracking_mode": energy.get("tracking_mode"),
-        "energy_error": energy.get("error"),
-        "invalid_calls": len(invalid) if name == "llama" else None,
-        "scored_calls": len(scored) if name == "llama" else None,
         "invalid_format_rate": invalid_rate,
         "invalid_format_rate_main": invalid_main_rate,
-        "consistency_n": len(consistency_rows),
-        "consistency_exact": cons_exact if args.runs > 1 else None,
-        "consistency_exact_ci_low": cons_exact_lo if args.runs > 1 else None,
-        "consistency_exact_ci_high": cons_exact_hi if args.runs > 1 else None,
-        "consistency_category": cons_cat if args.runs > 1 else None,
-        "consistency_action": cons_act if args.runs > 1 else None,
-        "length_n": len(length_rows),
-        "length_category": len_cat,
-        "length_action": len_act,
-        "length_both": len_both,
-        "length_both_ci_low": len_both_lo,
-        "length_both_ci_high": len_both_hi,
+        "consistency_exact": consistency_rate,
+        "length_both": length_rate,
         "notes": "; ".join(notes),
     }
 

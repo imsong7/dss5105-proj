@@ -131,3 +131,13 @@ agent backend.
 - Shortened the module docstring, CLI setup, report rendering, and summary
   construction without changing the summary or OOF output.
 - Removed type annotations from the evaluator to match the `bert/src` style.
+
+## 14. Leaner operational summary
+- Trimmed `operational_benchmark_summary.csv` from 57 columns to 20 headline
+  metrics. Latency components, memory/size decompositions, token percentiles,
+  per-field agreement, and derived energy details are no longer duplicated in
+  the summary.
+- Kept per-call latency, labels, raw validity, and token counts in
+  `operational_benchmark_runs.csv`.
+- Simplified the agreement helper to return exact-match booleans only, and
+  removed the now-unused bootstrap calls and elapsed-time plumbing.

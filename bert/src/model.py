@@ -1,9 +1,4 @@
-"""Model training and inference for BERT email classification.
-
-Two modes:
-  head   (default) — frozen sentence encoder + trainable logistic-regression head.
-  full   — full DistilBERT fine-tune.
-"""
+"""BERT training and inference (head and full modes)."""
 
 import json
 import os
@@ -35,12 +30,7 @@ FULL_LR = 5e-5
 
 
 def _from_pretrained(factory, model_id):
-    """Load a cached model/tokenizer without a Hugging Face hub round-trip.
-
-    ``from_pretrained`` can spend seconds checking the hub even when the files
-    are already cached. Try the local cache first, then fall back to the normal
-    download path on a cache miss (e.g. first-time setup).
-    """
+    """Try the local cache first, then fall back to the Hugging Face hub."""
     try:
         return factory.from_pretrained(model_id, local_files_only=True)
     except OSError:
@@ -117,8 +107,7 @@ def train_once(df, syn, X, Xs, seed):
 # Mode: head — frozen encoder + logistic-regression head
 # --------------------------------------------------------------------------- #
 class EmbedPredictor:
-    """For the app: EmbedPredictor('bert/models/embed/action').predict(subject, body)
-    -> (label, confidence)."""
+    """Predict labels with a saved frozen-encoder head."""
 
     def __init__(self, model_dir):
         import joblib
@@ -152,7 +141,7 @@ def train_head_final(task, df, info, syn, syn_info, en, labels_all, digest, args
             ["review_id", "Subject", "From", "label_key", "pred", "confidence"]].to_csv(
             os.path.join(out, f"{'val' if name == 'validation' else 'test'}_predictions.csv"),
             index=False, encoding="utf-8-sig")
-    # reported numbers use the 60% train split; for the app, refit head on train+val
+    # Report on the train split; refit on train+val for the app.
     trva = pd.concat([tr, va])
     Xf, yf = X[trva["_i"]], list(trva["label_key"])
     if Xs is not None:
@@ -279,7 +268,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
 
     class WeightedTrainer(Trainer):
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-            # num_items_in_batch is required by Trainer even though this loss ignores it.
+            # Required by Trainer; unused by this loss.
             y = inputs.pop("labels")
             out = model(**inputs)
             loss = torch.nn.CrossEntropyLoss(weight=cw.to(out.logits.device))(out.logits, y)
@@ -355,7 +344,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
     with open(os.path.join(out_dir, "metrics.json"), "w") as f:
         json.dump(res, f, indent=2, ensure_ascii=False)
     shutil.rmtree(os.path.join(out_dir, "checkpoints"), ignore_errors=True)
-    if not keep_model:  # comparison runs: keep only metrics/predictions (*.json, *.csv)
+    if not keep_model:  # Comparison runs keep only metrics/predictions.
         for fn in os.listdir(out_dir):
             p = os.path.join(out_dir, fn)
             if os.path.isdir(p):
@@ -402,7 +391,7 @@ def _row(task, seed, model, cond, r, labels):
 
 
 def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
-    """Train real-only vs real+synthetic on several splits; report mean +- sd and paired differences."""
+    """Compare real vs real+synthetic runs across seeds."""
     os.makedirs(RESULTS_DIR, exist_ok=True)
     rows = []
     for t, (df, info) in data.items():

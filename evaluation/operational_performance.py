@@ -1,37 +1,12 @@
-"""Operational performance benchmark for the email-sorter backends.
+"""Benchmark the deployed email-sorter backends.
 
-This is separate from the offline quality evaluation: it measures how the
-backends behave when they are actually called.
+Measures load/cold/warm latency, peak memory, model size, token use, energy,
+invalid-format rate, 5-run consistency, and short/full agreement.
 
-Measured per backend
---------------------
-- load / cold-call / warm p50 / warm p95 latency
-- peak memory (benchmark process plus Ollama server when applicable)
-- model size on disk / in Ollama
-- token use (Llama prompt+completion; BERT head input tokens)
-- CodeCarbon energy and CO2 estimate (optional)
-- exact 5-run label consistency
-- raw LLM invalid-format rate (before Pydantic coercion)
-- exact first-200-char vs full-input label agreement
-
-Input protocol
---------------
-``full`` uses the email's full body. The labelled dataset stores that text in
-its ``Preview`` field, which the benchmark passes as both body and preview. The
-app sends the provider body and falls back to preview. Llama truncates to
-``settings.body_char_limit`` (3000 chars) and BERT to 256 tokens. ``short`` uses
-the first ``--short-chars`` characters (default 200).
-
-Usage (repo root, root .venv activated)::
-
+Usage:
     python evaluation/operational_performance.py
     python evaluation/operational_performance.py --backend llama --limit 20
     python evaluation/operational_performance.py --no-energy --no-memory
-    python evaluation/operational_performance.py --limit 0 --runs 5
-
-The default is a 30-email stratified sample, 5 runs per email. Use
-``--limit 0`` for all 134 action-usable unique emails. Llama calls are slow; a
-full 134 x 5 run takes a long time.
 """
 
 import argparse
@@ -74,10 +49,8 @@ except ImportError:  # pragma: no cover - optional
     psutil = None
 
 
-# --------------------------------------------------------------------------- #
 # Arguments and data
-# --------------------------------------------------------------------------- #
-def parse_args():
+def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -86,31 +59,31 @@ def parse_args():
         "--backend",
         choices=["both", "llama", "bert"],
         default="both",
-        help="backend(s) to benchmark",
+        help="backend(s)",
     )
     ap.add_argument(
         "--limit",
         type=int,
         default=30,
-        help="stratified sample size; 0 = all action-usable unique emails",
+        help="sample size; 0 = all usable emails",
     )
-    ap.add_argument("--runs", type=int, default=5, help="runs per email for consistency")
-    ap.add_argument("--warmup", type=int, default=2, help="warm-up calls excluded from stats")
-    ap.add_argument("--short-chars", type=int, default=200, help="short-input length")
+    ap.add_argument("--runs", type=int, default=5, help="calls per email")
+    ap.add_argument("--warmup", type=int, default=2, help="warm-up calls (not measured)")
+    ap.add_argument("--short-chars", type=int, default=200, help="short-input characters")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--country", default="SGP", help="CodeCarbon country ISO code")
+    ap.add_argument("--country", default="SGP", help="CodeCarbon country code")
     ap.add_argument(
         "--unload-ollama",
         action="store_true",
-        help="run `ollama stop <model>` before Llama so the cold call includes model load",
+        help="unload Ollama first so the cold call includes model load",
     )
-    ap.add_argument("--no-energy", action="store_true", help="disable CodeCarbon")
-    ap.add_argument("--no-memory", action="store_true", help="disable psutil RSS sampling")
+    ap.add_argument("--no-energy", action="store_true", help="disable energy tracking")
+    ap.add_argument("--no-memory", action="store_true", help="disable memory sampling")
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT))
     return ap.parse_args()
 
 
-def load_benchmark_rows(args):
+def load_benchmark_rows(args: argparse.Namespace) -> tuple:
     labels, tax_digest = load_taxonomy()
     review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
     df, info = task_dataset(review, "action", labels["action"], False)
@@ -150,7 +123,7 @@ def load_benchmark_rows(args):
     return df, info, meta
 
 
-def email_for(row, text):
+def email_for(row: pd.Series, text: str) -> Email:
     return Email(
         id=str(row["review_id"]),
         subject=str(row.get("Subject", "")),
@@ -161,13 +134,11 @@ def email_for(row, text):
     )
 
 
-# --------------------------------------------------------------------------- #
 # Memory and energy
-# --------------------------------------------------------------------------- #
 class MemorySampler:
     """Sample benchmark-process RSS and (optionally) Ollama server RSS."""
 
-    def __init__(self, include_ollama, enabled=True):
+    def __init__(self, include_ollama: bool, enabled: bool = True):
         self.include_ollama = include_ollama
         self.enabled = enabled and psutil is not None
         self._stop = threading.Event()
@@ -178,13 +149,13 @@ class MemorySampler:
         self.ollama_baseline = 0
         self.ollama_peak = 0
 
-    def _rss(self):
+    def _rss(self) -> int:
         try:
             return int(self._process.memory_info().rss)
         except Exception:
             return 0
 
-    def _ollama_rss(self):
+    def _ollama_rss(self) -> int:
         if not self.include_ollama or psutil is None:
             return 0
         total = 0
@@ -206,7 +177,7 @@ class MemorySampler:
                 continue
         return total
 
-    def start(self):
+    def start(self) -> None:
         if not self.enabled:
             return
         self.baseline = self._rss()
@@ -216,13 +187,13 @@ class MemorySampler:
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
-    def _loop(self):
+    def _loop(self) -> None:
         while not self._stop.wait(0.15):
             self.peak = max(self.peak, self._rss())
             if self.include_ollama:
                 self.ollama_peak = max(self.ollama_peak, self._ollama_rss())
 
-    def stop(self):
+    def stop(self) -> dict:
         if not self.enabled:
             return {"enabled": False}
         self._stop.set()
@@ -248,7 +219,7 @@ class MemorySampler:
 class EnergyMeter:
     """Optional CodeCarbon wrapper. The tracker is machine-wide."""
 
-    def __init__(self, country, enabled=True):
+    def __init__(self, country: str, enabled: bool = True):
         self.enabled = enabled
         self.country = country
         self.tracker = None
@@ -268,7 +239,7 @@ class EnergyMeter:
         except Exception as exc:  # pragma: no cover - optional dependency
             self.error = f"{type(exc).__name__}: {exc}"
 
-    def start(self):
+    def start(self) -> None:
         if self.tracker is None:
             return
         try:
@@ -277,7 +248,7 @@ class EnergyMeter:
             self.error = f"{type(exc).__name__}: {exc}"
             self.tracker = None
 
-    def stop(self):
+    def stop(self) -> dict:
         if self.tracker is None:
             return {"enabled": False, "error": self.error}
         try:
@@ -298,9 +269,7 @@ class EnergyMeter:
             return {"enabled": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
-# --------------------------------------------------------------------------- #
 # Backends
-# --------------------------------------------------------------------------- #
 @dataclass
 class Prediction:
     category: str
@@ -334,11 +303,11 @@ class CallRecord:
     raw_excerpt: str
 
 
-def _norm_label(value):
+def _norm_label(value: object) -> str:
     return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
 
 
-def _llama_raw_status(result):
+def _llama_raw_status(result: dict) -> tuple:
     raw = result.get("raw")
     parsed = result.get("parsed")
     err = result.get("parsing_error")
@@ -370,12 +339,12 @@ def _llama_raw_status(result):
 class LlamaBackend:
     name = "llama"
 
-    def __init__(self):
+    def __init__(self) -> None:
         from app.classifier import build_chain
 
         self.chain = build_chain(include_raw=True)
 
-    def predict(self, email):
+    def predict(self, email: Email) -> Prediction:
         result = self.chain.invoke(
             {
                 "sender": email.sender,
@@ -415,10 +384,10 @@ class LlamaBackend:
             raw_excerpt=excerpt,
         )
 
-    def token_usage(self, email, pred):
+    def token_usage(self, email: Email, pred: Prediction) -> tuple:
         return pred.input_tokens, pred.output_tokens
 
-    def model_info(self):
+    def model_info(self) -> dict:
         import requests
 
         base = settings.ollama_base_url.rstrip("/")
@@ -471,14 +440,14 @@ class LlamaBackend:
 class BertBackend:
     name = "bert"
 
-    def __init__(self):
+    def __init__(self) -> None:
         from app.bert_classifier import BertClassifier
 
         self.clf = BertClassifier()
         if not self.clf.available:
             raise RuntimeError("BERT models are not available")
 
-    def predict(self, email):
+    def predict(self, email: Email) -> Prediction:
         result = self.clf.classify(email)
         return Prediction(
             category=result.content_category,
@@ -488,7 +457,7 @@ class BertBackend:
             output_tokens=0,
         )
 
-    def _count_tokens(self, predictor, email):
+    def _count_tokens(self, predictor, email: Email) -> int:
         if predictor is None:
             return 0
         from app.bert_classifier import _model_text
@@ -501,7 +470,7 @@ class BertBackend:
         )["input_ids"]
         return len(ids)
 
-    def token_usage(self, email, pred):
+    def token_usage(self, email: Email, pred: Prediction) -> tuple:
         from app.rules import category_by_rule
 
         category_tokens = 0
@@ -510,7 +479,7 @@ class BertBackend:
         action_tokens = self._count_tokens(self.clf._action_clf, email)
         return category_tokens + action_tokens, 0
 
-    def model_info(self):
+    def model_info(self) -> dict:
         head_dirs = [
             BERT_DIR / "models" / "category_head",
             BERT_DIR / "models" / "action_head",
@@ -560,7 +529,7 @@ class BertBackend:
         }
 
 
-def make_backend(name):
+def make_backend(name: str) -> LlamaBackend | BertBackend:
     if name == "llama":
         return LlamaBackend()
     if name == "bert":
@@ -568,7 +537,7 @@ def make_backend(name):
     raise ValueError(f"unknown backend: {name}")
 
 
-def _dir_size_mb(path):
+def _dir_size_mb(path: Path) -> float:
     try:
         files = {p.resolve() for p in path.rglob("*") if p.is_file()}
         return sum(p.stat().st_size for p in files) / (1024 * 1024)
@@ -576,7 +545,7 @@ def _dir_size_mb(path):
         return 0.0
 
 
-def unload_ollama():
+def unload_ollama() -> None:
     env = os.environ.copy()
     host = settings.ollama_base_url.replace("http://", "").replace("https://", "")
     env["OLLAMA_HOST"] = host.rstrip("/")
@@ -595,16 +564,14 @@ def unload_ollama():
         print(f"[llama] could not unload model: {type(exc).__name__}: {exc}")
 
 
-# --------------------------------------------------------------------------- #
 # Running and stats
-# --------------------------------------------------------------------------- #
-def _timed_predict(backend, email):
+def _timed_predict(backend: LlamaBackend | BertBackend, email: Email) -> tuple:
     start = time.perf_counter()
     pred = backend.predict(email)
     return pred, (time.perf_counter() - start) * 1000
 
 
-def _record(backend, row, pred, latency_ms, phase, run, input_mode, text):
+def _record(backend, row, pred, latency_ms, phase, run, input_mode, text) -> CallRecord:
     return CallRecord(
         backend=backend,
         review_id=str(row["review_id"]),
@@ -626,7 +593,7 @@ def _record(backend, row, pred, latency_ms, phase, run, input_mode, text):
     )
 
 
-def run_backend(name, rows, args):
+def run_backend(name: str, rows: pd.DataFrame, args: argparse.Namespace) -> tuple:
     records = []
     sampler = MemorySampler(include_ollama=(name == "llama"), enabled=not args.no_memory)
     energy = EnergyMeter(country=args.country, enabled=not args.no_energy)
@@ -715,7 +682,7 @@ def run_backend(name, rows, args):
     return summary, records
 
 
-def _agreement(records, args):
+def _agreement(records: list[CallRecord], args: argparse.Namespace) -> tuple:
     main = [r for r in records if r.phase == "main"]
     by_id = defaultdict(list)
     for r in main:
@@ -739,11 +706,11 @@ def _agreement(records, args):
     return consistency, length
 
 
-def _pct(values, q):
+def _pct(values: list[float], q: float) -> float | None:
     return float(np.percentile(values, q)) if values else None
 
 
-def _mean(values):
+def _mean(values: list[float]) -> float | None:
     return float(statistics.fmean(values)) if values else None
 
 
@@ -761,7 +728,7 @@ def _summarise(
     memory,
     error,
     args,
-):
+) -> dict:
     main = [r for r in records if r.phase == "main"]
     scored = [r for r in records if r.phase in {"main", "length_short"}]
     latencies = [r.latency_ms for r in main]
@@ -834,11 +801,9 @@ def _summarise(
     }
 
 
-# --------------------------------------------------------------------------- #
 # Output
-# --------------------------------------------------------------------------- #
-def render_report(summary, manifest):
-    def fmt(value, digits=1):
+def render_report(summary: pd.DataFrame, manifest: dict) -> str:
+    def fmt(value, digits: int = 1) -> str:
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return "—"
         if isinstance(value, (int, np.integer)):
@@ -897,7 +862,7 @@ def render_report(summary, manifest):
     return "\n".join(lines) + "\n"
 
 
-def main():
+def main() -> None:
     args = parse_args()
     if args.runs < 1:
         raise SystemExit("--runs must be >= 1")

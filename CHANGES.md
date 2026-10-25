@@ -159,10 +159,8 @@ agent backend.
 - Updated imports, commands, and documentation to use the new names.
 
 ## 17. Simpler operational performance code
-- Removed function and local-variable type annotations from
-  `evaluation/operational_performance.py`; the code now reads like the rest of
-  the evaluators.
-- Kept the dataclass field types, since Python needs them to define
-  `Prediction` and `CallRecord`.
+- Shortened the type hints in `evaluation/operational_performance.py` to simple
+  forms (`str`, `dict`, `tuple`, `-> None`) and kept the dataclass fields.
+- Shortened the module docstring, section headers, and CLI help text.
 - Removed the unused `typing.Any` import and the now-unneeded
   `from __future__ import annotations`.

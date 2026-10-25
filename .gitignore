@@ -32,3 +32,5 @@ bert/models/*/checkpoints/
 
 # OS
 Thumbs.db
+
+CHANGES.md

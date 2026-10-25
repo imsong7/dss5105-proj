@@ -1,37 +1,8 @@
-"""Unified email classifier trainer.
+"""Train the BERT heads or a full DistilBERT model.
 
-Two modes:
-  head   (default) — frozen sentence encoder + trainable logistic-regression head.
-              Tiny, fast, no overfitting on ~80 real emails.
-              Output -> bert/models/{task}_head/
-  full   — full DistilBERT fine-tune. Slower, heavier.
-              Output -> bert/models/{task}_full/
-
-Shared data handling: review CSV validation, Canvas sender rule, stratified split,
-synthetic rows added to TRAIN only (val/test stay real).
-
-By default this reads bert/data/labels.csv and writes to bert/models or
-bert/results. The default head encoders are category=bge-small-en and
-action=e5-small-multi; use --encoder to override both.
-
-Examples (repo root):
-
-  # 1) Train the recommended frozen heads for the app
-  python bert/train.py --task both
-  python bert/train.py --task action --synthetic bert/data/synthetic.csv
-
-  # 2) Train a full DistilBERT fine-tune on real data only
-  python bert/train.py --mode full --task both
-
-  # 3) Compare encoders / real vs real+synthetic (head mode, 10 seeds)
-  python bert/train.py --synthetic bert/data/synthetic.csv \
-      --compare-seeds 1,2,3,4,5,6,7,8,9,10
-  cat bert/results/compare_head_summary.txt
-
-  # 4) Compare DistilBERT vs TF-IDF (full mode, 5 seeds)
-  python bert/train.py --synthetic bert/data/synthetic.csv \
-      --mode full --compare-seeds 1,2,3,4,5 --task action
-  cat bert/results/compare_full_summary.txt
+Head mode (default) uses a frozen encoder plus a logistic-regression head.
+Full mode fine-tunes DistilBERT. Data comes from bert/data/labels.csv and
+outputs go to bert/models or bert/results.
 """
 import argparse
 import os
@@ -68,26 +39,23 @@ DEFAULT_REVIEW = os.path.join(SCRIPT_DIR, "data", "labels.csv")
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mode", choices=["head", "full"], default="head",
-                    help="head = frozen encoder + logreg head (default, recommended); "
-                         "full = full DistilBERT fine-tune")
-    ap.add_argument("--task", choices=["category", "action", "both"], default="both")
+                    help="training mode (default: head)")
+    ap.add_argument("--task", choices=["category", "action", "both"], default="both",
+                    help="task to train (default: both)")
     ap.add_argument("--review", default=DEFAULT_REVIEW, metavar="CSV",
                     help="review CSV (default: bert/data/labels.csv)")
     ap.add_argument("--encoder", choices=list(ENCODERS),
-                    help="head mode: override the task default "
-                         "(category=bge-small-en, action=e5-small-multi)")
+                    help="head-mode encoder (default: task-specific)")
     ap.add_argument("--synthetic", metavar="CSV",
-                    help="synthetic emails, added to the TRAIN split only")
+                    help="synthetic CSV added to TRAIN only")
     ap.add_argument("--synthetic-tasks", choices=["category", "action", "both"], default="action",
-                    help="which tasks use the synthetic rows (default: action)")
+                    help="tasks using synthetic data (default: action)")
     ap.add_argument("--compare-seeds", metavar="LIST",
-                    help="e.g. 1,2,3,4,5 : repeat training on several splits, real-only vs "
-                         "real+synthetic (models are NOT saved)")
+                    help="seeds for comparison runs, e.g. 1,2,3")
     ap.add_argument("--check-only", action="store_true",
-                    help="validate labels and print splits, no training")
+                    help="validate data and splits (no training)")
     args = ap.parse_args()
 
     labels, digest = load_taxonomy()

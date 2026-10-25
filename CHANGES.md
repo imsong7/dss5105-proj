@@ -110,3 +110,7 @@ agent backend.
   for action; `--encoder` overrides both.
 - Shortened the trainer docstring and `--help` descriptions, and removed
   redundant setup/summary lines.
+
+## 11. BERT model cleanup
+- Removed the unused `labels` argument from `train_once`, dropped redundant
+  local aliases, and added type hints/docstrings in `bert/src/model.py`.

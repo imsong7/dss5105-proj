@@ -1,16 +1,10 @@
-"""Data handling for BERT email classification.
-
-Includes: review CSV loading/validation, stratified train/val/test split,
-synthetic dataset creation, and helper utilities.
-"""
-
-from __future__ import annotations
+"""Load, validate, split, and synthesize BERT email data."""
 
 import hashlib
 import importlib.util
 import os
+from email.utils import parseaddr
 
-import numpy as np
 import pandas as pd
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +15,6 @@ SEED = 42
 MAX_LEN = 256
 STRIP_SENDER = True
 BATCH_SIZE = 16
-LR = 5e-5
 WARMUP_RATIO = 0.1
 WEIGHT_DECAY = 0.01
 HEAD_C = 10.0  # inverse L2 strength of the logistic-regression head
@@ -40,14 +33,12 @@ ENCODERS = {
 DEFAULT_ENCODERS = {"category": "bge-small-en", "action": "e5-small-multi"}
 
 SKIP = "__skip__"
-NEAR_DUP_SIM = 0.8  # TF-IDF cosine; synthetic rows this close to any real email are dropped
+NEAR_DUP_SIM = 0.8  # Drop synthetic rows this close to a real email (TF-IDF cosine).
 
 
-# --------------------------------------------------------------------------- #
-# Text helpers
-# --------------------------------------------------------------------------- #
+# --- Text helpers ---
 def _s(v):
-    return "" if v is None or (isinstance(v, float) and np.isnan(v)) or pd.isna(v) else str(v).strip()
+    return "" if pd.isna(v) else str(v).strip()
 
 
 def build_text(subject, from_addr, preview, strip_sender=STRIP_SENDER):
@@ -57,7 +48,6 @@ def build_text(subject, from_addr, preview, strip_sender=STRIP_SENDER):
 
 
 def sender_address(from_field):
-    from email.utils import parseaddr
     return parseaddr(_s(from_field))[1].strip().lower()
 
 
@@ -65,9 +55,7 @@ def sender_rule_label(from_field, task):
     return SENDER_RULES.get(task, {}).get(sender_address(from_field))
 
 
-# --------------------------------------------------------------------------- #
-# Taxonomy
-# --------------------------------------------------------------------------- #
+# --- Taxonomy ---
 class DataError(Exception):
     pass
 
@@ -83,15 +71,12 @@ def load_taxonomy(path=TAXONOMY_PATH):
     return labels, digest
 
 
-# --------------------------------------------------------------------------- #
-# Review CSV -> validated task datasets
-# --------------------------------------------------------------------------- #
+# --- Review CSV -> validated task datasets ---
 def task_dataset(review, task, labels, allow_missing=False):
-    col = task
-    vals = review[col].fillna("").astype(object).map(_s)
-    blank = review[vals == ""]
-    if len(blank):
-        raise DataError(f"[{task}] {len(blank)} rows not reviewed. Fill an app key or {SKIP}.")
+    vals = review[task].fillna("").astype(object).map(_s)
+    blank = int((vals == "").sum())
+    if blank:
+        raise DataError(f"[{task}] {blank} rows not reviewed. Fill an app key or {SKIP}.")
     bad = sorted(set(vals) - set(labels) - {SKIP})
     if bad:
         raise DataError(f"[{task}] unknown labels {bad}; allowed: {labels} or {SKIP}.")
@@ -134,9 +119,7 @@ def task_dataset(review, task, labels, allow_missing=False):
     return df, info
 
 
-# --------------------------------------------------------------------------- #
-# Synthetic dataset
-# --------------------------------------------------------------------------- #
+# --- Synthetic dataset ---
 def synthetic_dataset(path, task, labels, real_df):
     """Validate and filter synthetic rows for a task."""
     syn = pd.read_csv(path, dtype=str, keep_default_na=False)
@@ -173,9 +156,7 @@ def synthetic_dataset(path, task, labels, real_df):
     return syn, info
 
 
-# --------------------------------------------------------------------------- #
-# Train/val/test split
-# --------------------------------------------------------------------------- #
+# --- Train/val/test split ---
 def split_dataset(df, seed=SEED):
     from sklearn.model_selection import train_test_split
     trval, test = train_test_split(df, test_size=0.2, random_state=seed, stratify=df["label_key"])

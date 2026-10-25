@@ -137,10 +137,10 @@ bert/
     __init__.py
     data.py                 # data loading, validation, split, synthetic
     model.py                # encoder, head training, EmbedPredictor
+    make_synthetic.py       # regenerate synthetic.csv
   data/
     labels.csv              # hand-labeled real emails
     synthetic.csv           # synthetic emails (seed-fixed)
-  make_synthetic.py         # regenerate synthetic.csv
   README.md                 # BERT-specific docs
 
   models/

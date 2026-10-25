@@ -1,31 +1,20 @@
 #!/usr/bin/env python
-"""Write bert/data/synthetic.csv: hand-written synthetic emails for a NUS student inbox.
-
-Focus: the weak action labels (needs_reply, needs_action, reminder) plus hard negatives
-(no_immediate_action mails that mention dates, links or the word "reply").
-Every row is marked is_synthetic=1 / label_source=synthetic. bert/train.py only ever puts
-these rows into the TRAIN split, so validation/test stay real emails.
-
-    python bert/make_synthetic.py     # -> bert/data/synthetic.csv
-"""
+"""Write TRAIN-only synthetic emails to bert/data/synthetic.csv."""
 import csv
 import hashlib
 import os
 import random
 
 random.seed(5105)
-OUT = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "data", "synthetic.csv"
-)
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                   "data", "synthetic.csv")
 
 # (subject, sender, body, category, action)
 E = []
 def add(subject, sender, body, category, action):
     E.append((subject, sender, body.strip(), category, action))
 
-# --------------------------------------------------------------------------- #
-# needs_reply: a person asks a question / expects a written answer
-# --------------------------------------------------------------------------- #
+# --- needs_reply: question or expected written answer ---
 add("Availability for project consultation next week", "Tan Wei Ling <weiling.tan@nus.edu.sg>",
     "Hi all, I would like to meet each project group for a short 20-minute consultation next week. Could you reply with two time slots that work for your group between Tuesday and Thursday afternoon? Best, Wei Ling", "general", "needs_reply")
 add("Re: DSS5105 group 7 - who is taking the EDA section?", "Daniel Koh <e1234567@u.nus.edu>",
@@ -83,9 +72,7 @@ add("Lost water bottle?", "Security Lobby S16 <s16_lobby@nus.edu.sg>",
 add("Re: the shared drive", "Nur Aisyah <e0765432@u.nus.edu>",
     "I moved the cleaned files into /final but I'm not sure if you wanted the raw ones deleted. Should I keep both versions? Tell me before I clean up tonight.", "general", "needs_reply")
 
-# --------------------------------------------------------------------------- #
-# needs_action: do something other than replying (form, pay, upload, register, verify)
-# --------------------------------------------------------------------------- #
+# --- needs_action: form, payment, upload, registration, verification ---
 add("[Action Required] Update your emergency contact by 15 Nov", "Registrar's Office <regbox@nus.edu.sg>",
     "Dear Students, our records show that your emergency contact information is incomplete. Please log in to the Student Portal and update it by 15 November 2026. Failure to do so may delay your semester registration.", "general", "needs_action")
 add("Submit your timesheet for October", "Department Admin <stats_admin@nus.edu.sg>",
@@ -135,9 +122,7 @@ add("Download and sign the NDA before the hackathon", "Hackathon Team <hello@gre
 add("Collect your matriculation card", "Student Service Centre <ssc@nus.edu.sg>",
     "Your student card is ready. Please collect it in person at the Student Service Centre with your passport between 9am and 5pm on weekdays.", "general", "needs_action")
 
-# --------------------------------------------------------------------------- #
-# reminder: a date/time is given, but no specific action or reply is requested
-# --------------------------------------------------------------------------- #
+# --- reminder: date/time given, but no action requested ---
 add("Reminder: DSS5102 lecture moved to LT27 this Friday", "DSS Programme Office <dss_admin@nus.edu.sg>",
     "Dear students, a gentle reminder that this Friday's lecture (14 November) will take place in LT27 instead of the usual venue. The timing remains 6:30pm to 9:30pm.", "general", "reminder")
 add("See you tomorrow at the Data Science Seminar", "DSDS Events <stabox1@nus.edu.sg>",
@@ -181,9 +166,7 @@ add("Regular meeting tomorrow", "NUS Korean Student Association <kosa.nus@gmail.
 add("Blood donation drive on campus next week", "NUS Red Cross Youth <rcy@u.nus.edu>",
     "The Health Sciences Authority mobile donation bus will be at the Central Library forecourt next Tuesday and Wednesday from 10am to 4pm.", "medical", "reminder")
 
-# --------------------------------------------------------------------------- #
-# hard negatives: no_immediate_action (dates, links or "reply" words, but nothing to do)
-# --------------------------------------------------------------------------- #
+# --- hard negatives: no_immediate_action with dates/links/"reply" ---
 add("Your submission has been received", "Gradescope <no-reply@gradescope.com>",
     "This email confirms that your submission for Assignment 3 was received on 10 November at 11:42pm. No further action is required.", "general", "no_immediate_action")
 add("Receipt for your payment", "NUS Student Finance <ofnbox3@nus.edu.sg>",
@@ -221,9 +204,7 @@ add("Year in review: GSS 2026", "Graduate Students' Society <gss_events@u.nus.ed
 add("Scholarship disbursement processed", "NUS Student Finance <ofnbox3@nus.edu.sg>",
     "Your scholarship stipend for November has been credited to your bank account on 5 November 2026.", "general", "no_immediate_action")
 
-# --------------------------------------------------------------------------- #
-# realistic wrappers (lengths/boilerplate vary like the real Outlook export)
-# --------------------------------------------------------------------------- #
+# --- realistic wrappers: vary length and boilerplate ---
 INTERNAL = ("nus.edu.sg", "u.nus.edu")
 SIGNATURES = [
     "", "", "",

@@ -66,9 +66,9 @@ from app.config import settings  # noqa: E402
 from app.models import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
 from evaluation import (  # noqa: E402
-    bootstrap_proportion as _bootstrap_proportion,
-    display_path as _display_path,
-    package_version as _version,
+    bootstrap_proportion,
+    display_path,
+    package_version,
 )
 from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
 
@@ -648,10 +648,8 @@ def _record(
 
 def run_backend(
     name: str, rows: pd.DataFrame, args: argparse.Namespace
-) -> tuple[dict[str, Any], list[CallRecord], list[dict], list[dict]]:
+) -> tuple[dict[str, Any], list[CallRecord]]:
     records: list[CallRecord] = []
-    consistency_rows: list[dict] = []
-    length_rows: list[dict] = []
     sampler = MemorySampler(include_ollama=(name == "llama"), enabled=not args.no_memory)
     energy = EnergyMeter(country=args.country, enabled=not args.no_energy)
     backend: LlamaBackend | BertBackend | None = None
@@ -739,7 +737,7 @@ def run_backend(
         error=error,
         args=args,
     )
-    return summary, records, consistency_rows, length_rows
+    return summary, records
 
 
 def _agreement_rows(
@@ -855,18 +853,18 @@ def _summarise(
     consistency_exact = [bool(r["exact"]) for r in consistency_rows]
     consistency_cat = [bool(r["category_consistent"]) for r in consistency_rows]
     consistency_act = [bool(r["action_consistent"]) for r in consistency_rows]
-    cons_exact, cons_exact_lo, cons_exact_hi = _bootstrap_proportion(
+    cons_exact, cons_exact_lo, cons_exact_hi = bootstrap_proportion(
         consistency_exact, 1000, args.seed
     )
-    cons_cat, _, _ = _bootstrap_proportion(consistency_cat, 1000, args.seed)
-    cons_act, _, _ = _bootstrap_proportion(consistency_act, 1000, args.seed)
+    cons_cat, _, _ = bootstrap_proportion(consistency_cat, 1000, args.seed)
+    cons_act, _, _ = bootstrap_proportion(consistency_act, 1000, args.seed)
 
     length_cat = [bool(r["category_agree"]) for r in length_rows]
     length_act = [bool(r["action_agree"]) for r in length_rows]
     length_both = [bool(r["both_agree"]) for r in length_rows]
-    len_cat, _, _ = _bootstrap_proportion(length_cat, 1000, args.seed)
-    len_act, _, _ = _bootstrap_proportion(length_act, 1000, args.seed)
-    len_both, len_both_lo, len_both_hi = _bootstrap_proportion(
+    len_cat, _, _ = bootstrap_proportion(length_cat, 1000, args.seed)
+    len_act, _, _ = bootstrap_proportion(length_act, 1000, args.seed)
+    len_both, len_both_lo, len_both_hi = bootstrap_proportion(
         length_both, 1000, args.seed
     )
 
@@ -1026,15 +1024,11 @@ def main() -> None:
 
     summary_rows: list[dict[str, Any]] = []
     all_records: list[CallRecord] = []
-    all_consistency: list[dict] = []
-    all_length: list[dict] = []
     for name in backends:
         print(f"\n=== {name} ===", flush=True)
-        summary, records, consistency, length = run_backend(name, rows, args)
+        summary, records = run_backend(name, rows, args)
         summary_rows.append(summary)
         all_records.extend(records)
-        all_consistency.extend(consistency)
-        all_length.extend(length)
         if summary.get("error"):
             print(f"[{name}] ERROR: {summary['error']}")
         else:
@@ -1050,21 +1044,13 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     summary = pd.DataFrame(summary_rows)
     runs = pd.DataFrame([r.__dict__ for r in all_records])
-    consistency = pd.DataFrame(all_consistency)
-    length = pd.DataFrame(all_length)
 
     summary.to_csv(out_dir / "operational_benchmark_summary.csv", index=False, encoding="utf-8-sig")
     runs.to_csv(out_dir / "operational_benchmark_runs.csv", index=False, encoding="utf-8-sig")
-    consistency.to_csv(
-        out_dir / "operational_benchmark_consistency.csv", index=False, encoding="utf-8-sig"
-    )
-    length.to_csv(
-        out_dir / "operational_benchmark_length.csv", index=False, encoding="utf-8-sig"
-    )
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "review_csv": _display_path(args.review),
+        "review_csv": display_path(args.review, REPO_ROOT),
         "backend": args.backend,
         "limit": args.limit,
         "total_rows": meta["total_rows"],
@@ -1085,7 +1071,7 @@ def main() -> None:
         },
         "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
         "versions": {
-            pkg: _version(pkg)
+            pkg: package_version(pkg)
             for pkg in (
                 "numpy",
                 "pandas",

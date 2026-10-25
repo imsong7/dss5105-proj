@@ -114,3 +114,13 @@ agent backend.
 ## 11. BERT model cleanup
 - Removed the unused `labels` argument from `train_once`, dropped redundant
   local aliases, and simplified/annotated helpers in `bert/src/model.py`.
+
+## 12. Evaluation cleanup
+- Merged the three evaluation test modules into
+  `evaluation/test_evaluation.py`.
+- Kept the offline and operational evaluators separate; they answer different
+  questions and have different dependencies.
+- Stopped writing derived per-class/confusion and per-email
+  consistency/length CSV artifacts. The summaries and raw OOF/run CSVs remain.
+- Removed the redundant `bootstrap_rate` wrapper and simplified the evaluator
+  return values and imports.

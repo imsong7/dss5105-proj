@@ -40,11 +40,3 @@ def bootstrap_proportion(
     )
     lo, hi = np.percentile(boots, [2.5, 97.5])
     return point, float(lo), float(hi)
-
-
-def bootstrap_rate(
-    correct: Sequence[bool], n_boot: int, seed: int
-) -> tuple[float, float]:
-    """Return the 95% CI for a proportion."""
-    _, lo, hi = bootstrap_proportion(correct, n_boot, seed)
-    return lo, hi

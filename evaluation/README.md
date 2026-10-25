@@ -62,16 +62,11 @@ Key options:
 | `--synthetic-tasks` | `action` | Which task gets synthetic rows (`action`, `category`, `both`). |
 | `--no-synthetic` | off | Evaluate real data only. |
 
-Unit tests for the bootstrap and rule/head merging logic:
+Unit tests for the offline metrics, operational helpers, and BERT input
+selection do not load the models:
 
 ```bash
-.venv/bin/python -m unittest evaluation.test_offline_f1 -v
-```
-
-The BERT app input-selection tests do not load the models:
-
-```bash
-.venv/bin/python -m unittest evaluation.test_bert_classifier -v
+.venv/bin/python -m unittest evaluation.test_evaluation -v
 ```
 
 ## What is scored
@@ -121,11 +116,12 @@ Flat files under `evaluation/results/`:
 | File | Contents |
 |------|----------|
 | `offline_f1_summary.csv` | One row per dataset: N, accuracy, macro-F1, both 95% CIs. |
-| `offline_f1_per_class.csv` | Precision, recall, F1, and support per label. |
-| `offline_f1_confusion.csv` | Long-form confusion matrix (`true_label`, `pred_label`, `count`). |
 | `offline_f1_oof_predictions.csv` | One held-out prediction per email (`review_id` only; no subject/body). |
 | `offline_f1_manifest.json` | Arguments, row counts, taxonomy hash, package versions. |
 | `offline_f1_report.txt` | Human-readable summary table. |
+
+Per-class and confusion tables are not written separately; both can be
+recomputed from the OOF predictions.
 
 ## Caveats
 
@@ -243,10 +239,11 @@ Flat files under `evaluation/results/`:
 |------|----------|
 | `operational_benchmark_summary.csv` | One row per backend: latency, memory, size, tokens, energy, consistency, agreement. |
 | `operational_benchmark_runs.csv` | Every call: phase, latency, labels, raw validity, tokens. |
-| `operational_benchmark_consistency.csv` | Per-email 5-run label sets and flags. |
-| `operational_benchmark_length.csv` | Per-email full-vs-short labels and agreement. |
 | `operational_benchmark_manifest.json` | Sample IDs, arguments, versions, input protocol. |
 | `operational_benchmark_report.txt` | Human-readable summary table. |
+
+Per-email consistency and short/full agreement are summarized in the summary
+and report; the raw calls remain in `runs.csv`.
 
 ## Caveats
 

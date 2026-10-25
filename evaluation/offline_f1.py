@@ -43,7 +43,7 @@ for _path in (REPO_ROOT, BERT_DIR):
         sys.path.insert(0, str(_path))
 
 from evaluation import (  # noqa: E402
-    bootstrap_rate,
+    bootstrap_proportion,
     display_path,
     package_version,
 )
@@ -267,16 +267,12 @@ def evaluate_frame(
     n_boot: int,
     seed: int,
     notes: str = "",
-) -> tuple[dict, list[dict], list[dict]]:
-    """Return summary row, per-class rows, and long confusion rows."""
-    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+) -> dict:
+    """Return the summary row for a prediction frame."""
+    from sklearn.metrics import accuracy_score, f1_score
 
     y_true = frame["true_label"].to_numpy()
     y_pred = frame["pred_label"].to_numpy()
-    report = classification_report(
-        y_true, y_pred, labels=labels, output_dict=True, zero_division=0
-    )
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
     acc_ci, f1_ci = bootstrap_metrics(y_true, y_pred, labels, n_boot, seed)
 
     summary = {
@@ -296,35 +292,7 @@ def evaluate_frame(
         "seed": seed,
         "notes": notes,
     }
-
-    per_class = []
-    for label in labels:
-        r = report[label]
-        per_class.append(
-            {
-                "dataset": name,
-                "task": task,
-                "label": label,
-                "support": int(r["support"]),
-                "precision": float(r["precision"]),
-                "recall": float(r["recall"]),
-                "f1": float(r["f1-score"]),
-            }
-        )
-
-    confusion = []
-    for i, true_label in enumerate(labels):
-        for j, pred_label in enumerate(labels):
-            confusion.append(
-                {
-                    "dataset": name,
-                    "task": task,
-                    "true_label": true_label,
-                    "pred_label": pred_label,
-                    "count": int(cm[i, j]),
-                }
-            )
-    return summary, per_class, confusion
+    return summary
 
 
 # --------------------------------------------------------------------------- #
@@ -377,8 +345,6 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     summary_rows: list[dict] = []
-    per_class_rows: list[dict] = []
-    confusion_rows: list[dict] = []
     oof_frames: list[pd.DataFrame] = []
     eval_frames: dict[str, pd.DataFrame] = {}
 
@@ -401,7 +367,7 @@ def main() -> None:
             oof_frames.append(model_eval)
 
             model_labels = infos["category"]["supported_labels"]
-            row, per_class, confusion = evaluate_frame(
+            row = evaluate_frame(
                 "category_model",
                 "category",
                 model_eval,
@@ -411,13 +377,11 @@ def main() -> None:
                 "head only; Canvas sender-rule rows excluded",
             )
             summary_rows.append(row)
-            per_class_rows.extend(per_class)
-            confusion_rows.extend(confusion)
 
             e2e = category_end_to_end(review, oof, list(labels["category"]))
             eval_frames["category_end_to_end"] = e2e
             oof_frames.append(e2e)
-            row, per_class, confusion = evaluate_frame(
+            row = evaluate_frame(
                 "category_end_to_end",
                 "category",
                 e2e,
@@ -427,14 +391,12 @@ def main() -> None:
                 "sender rule + head; all category rows",
             )
             summary_rows.append(row)
-            per_class_rows.extend(per_class)
-            confusion_rows.extend(confusion)
         else:
             action_eval = oof.copy()
             action_eval["dataset"] = "action"
             eval_frames["action"] = action_eval
             oof_frames.append(action_eval)
-            row, per_class, confusion = evaluate_frame(
+            row = evaluate_frame(
                 "action",
                 "action",
                 action_eval,
@@ -444,8 +406,6 @@ def main() -> None:
                 "real+synthetic training folds" if task in syn_data else "real data only",
             )
             summary_rows.append(row)
-            per_class_rows.extend(per_class)
-            confusion_rows.extend(confusion)
 
     # Joint metric: both labels correct on emails covered by both evaluations.
     if "category_end_to_end" in eval_frames and "action" in eval_frames:
@@ -458,7 +418,7 @@ def main() -> None:
         act_ok = (act.loc[common, "true_label"] == act.loc[common, "pred_label"]).to_numpy()
         correct = cat_ok & act_ok
         rate = float(correct.mean())
-        ci = bootstrap_rate(correct, args.bootstrap, args.seed)
+        _, ci_low, ci_high = bootstrap_proportion(correct, args.bootstrap, args.seed)
         summary_rows.append(
             {
                 "dataset": "both_labels",
@@ -466,8 +426,8 @@ def main() -> None:
                 "n": len(common),
                 "label_count": None,
                 "accuracy": rate,
-                "accuracy_ci_low": ci[0],
-                "accuracy_ci_high": ci[1],
+                "accuracy_ci_low": ci_low,
+                "accuracy_ci_high": ci_high,
                 "macro_f1": None,
                 "macro_f1_ci_low": None,
                 "macro_f1_ci_high": None,
@@ -478,7 +438,7 @@ def main() -> None:
         )
         print(
             f"[both_labels] n={len(common)} exact-match={rate:.4f} "
-            f"95% CI [{ci[0]:.4f}, {ci[1]:.4f}]"
+            f"95% CI [{ci_low:.4f}, {ci_high:.4f}]"
         )
 
     # ------------------------------------------------------------------ #
@@ -487,15 +447,11 @@ def main() -> None:
     summary = pd.DataFrame(summary_rows)
     if "label_count" in summary.columns:
         summary["label_count"] = summary["label_count"].astype("Int64")
-    per_class = pd.DataFrame(per_class_rows)
-    confusion = pd.DataFrame(confusion_rows)
     oof_all = pd.concat(oof_frames, ignore_index=True)
     oof_all["fold"] = oof_all["fold"].astype("Int64")
     oof_all = oof_all.sort_values(["task", "dataset", "review_id"]).reset_index(drop=True)
 
     summary.to_csv(out_dir / "offline_f1_summary.csv", index=False, encoding="utf-8-sig")
-    per_class.to_csv(out_dir / "offline_f1_per_class.csv", index=False, encoding="utf-8-sig")
-    confusion.to_csv(out_dir / "offline_f1_confusion.csv", index=False, encoding="utf-8-sig")
     oof_all.to_csv(out_dir / "offline_f1_oof_predictions.csv", index=False, encoding="utf-8-sig")
 
     manifest = {

@@ -5,8 +5,21 @@ import os
 import random
 import shutil
 
+import joblib
 import numpy as np
 import pandas as pd
+import torch
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from transformers import (
+    AutoModel,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DataCollatorWithPadding,
+    Trainer,
+    TrainingArguments,
+)
 
 from .data import (
     BATCH_SIZE,
@@ -41,8 +54,6 @@ class FrozenEncoder:
     """Frozen sentence encoder that produces L2-normalized embeddings."""
 
     def __init__(self, name):
-        import torch
-        from transformers import AutoModel, AutoTokenizer
         self.name = name
         self.model_id, self.prefix, self.pool = ENCODERS[name]
         self.torch = torch
@@ -70,13 +81,11 @@ class FrozenEncoder:
 
 def fit_head(X, y):
     """Fit a logistic-regression head on embeddings."""
-    from sklearn.linear_model import LogisticRegression
     return LogisticRegression(max_iter=5000, C=HEAD_C, class_weight="balanced").fit(X, y)
 
 
 def evaluate(clf, X, d, labels):
     """Evaluate a classifier on embeddings X for dataframe d."""
-    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
     probs = clf.predict_proba(X)
     pred = clf.classes_[probs.argmax(1)]
     rep = classification_report(d["label_key"], pred, labels=labels, output_dict=True, zero_division=0)
@@ -108,7 +117,6 @@ class EmbedPredictor:
     """Predict labels with a saved frozen-encoder head."""
 
     def __init__(self, model_dir):
-        import joblib
         with open(os.path.join(model_dir, "manifest.json")) as f:
             self.manifest = json.load(f)
         self.head = joblib.load(os.path.join(model_dir, "head.joblib"))
@@ -123,7 +131,6 @@ class EmbedPredictor:
 
 def train_head_final(task, df, info, syn, syn_info, en, labels_all, digest, args):
     """Train a frozen-encoder head for a task."""
-    import joblib
     labels = info["supported_labels"]
     df = df.reset_index(drop=True).assign(_i=lambda d: range(len(d)))
     enc = FrozenEncoder(en)
@@ -218,11 +225,8 @@ def head_compare(data, syn_data, encoders, seeds, out_dir):
 def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_info=None,
                     seed=SEED, out_dir=None, keep_model=True):
     """Fine-tune distilbert-base-uncased for a task."""
-    import torch
+    # `datasets` is optional and only needed for full-mode training.
     from datasets import Dataset
-    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
-    from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
-                              DataCollatorWithPadding, Trainer, TrainingArguments)
 
     random.seed(seed)
     np.random.seed(seed)
@@ -355,9 +359,6 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
 
 def tfidf_run(df, labels, seed, syn=None):
     """Cheap reference: TF-IDF + logistic regression on the same split."""
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import accuracy_score, classification_report, f1_score
     tr, _, te = split_dataset(df, seed=seed)
     if syn is not None and len(syn):
         tr = pd.concat([tr, syn[syn["label_key"].isin(labels)]], ignore_index=True)

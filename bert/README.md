@@ -12,6 +12,7 @@ bert/
     __init__.py           # package marker
     data.py               # data loading, validation, split, synthetic
     model.py              # Encoder, head training, EmbedPredictor
+    make_synthetic.py     # generates bert/data/synthetic.csv
   train.py                # unified CLI (--mode head|full)
   data/                   # data files
     labels.csv            # hand-labelled real emails (202 rows; 132 category model rows, 134 action rows)
@@ -27,7 +28,6 @@ bert/
     compare_full_summary.txt    # full mode comparison results
     compare_full_summary.csv
     compare_full_runs.csv
-  make_synthetic.py       # generates bert/data/synthetic.csv
   README.md               # this file
 ```
 
@@ -150,7 +150,7 @@ cat bert/models/action_full/metrics.json
 
 ## Synthetic data
 
-`bert/make_synthetic.py` generates `bert/data/synthetic.csv` (91 rows, seed-fixed). Safety guards in `bert/src/data.py`:
+`bert/src/make_synthetic.py` generates `bert/data/synthetic.csv` (91 rows, seed-fixed). Safety guards in `bert/src/data.py`:
 - Synthetic rows added to **train split only** (val/test always real)
 - Duplicate removal, exact-real-row removal, TF-IDF cosine ≥ 0.8 removal vs real
 - Default `--synthetic-tasks action` (use `both` for category)

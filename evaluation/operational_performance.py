@@ -37,7 +37,12 @@ for _path in (REPO_ROOT, EMAIL_DIR, BERT_DIR):
 from app.config import settings  # noqa: E402
 from app.models import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
-from evaluation import display_path, package_version  # noqa: E402
+from evaluation import (  # noqa: E402
+    display_path,
+    package_version,
+    write_csv,
+    write_json,
+)
 from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
 
 DEFAULT_REVIEW = BERT_DIR / "data" / "labels.csv"
@@ -86,7 +91,7 @@ def parse_args() -> argparse.Namespace:
 def load_benchmark_rows(args: argparse.Namespace) -> tuple:
     labels, tax_digest = load_taxonomy()
     review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
-    df, info = task_dataset(review, "action", labels["action"], False)
+    df, _ = task_dataset(review, "action", labels["action"], False)
     df = df.copy()
     total = len(df)
 
@@ -120,7 +125,7 @@ def load_benchmark_rows(args: argparse.Namespace) -> tuple:
         "taxonomy_sha256_16": tax_digest,
         "sample_review_ids": df["review_id"].tolist(),
     }
-    return df, info, meta
+    return df, meta
 
 
 def email_for(row: pd.Series, text: str) -> Email:
@@ -571,6 +576,13 @@ def _timed_predict(backend: LlamaBackend | BertBackend, email: Email) -> tuple:
     return pred, (time.perf_counter() - start) * 1000
 
 
+def _call(backend, name, row, phase, run, mode, text) -> CallRecord:
+    email = email_for(row, text)
+    pred, latency = _timed_predict(backend, email)
+    pred.input_tokens, pred.output_tokens = backend.token_usage(email, pred)
+    return _record(name, row, pred, latency, phase, run, mode, text)
+
+
 def _record(backend, row, pred, latency_ms, phase, run, input_mode, text) -> CallRecord:
     return CallRecord(
         backend=backend,
@@ -615,47 +627,23 @@ def run_backend(name: str, rows: pd.DataFrame, args: argparse.Namespace) -> tupl
 
         first = rows.iloc[0]
         full_text = str(first.get("Preview", ""))
-        cold_pred, cold_latency = _timed_predict(backend, email_for(first, full_text))
-        cold_tokens = backend.token_usage(email_for(first, full_text), cold_pred)
-        cold_pred.input_tokens, cold_pred.output_tokens = cold_tokens
-        cold = _record(
-            name, first, cold_pred, cold_latency, "cold", 0, "full", full_text
-        )
+        cold = _call(backend, name, first, "cold", 0, "full", full_text)
         records.append(cold)
 
         for _, row in rows.head(args.warmup).iterrows():
             text = str(row.get("Preview", ""))
-            pred, latency = _timed_predict(backend, email_for(row, text))
-            pred.input_tokens, pred.output_tokens = backend.token_usage(
-                email_for(row, text), pred
-            )
-            records.append(
-                _record(name, row, pred, latency, "warmup", 0, "full", text)
-            )
+            records.append(_call(backend, name, row, "warmup", 0, "full", text))
 
         for run in range(1, args.runs + 1):
             print(f"[{name}] run {run}/{args.runs} ({len(rows)} emails) ...", flush=True)
             for _, row in rows.iterrows():
                 text = str(row.get("Preview", ""))
-                pred, latency = _timed_predict(backend, email_for(row, text))
-                pred.input_tokens, pred.output_tokens = backend.token_usage(
-                    email_for(row, text), pred
-                )
-                records.append(
-                    _record(name, row, pred, latency, "main", run, "full", text)
-                )
+                records.append(_call(backend, name, row, "main", run, "full", text))
 
         print(f"[{name}] short-input pass ({len(rows)} emails) ...", flush=True)
         for _, row in rows.iterrows():
-            full = str(row.get("Preview", ""))
-            text = full[: args.short_chars]
-            pred, latency = _timed_predict(backend, email_for(row, text))
-            pred.input_tokens, pred.output_tokens = backend.token_usage(
-                email_for(row, text), pred
-            )
-            records.append(
-                _record(name, row, pred, latency, "length_short", 0, "short", text)
-            )
+            text = str(row.get("Preview", ""))[: args.short_chars]
+            records.append(_call(backend, name, row, "length_short", 0, "short", text))
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         print(f"[{name}] benchmark failed: {error}")
@@ -862,6 +850,21 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def write_artifacts(
+    out_dir: Path, summary: pd.DataFrame, runs: pd.DataFrame, manifest: dict
+) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    write_csv(summary, out_dir / "operational_performance_summary.csv")
+    write_csv(runs, out_dir / "operational_performance_runs.csv")
+    write_json(manifest, out_dir / "operational_performance_manifest.json")
+    report = render_report(summary, manifest)
+    (out_dir / "operational_performance_report.txt").write_text(report, encoding="utf-8")
+    print("\n" + "=" * 100)
+    print(report)
+    print("=" * 100)
+    print(f"Saved artifacts -> {out_dir}")
+
+
 def main() -> None:
     args = parse_args()
     if args.runs < 1:
@@ -871,7 +874,7 @@ def main() -> None:
     if args.warmup < 0:
         raise SystemExit("--warmup must be >= 0")
 
-    rows, info, meta = load_benchmark_rows(args)
+    rows, meta = load_benchmark_rows(args)
     backends = ["llama", "bert"] if args.backend == "both" else [args.backend]
     print(
         f"Benchmarking {len(rows)} emails x {args.runs} runs "
@@ -896,22 +899,8 @@ def main() -> None:
                 f"peak={peak_s} MB"
             )
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
     summary = pd.DataFrame(summary_rows)
     runs = pd.DataFrame([r.__dict__ for r in all_records])
-
-    summary.to_csv(
-        out_dir / "operational_performance_summary.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-    runs.to_csv(
-        out_dir / "operational_performance_runs.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "review_csv": display_path(args.review, REPO_ROOT),
@@ -949,19 +938,7 @@ def main() -> None:
             )
         },
     }
-    with open(
-        out_dir / "operational_performance_manifest.json", "w", encoding="utf-8"
-    ) as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
-
-    report = render_report(summary, manifest)
-    (out_dir / "operational_performance_report.txt").write_text(
-        report, encoding="utf-8"
-    )
-    print("\n" + "=" * 100)
-    print(report)
-    print("=" * 100)
-    print(f"Saved artifacts -> {out_dir}")
+    write_artifacts(Path(args.out_dir), summary, runs, manifest)
 
 
 if __name__ == "__main__":

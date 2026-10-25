@@ -8,7 +8,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +25,8 @@ from evaluation import (  # noqa: E402
     bootstrap_proportion,
     display_path,
     package_version,
+    write_csv,
+    write_json,
 )
 from src.data import (  # noqa: E402
     ENCODERS,
@@ -241,11 +242,11 @@ def evaluate_frame(
 def load_synthetic(
     args: argparse.Namespace, tasks: list, labels: dict, datasets: dict
 ) -> tuple:
-    path = None if args.no_synthetic else args.synthetic
-    if path and not Path(path).is_file():
-        raise SystemExit(f"Synthetic CSV not found: {path} (or pass --no-synthetic)")
-    if not path:
+    if args.no_synthetic:
         return {}, None
+    path = args.synthetic
+    if not Path(path).is_file():
+        raise SystemExit(f"Synthetic CSV not found: {path} (or pass --no-synthetic)")
 
     syn_tasks = (
         ["category", "action"]
@@ -368,17 +369,9 @@ def write_artifacts(
     oof["fold"] = oof["fold"].astype("Int64")
     oof = oof.sort_values(["task", "dataset", "review_id"]).reset_index(drop=True)
 
-    summary.to_csv(
-        out_dir / "offline_quality_summary.csv", index=False, encoding="utf-8-sig"
-    )
-    oof.to_csv(
-        out_dir / "offline_quality_oof_predictions.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-    (out_dir / "offline_quality_manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    write_csv(summary, out_dir / "offline_quality_summary.csv")
+    write_csv(oof, out_dir / "offline_quality_oof_predictions.csv")
+    write_json(manifest, out_dir / "offline_quality_manifest.json")
     report = render_report(summary, manifest)
     (out_dir / "offline_quality_report.txt").write_text(report, encoding="utf-8")
     print("\n" + "=" * 78)
@@ -388,6 +381,9 @@ def write_artifacts(
 
 
 def render_report(summary: pd.DataFrame, manifest: dict) -> str:
+    def ci(value, low, high):
+        return f"{value:.3f} [{low:.3f}, {high:.3f}]"
+
     lines = [
         "Offline quality — out-of-fold predictions",
         f"Review CSV: {manifest['review_csv']}",
@@ -402,12 +398,11 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
         "-" * 84,
     ]
     for _, row in summary.iterrows():
-        acc = f"{row['accuracy']:.3f} [{row['accuracy_ci_low']:.3f}, {row['accuracy_ci_high']:.3f}]"
+        acc = ci(row["accuracy"], row["accuracy_ci_low"], row["accuracy_ci_high"])
         f1 = (
             "—"
             if pd.isna(row["macro_f1"])
-            else f"{row['macro_f1']:.3f} "
-            f"[{row['macro_f1_ci_low']:.3f}, {row['macro_f1_ci_high']:.3f}]"
+            else ci(row["macro_f1"], row["macro_f1_ci_low"], row["macro_f1_ci_high"])
         )
         lines.append(f"{row['dataset']:<24} {int(row['n']):>4}  {acc:<26} {f1:<26}")
 

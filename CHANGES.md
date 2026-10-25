@@ -172,3 +172,13 @@ agent backend.
   `test_evaluation.py`.
 - Removed noisy `-> None` hints from test methods and simplified the longer
   helper signatures in `test_evaluation.py`.
+
+## 19. Simpler evaluation helpers
+- Added shared `write_csv` and `write_json` helpers so both evaluators write
+  artifacts the same way.
+- Replaced the repeated cold/warm-up/main/short call plumbing in
+  `operational_performance.py` with one `_call` helper.
+- Moved the operational artifact writing into `write_artifacts`, matching the
+  offline evaluator.
+- Removed an unused return value from the benchmark-row loader and shortened
+  the report CI formatting.

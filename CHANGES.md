@@ -188,3 +188,9 @@ agent backend.
 - Kept the Git workflow, setup commands, evaluation commands, model
   recommendation, and operational summary.
 - Replaced the detailed layout with a short project overview.
+
+## 21. Shorter BERT README
+- Replaced the directory tree with a compact file table.
+- Merged the duplicate quick-start, training, and comparison sections.
+- Removed the temporary-label sandbox tables and kept the current OOF model
+  recommendation plus the full fine-tune and synthetic-data notes.

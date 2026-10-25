@@ -4,8 +4,8 @@ Two independent evaluators live here:
 
 | Script | Question it answers |
 |--------|---------------------|
-| `offline_f1.py` | How accurate are the BERT heads on labelled emails? |
-| `operational_benchmark.py` | How fast/heavy/consistent are Llama and BERT when actually called? |
+| `offline_quality.py` | How accurate are the BERT heads on labelled emails? |
+| `operational_performance.py` | How fast/heavy/consistent are Llama and BERT when actually called? |
 
 Neither script needs the Flask UI. The offline evaluator does not need Ollama;
 the operational benchmark uses Ollama for the Llama backend.
@@ -18,9 +18,9 @@ Install the repo-wide dependencies from the repo root:
 
 This includes `psutil` and `codecarbon` for the operational benchmark.
 
-# Offline quality: `offline_f1.py`
+# Offline quality: `offline_quality.py`
 
-`offline_f1.py` measures the BERT heads with **out-of-fold (OOF) predictions**
+`offline_quality.py` measures the BERT heads with **out-of-fold (OOF) predictions**
 and **95% bootstrap confidence intervals**. It is deliberately separate from the
 Flask app: no mailbox, Ollama, or browser is involved.
 
@@ -39,16 +39,16 @@ Use the repo-root `.venv` (Python 3.12 with `torch`, `transformers`,
 
 ```bash
 # Deployed configuration: category head real-only; action head real+synthetic
-.venv/bin/python evaluation/offline_f1.py
+.venv/bin/python evaluation/offline_quality.py
 
 # Real-only baseline for both tasks
-.venv/bin/python evaluation/offline_f1.py --no-synthetic
+.venv/bin/python evaluation/offline_quality.py --no-synthetic
 
 # Faster smoke run
-.venv/bin/python evaluation/offline_f1.py --folds 2 --bootstrap 200
+.venv/bin/python evaluation/offline_quality.py --folds 2 --bootstrap 200
 
 # One task only, custom output directory
-.venv/bin/python evaluation/offline_f1.py --task action --out-dir /tmp/eval
+.venv/bin/python evaluation/offline_quality.py --task action --out-dir /tmp/eval
 ```
 
 Key options:
@@ -117,10 +117,10 @@ Flat files under `evaluation/results/`:
 
 | File | Contents |
 |------|----------|
-| `offline_f1_summary.csv` | One row per dataset: N, accuracy, macro-F1, both 95% CIs. |
-| `offline_f1_oof_predictions.csv` | One held-out prediction per email (`review_id` only; no subject/body). |
-| `offline_f1_manifest.json` | Arguments, row counts, taxonomy hash, package versions. |
-| `offline_f1_report.txt` | Human-readable summary table. |
+| `offline_quality_summary.csv` | One row per dataset: N, accuracy, macro-F1, both 95% CIs. |
+| `offline_quality_oof_predictions.csv` | One held-out prediction per email (`review_id` only; no subject/body). |
+| `offline_quality_manifest.json` | Arguments, row counts, taxonomy hash, package versions. |
+| `offline_quality_report.txt` | Human-readable summary table. |
 
 Per-class and confusion tables are not written separately; both can be
 recomputed from the OOF predictions.
@@ -137,7 +137,7 @@ recomputed from the OOF predictions.
   transductive step, not label leakage.
 - This is not a substitute for a fresh-mailbox benchmark before deployment.
 
-# Operational benchmark: `operational_benchmark.py`
+# Operational performance: `operational_performance.py`
 
 This script measures the deployed backends, not just model quality. It uses the
 same `Email` objects and classifier interfaces as the Flask app, but it does not
@@ -147,18 +147,18 @@ start the web server or fetch a mailbox.
 
 ```bash
 # Default: 30-email stratified sample, 5 runs/email, both backends
-.venv/bin/python evaluation/operational_benchmark.py
+.venv/bin/python evaluation/operational_performance.py
 
 # Llama only, with a true cold start
-.venv/bin/python evaluation/operational_benchmark.py \
+.venv/bin/python evaluation/operational_performance.py \
     --backend llama --limit 20 --runs 5 --unload-ollama
 
 # Fast BERT-only smoke run
-.venv/bin/python evaluation/operational_benchmark.py \
+.venv/bin/python evaluation/operational_performance.py \
     --backend bert --limit 10 --runs 1 --no-energy
 
 # All 134 action-usable unique emails (slow for Llama)
-.venv/bin/python evaluation/operational_benchmark.py --limit 0 --runs 5
+.venv/bin/python evaluation/operational_performance.py --limit 0 --runs 5
 ```
 
 Key options:
@@ -239,14 +239,14 @@ Flat files under `evaluation/results/`:
 
 | File | Contents |
 |------|----------|
-| `operational_benchmark_summary.csv` | One row per backend: 20 headline metrics (latency, memory, size, token means, energy/CO2, invalid rate, consistency, agreement). |
-| `operational_benchmark_runs.csv` | Every call: phase, latency, labels, raw validity, tokens. |
-| `operational_benchmark_manifest.json` | Sample IDs, arguments, versions, input protocol. |
-| `operational_benchmark_report.txt` | Human-readable summary table. |
+| `operational_performance_summary.csv` | One row per backend: 20 headline metrics (latency, memory, size, token means, energy/CO2, invalid rate, consistency, agreement). |
+| `operational_performance_runs.csv` | Every call: phase, latency, labels, raw validity, tokens. |
+| `operational_performance_manifest.json` | Sample IDs, arguments, versions, input protocol. |
+| `operational_performance_report.txt` | Human-readable summary table. |
 
 The summary is intentionally narrow. Per-call latency, labels, raw validity,
-and token counts remain in `runs.csv`; the summary keeps only the headline
-metrics needed for the evaluation rubric.
+and token counts remain in `operational_performance_runs.csv`; the summary
+keeps only the headline metrics needed for the evaluation rubric.
 
 ## Caveats
 

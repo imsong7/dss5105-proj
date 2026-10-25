@@ -1,4 +1,4 @@
-Offline macro-F1 — out-of-fold predictions
+Offline quality — out-of-fold predictions
 Review CSV: bert/data/labels.csv
 Folds: 5 (stratified) | Bootstrap: 2000 (stratified by true label (percentile CI)) | Seed: 42
 Encoders: category=bge-small-en, action=e5-small-multi
@@ -12,7 +12,7 @@ action                    134  0.843 [0.783, 0.903]       0.795 [0.707, 0.871]
 both_labels               133  0.737 [0.662, 0.812]       —                         
 
 Notes:
-- category_model excludes the 68 Canvas sender-rule rows from the model;
+- category_model excludes Canvas sender-rule rows from the model;
   category_end_to_end includes them (rule + head).
 - action uses the configured training condition (real+synthetic by default).
 - both_labels is the exact-match rate on 133 unique emails covered by

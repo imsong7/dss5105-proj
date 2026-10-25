@@ -148,3 +148,12 @@ agent backend.
 - Removed `evaluation/requirements.txt`; the evaluation docs now install from
   the repo root.
 - Added repo-root environment setup to the README.
+
+## 16. Clearer evaluation names
+- Renamed `evaluation/offline_f1.py` to `evaluation/offline_quality.py`.
+- Renamed `evaluation/operational_benchmark.py` to
+  `evaluation/operational_performance.py`.
+- Renamed their result artifacts from `offline_f1_*` and
+  `operational_benchmark_*` to `offline_quality_*` and
+  `operational_performance_*`.
+- Updated imports, commands, and documentation to use the new names.

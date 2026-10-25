@@ -25,12 +25,12 @@ for _path in (REPO_ROOT, EMAIL_DIR):
 from app.bert_classifier import BertClassifier, _model_text  # noqa: E402
 from app.models import Email  # noqa: E402
 from evaluation import bootstrap_proportion  # noqa: E402
-from evaluation.offline_f1 import (  # noqa: E402
+from evaluation.offline_quality import (  # noqa: E402
     bootstrap_metrics,
     category_end_to_end,
     evaluate_frame,
 )
-from evaluation.operational_benchmark import (  # noqa: E402
+from evaluation.operational_performance import (  # noqa: E402
     CallRecord,
     _agreement,
     _llama_raw_status,

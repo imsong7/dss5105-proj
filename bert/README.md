@@ -87,7 +87,7 @@ Canvas emails are still handled first by the sender rule in `email-sorter/app/ru
 | action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] | Real+synthetic; tiny (`head.joblib` only) |
 | category | `bert/models/category_head` (bge-small-en, real only) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end | Tiny; end-to-end includes the Canvas sender rule |
 
-These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
+These are 5-fold out-of-fold estimates from `evaluation/offline_quality.py`, which
 scores all labelled emails once with a model that did not train on them. The
 real-only action baseline is 0.697 [0.598, 0.788]. The tables below are the
 older 27-row held-out-split results, kept as historical experiment records; do

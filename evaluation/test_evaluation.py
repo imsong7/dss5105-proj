@@ -1,12 +1,8 @@
 """Unit tests for the evaluation suite.
 
-These do not load torch, transformers, or the trained heads, and they do not
-call Llama, Ollama, or BERT. Run from the repo root:
-
+Run from the repo root:
     .venv/bin/python -m unittest evaluation.test_evaluation -v
 """
-
-from __future__ import annotations
 
 import sys
 import unittest
@@ -39,13 +35,13 @@ from evaluation.operational_performance import (  # noqa: E402
 
 
 class BootstrapTests(unittest.TestCase):
-    def test_perfect_predictions_have_unit_ci(self) -> None:
+    def test_perfect_predictions_have_unit_ci(self):
         y = np.array(["a", "a", "b", "b", "c"])
         acc_ci, f1_ci = bootstrap_metrics(y, y, ["a", "b", "c"], n_boot=50, seed=1)
         self.assertEqual(acc_ci, (1.0, 1.0))
         self.assertEqual(f1_ci, (1.0, 1.0))
 
-    def test_ci_brackets_point_estimates(self) -> None:
+    def test_ci_brackets_point_estimates(self):
         y = np.array(["a", "a", "b", "b", "c", "c", "c"])
         pred = np.array(["a", "b", "b", "b", "c", "a", "c"])
         acc_ci, f1_ci = bootstrap_metrics(y, pred, ["a", "b", "c"], n_boot=200, seed=7)
@@ -54,7 +50,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertGreaterEqual(acc_ci[1], point_acc)
         self.assertLessEqual(f1_ci[0], f1_ci[1])
 
-    def test_rate_ci(self) -> None:
+    def test_rate_ci(self):
         point, lo, hi = bootstrap_proportion(np.ones(10, dtype=bool), 100, 3)
         self.assertEqual((point, lo, hi), (1.0, 1.0, 1.0))
         point, lo, hi = bootstrap_proportion(np.zeros(10, dtype=bool), 100, 3)
@@ -62,7 +58,7 @@ class BootstrapTests(unittest.TestCase):
 
 
 class EndToEndTests(unittest.TestCase):
-    def test_rule_and_model_rows(self) -> None:
+    def test_rule_and_model_rows(self):
         review = pd.DataFrame(
             [
                 {
@@ -98,7 +94,7 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual((rule["pred_label"], rule["source"]), ("canva", "rule"))
         self.assertEqual((model["pred_label"], model["source"]), ("medical", "model"))
 
-    def test_missing_oof_prediction_fails(self) -> None:
+    def test_missing_oof_prediction_fails(self):
         review = pd.DataFrame(
             [
                 {
@@ -116,7 +112,7 @@ class EndToEndTests(unittest.TestCase):
 
 
 class EvaluateFrameTests(unittest.TestCase):
-    def test_summary_row(self) -> None:
+    def test_summary_row(self):
         frame = pd.DataFrame(
             {
                 "true_label": ["a", "a", "b", "b"],
@@ -134,14 +130,7 @@ def _raw(content: str):
     return SimpleNamespace(content=content)
 
 
-def _record(
-    review_id: str,
-    phase: str,
-    run: int,
-    category: str,
-    action: str,
-    mode: str = "full",
-) -> CallRecord:
+def _record(review_id, phase, run, category, action, mode="full") -> CallRecord:
     return CallRecord(
         backend="llama",
         review_id=review_id,
@@ -164,7 +153,7 @@ def _record(
 
 
 class RawStatusTests(unittest.TestCase):
-    def test_valid_json_and_labels(self) -> None:
+    def test_valid_json_and_labels(self):
         result = {
             "raw": _raw('{"content_category": "medical", "reply_nature": "reminder"}'),
             "parsed": object(),
@@ -174,7 +163,7 @@ class RawStatusTests(unittest.TestCase):
         self.assertTrue(valid)
         self.assertIsNone(reason)
 
-    def test_invalid_label(self) -> None:
+    def test_invalid_label(self):
         result = {
             "raw": _raw('{"content_category": "Medical?", "reply_nature": "reminder"}'),
             "parsed": object(),
@@ -184,13 +173,13 @@ class RawStatusTests(unittest.TestCase):
         self.assertFalse(valid)
         self.assertIn("invalid_category", reason or "")
 
-    def test_non_json(self) -> None:
+    def test_non_json(self):
         result = {"raw": _raw("not json"), "parsed": object(), "parsing_error": None}
         valid, reason, _ = _llama_raw_status(result)
         self.assertFalse(valid)
         self.assertEqual(reason, "raw_not_json")
 
-    def test_parsing_error(self) -> None:
+    def test_parsing_error(self):
         result = {
             "raw": _raw("{}"),
             "parsed": None,
@@ -202,13 +191,13 @@ class RawStatusTests(unittest.TestCase):
 
 
 class AgreementTests(unittest.TestCase):
-    def test_bootstrap_bounds(self) -> None:
+    def test_bootstrap_bounds(self):
         point, lo, hi = bootstrap_proportion([True, True, False], 200, 7)
         self.assertAlmostEqual(point, 2 / 3)
         self.assertLessEqual(lo, point)
         self.assertGreaterEqual(hi, point)
 
-    def test_consistency_and_length(self) -> None:
+    def test_consistency_and_length(self):
         records = [
             _record("a", "main", 1, "medical", "reminder"),
             _record("a", "main", 2, "medical", "reminder"),
@@ -224,7 +213,7 @@ class AgreementTests(unittest.TestCase):
 
 
 class ReportTests(unittest.TestCase):
-    def test_nan_error_cell_is_not_an_error(self) -> None:
+    def test_nan_error_cell_is_not_an_error(self):
         summary = pd.DataFrame(
             [
                 {
@@ -263,7 +252,7 @@ class ReportTests(unittest.TestCase):
 class FakePredictor:
     def __init__(self, label: str):
         self.label = label
-        self.calls: list[tuple[str, str, str]] = []
+        self.calls = []
 
     def predict(self, subject: str, body: str, from_addr: str = ""):
         self.calls.append((subject, body, from_addr))
@@ -289,27 +278,27 @@ def _email(body: str, preview: str) -> Email:
 
 
 class ModelTextTests(unittest.TestCase):
-    def test_body_is_preferred(self) -> None:
+    def test_body_is_preferred(self):
         self.assertEqual(_model_text(_email("full body", "short preview")), "full body")
 
-    def test_preview_is_used_when_body_is_empty(self) -> None:
+    def test_preview_is_used_when_body_is_empty(self):
         self.assertEqual(_model_text(_email("", "short preview")), "short preview")
 
-    def test_whitespace_body_falls_back_to_preview(self) -> None:
+    def test_whitespace_body_falls_back_to_preview(self):
         self.assertEqual(_model_text(_email("   \n", "short preview")), "short preview")
 
-    def test_both_empty(self) -> None:
+    def test_both_empty(self):
         self.assertEqual(_model_text(_email("", "")), "")
 
 
 class AvailabilityTests(unittest.TestCase):
-    def test_both_heads_are_required(self) -> None:
+    def test_both_heads_are_required(self):
         clf = _classifier()
         self.assertTrue(clf.available)
         clf._action_clf = None
         self.assertFalse(clf.available)
 
-    def test_load_error_blocks_classification(self) -> None:
+    def test_load_error_blocks_classification(self):
         clf = _classifier()
         clf._load_error = "missing action head"
         with self.assertRaises(RuntimeError):
@@ -317,7 +306,7 @@ class AvailabilityTests(unittest.TestCase):
 
 
 class ClassifyInputTests(unittest.TestCase):
-    def test_both_heads_receive_the_body(self) -> None:
+    def test_both_heads_receive_the_body(self):
         clf = _classifier()
         result = clf.classify(_email("full body", "short preview"))
 
@@ -327,7 +316,7 @@ class ClassifyInputTests(unittest.TestCase):
         self.assertEqual(clf._category_clf.calls, expected)
         self.assertEqual(clf._action_clf.calls, expected)
 
-    def test_both_heads_receive_preview_when_body_is_empty(self) -> None:
+    def test_both_heads_receive_preview_when_body_is_empty(self):
         clf = _classifier()
         clf.classify(_email("", "short preview"))
 

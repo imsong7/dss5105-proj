@@ -164,3 +164,11 @@ agent backend.
 - Shortened the module docstring, section headers, and CLI help text.
 - Removed the unused `typing.Any` import and the now-unneeded
   `from __future__ import annotations`.
+
+## 18. Simpler offline evaluator and tests
+- Added short type hints to `evaluation/offline_quality.py` and removed the
+  decorative section separators.
+- Shortened the module docstrings in `offline_quality.py` and
+  `test_evaluation.py`.
+- Removed noisy `-> None` hints from test methods and simplified the longer
+  helper signatures in `test_evaluation.py`.

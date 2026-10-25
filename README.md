@@ -35,6 +35,26 @@ Three parts live in this repo:
 
 ---
 
+## How to work together
+
+```bash
+# 1. Start fresh from updated main
+git switch main
+git pull origin main
+git switch -c feature/your-name
+
+# 2. Do work, then save locally
+git add .
+git commit -m "Describe your changes"
+
+# 3. Get latest main updates into your feature branch (Crucial!)
+git fetch origin
+git merge origin/main
+
+# 4. Push to GitHub
+git push -u origin feature/your-name
+```
+
 ## Quick start
 
 **Run the email-sorter app** (Windows, VS Code terminal):

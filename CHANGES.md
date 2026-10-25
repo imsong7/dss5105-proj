@@ -124,3 +124,10 @@ agent backend.
   consistency/length CSV artifacts. The summaries and raw OOF/run CSVs remain.
 - Removed the redundant `bootstrap_rate` wrapper and simplified the evaluator
   return values and imports.
+
+## 13. Simpler offline evaluator
+- Split `evaluation/offline_f1.py` into small helpers for synthetic loading,
+  task evaluation, joint scoring, and artifact writing.
+- Shortened the module docstring, CLI setup, report rendering, and summary
+  construction without changing the summary or OOF output.
+- Removed type annotations from the evaluator to match the `bert/src` style.

@@ -8,6 +8,26 @@ Flask email sorter with Llama (Ollama) and BERT backends, plus offline quality a
 | `bert/` | BERT training: frozen-encoder heads and optional DistilBERT fine-tunes. |
 | `evaluation/` | Offline OOF quality and operational performance benchmarks. |
 
+## How to work together
+
+```bash
+# 1. Start fresh from updated main
+git switch main
+git pull origin main
+git switch -c feature/your-name
+
+# 2. Do work, then save locally
+git add .
+git commit -m "Describe your changes"
+
+# 3. Get latest main updates into your feature branch (Crucial!)
+git fetch origin
+git merge origin/main
+
+# 4. Push to GitHub
+git push -u origin feature/your-name
+```
+
 ## Quick start
 
 ### App

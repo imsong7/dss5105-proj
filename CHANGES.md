@@ -184,7 +184,7 @@ agent backend.
   the report CI formatting.
 
 ## 20. Shorter README
-- Removed the generic Git workflow and the long per-file trees.
-- Kept the setup commands, evaluation commands, model recommendation, and
-  operational summary.
+- Removed the long per-file trees and the root-file table.
+- Kept the Git workflow, setup commands, evaluation commands, model
+  recommendation, and operational summary.
 - Replaced the detailed layout with a short project overview.

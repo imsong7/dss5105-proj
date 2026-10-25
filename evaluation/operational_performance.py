@@ -34,8 +34,6 @@ The default is a 30-email stratified sample, 5 runs per email. Use
 full 134 x 5 run takes a long time.
 """
 
-from __future__ import annotations
-
 import argparse
 import gc
 import json
@@ -50,7 +48,6 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -80,7 +77,7 @@ except ImportError:  # pragma: no cover - optional
 # --------------------------------------------------------------------------- #
 # Arguments and data
 # --------------------------------------------------------------------------- #
-def parse_args() -> argparse.Namespace:
+def parse_args():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -113,7 +110,7 @@ def parse_args() -> argparse.Namespace:
     return ap.parse_args()
 
 
-def load_benchmark_rows(args: argparse.Namespace) -> tuple[pd.DataFrame, dict, dict]:
+def load_benchmark_rows(args):
     labels, tax_digest = load_taxonomy()
     review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
     df, info = task_dataset(review, "action", labels["action"], False)
@@ -153,7 +150,7 @@ def load_benchmark_rows(args: argparse.Namespace) -> tuple[pd.DataFrame, dict, d
     return df, info, meta
 
 
-def email_for(row: pd.Series, text: str) -> Email:
+def email_for(row, text):
     return Email(
         id=str(row["review_id"]),
         subject=str(row.get("Subject", "")),
@@ -170,24 +167,24 @@ def email_for(row: pd.Series, text: str) -> Email:
 class MemorySampler:
     """Sample benchmark-process RSS and (optionally) Ollama server RSS."""
 
-    def __init__(self, include_ollama: bool, enabled: bool = True):
+    def __init__(self, include_ollama, enabled=True):
         self.include_ollama = include_ollama
         self.enabled = enabled and psutil is not None
         self._stop = threading.Event()
-        self._thread: threading.Thread | None = None
+        self._thread = None
         self._process = psutil.Process() if self.enabled else None
         self.baseline = 0
         self.peak = 0
         self.ollama_baseline = 0
         self.ollama_peak = 0
 
-    def _rss(self) -> int:
+    def _rss(self):
         try:
-            return int(self._process.memory_info().rss)  # type: ignore[union-attr]
+            return int(self._process.memory_info().rss)
         except Exception:
             return 0
 
-    def _ollama_rss(self) -> int:
+    def _ollama_rss(self):
         if not self.include_ollama or psutil is None:
             return 0
         total = 0
@@ -209,7 +206,7 @@ class MemorySampler:
                 continue
         return total
 
-    def start(self) -> None:
+    def start(self):
         if not self.enabled:
             return
         self.baseline = self._rss()
@@ -219,13 +216,13 @@ class MemorySampler:
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
-    def _loop(self) -> None:
+    def _loop(self):
         while not self._stop.wait(0.15):
             self.peak = max(self.peak, self._rss())
             if self.include_ollama:
                 self.ollama_peak = max(self.ollama_peak, self._ollama_rss())
 
-    def stop(self) -> dict[str, Any]:
+    def stop(self):
         if not self.enabled:
             return {"enabled": False}
         self._stop.set()
@@ -251,11 +248,11 @@ class MemorySampler:
 class EnergyMeter:
     """Optional CodeCarbon wrapper. The tracker is machine-wide."""
 
-    def __init__(self, country: str, enabled: bool = True):
+    def __init__(self, country, enabled=True):
         self.enabled = enabled
         self.country = country
         self.tracker = None
-        self.error: str | None = None
+        self.error = None
         if not enabled:
             return
         try:
@@ -271,7 +268,7 @@ class EnergyMeter:
         except Exception as exc:  # pragma: no cover - optional dependency
             self.error = f"{type(exc).__name__}: {exc}"
 
-    def start(self) -> None:
+    def start(self):
         if self.tracker is None:
             return
         try:
@@ -280,7 +277,7 @@ class EnergyMeter:
             self.error = f"{type(exc).__name__}: {exc}"
             self.tracker = None
 
-    def stop(self) -> dict[str, Any]:
+    def stop(self):
         if self.tracker is None:
             return {"enabled": False, "error": self.error}
         try:
@@ -337,11 +334,11 @@ class CallRecord:
     raw_excerpt: str
 
 
-def _norm_label(value: Any) -> str:
+def _norm_label(value):
     return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
 
 
-def _llama_raw_status(result: dict[str, Any]) -> tuple[bool, str | None, str]:
+def _llama_raw_status(result):
     raw = result.get("raw")
     parsed = result.get("parsed")
     err = result.get("parsing_error")
@@ -373,12 +370,12 @@ def _llama_raw_status(result: dict[str, Any]) -> tuple[bool, str | None, str]:
 class LlamaBackend:
     name = "llama"
 
-    def __init__(self) -> None:
+    def __init__(self):
         from app.classifier import build_chain
 
         self.chain = build_chain(include_raw=True)
 
-    def predict(self, email: Email) -> Prediction:
+    def predict(self, email):
         result = self.chain.invoke(
             {
                 "sender": email.sender,
@@ -418,14 +415,14 @@ class LlamaBackend:
             raw_excerpt=excerpt,
         )
 
-    def token_usage(self, email: Email, pred: Prediction) -> tuple[int | None, int | None]:
+    def token_usage(self, email, pred):
         return pred.input_tokens, pred.output_tokens
 
-    def model_info(self) -> dict[str, Any]:
+    def model_info(self):
         import requests
 
         base = settings.ollama_base_url.rstrip("/")
-        info: dict[str, Any] = {
+        info = {
             "model": settings.ollama_model,
             "model_size_mb": None,
             "loaded_size_mb": None,
@@ -474,14 +471,14 @@ class LlamaBackend:
 class BertBackend:
     name = "bert"
 
-    def __init__(self) -> None:
+    def __init__(self):
         from app.bert_classifier import BertClassifier
 
         self.clf = BertClassifier()
         if not self.clf.available:
             raise RuntimeError("BERT models are not available")
 
-    def predict(self, email: Email) -> Prediction:
+    def predict(self, email):
         result = self.clf.classify(email)
         return Prediction(
             category=result.content_category,
@@ -491,7 +488,7 @@ class BertBackend:
             output_tokens=0,
         )
 
-    def _count_tokens(self, predictor: Any, email: Email) -> int:
+    def _count_tokens(self, predictor, email):
         if predictor is None:
             return 0
         from app.bert_classifier import _model_text
@@ -504,7 +501,7 @@ class BertBackend:
         )["input_ids"]
         return len(ids)
 
-    def token_usage(self, email: Email, pred: Prediction) -> tuple[int | None, int | None]:
+    def token_usage(self, email, pred):
         from app.rules import category_by_rule
 
         category_tokens = 0
@@ -513,15 +510,13 @@ class BertBackend:
         action_tokens = self._count_tokens(self.clf._action_clf, email)
         return category_tokens + action_tokens, 0
 
-    def model_info(self) -> dict[str, Any]:
+    def model_info(self):
         head_dirs = [
             BERT_DIR / "models" / "category_head",
             BERT_DIR / "models" / "action_head",
         ]
-        head_size = sum(
-            _dir_size_mb(d) for d in head_dirs if d.exists()
-        )
-        encoder_ids: set[str] = set()
+        head_size = sum(_dir_size_mb(d) for d in head_dirs if d.exists())
+        encoder_ids = set()
         for d in head_dirs:
             manifest = d / "manifest.json"
             if manifest.exists():
@@ -565,7 +560,7 @@ class BertBackend:
         }
 
 
-def make_backend(name: str) -> LlamaBackend | BertBackend:
+def make_backend(name):
     if name == "llama":
         return LlamaBackend()
     if name == "bert":
@@ -573,7 +568,7 @@ def make_backend(name: str) -> LlamaBackend | BertBackend:
     raise ValueError(f"unknown backend: {name}")
 
 
-def _dir_size_mb(path: Path) -> float:
+def _dir_size_mb(path):
     try:
         files = {p.resolve() for p in path.rglob("*") if p.is_file()}
         return sum(p.stat().st_size for p in files) / (1024 * 1024)
@@ -581,7 +576,7 @@ def _dir_size_mb(path: Path) -> float:
         return 0.0
 
 
-def unload_ollama() -> None:
+def unload_ollama():
     env = os.environ.copy()
     host = settings.ollama_base_url.replace("http://", "").replace("https://", "")
     env["OLLAMA_HOST"] = host.rstrip("/")
@@ -603,24 +598,13 @@ def unload_ollama() -> None:
 # --------------------------------------------------------------------------- #
 # Running and stats
 # --------------------------------------------------------------------------- #
-def _timed_predict(
-    backend: LlamaBackend | BertBackend, email: Email
-) -> tuple[Prediction, float]:
+def _timed_predict(backend, email):
     start = time.perf_counter()
     pred = backend.predict(email)
     return pred, (time.perf_counter() - start) * 1000
 
 
-def _record(
-    backend: str,
-    row: pd.Series,
-    pred: Prediction,
-    latency_ms: float,
-    phase: str,
-    run: int,
-    input_mode: str,
-    text: str,
-) -> CallRecord:
+def _record(backend, row, pred, latency_ms, phase, run, input_mode, text):
     return CallRecord(
         backend=backend,
         review_id=str(row["review_id"]),
@@ -642,16 +626,14 @@ def _record(
     )
 
 
-def run_backend(
-    name: str, rows: pd.DataFrame, args: argparse.Namespace
-) -> tuple[dict[str, Any], list[CallRecord]]:
-    records: list[CallRecord] = []
+def run_backend(name, rows, args):
+    records = []
     sampler = MemorySampler(include_ollama=(name == "llama"), enabled=not args.no_memory)
     energy = EnergyMeter(country=args.country, enabled=not args.no_energy)
-    backend: LlamaBackend | BertBackend | None = None
-    init_ms: float | None = None
-    cold: CallRecord | None = None
-    error: str | None = None
+    backend = None
+    init_ms = None
+    cold = None
+    error = None
 
     if name == "llama" and args.unload_ollama:
         unload_ollama()
@@ -733,11 +715,9 @@ def run_backend(
     return summary, records
 
 
-def _agreement(
-    records: list[CallRecord], args: argparse.Namespace
-) -> tuple[list[bool], list[bool]]:
+def _agreement(records, args):
     main = [r for r in records if r.phase == "main"]
-    by_id: dict[str, list[CallRecord]] = defaultdict(list)
+    by_id = defaultdict(list)
     for r in main:
         by_id[r.review_id].append(r)
 
@@ -759,29 +739,29 @@ def _agreement(
     return consistency, length
 
 
-def _pct(values: list[float], q: float) -> float | None:
+def _pct(values, q):
     return float(np.percentile(values, q)) if values else None
 
 
-def _mean(values: list[float]) -> float | None:
+def _mean(values):
     return float(statistics.fmean(values)) if values else None
 
 
 def _summarise(
     *,
-    name: str,
-    backend: LlamaBackend | BertBackend | None,
-    rows: pd.DataFrame,
-    records: list[CallRecord],
-    consistency: list[bool],
-    length: list[bool],
-    init_ms: float | None,
-    cold: CallRecord | None,
-    energy: dict[str, Any],
-    memory: dict[str, Any],
-    error: str | None,
-    args: argparse.Namespace,
-) -> dict[str, Any]:
+    name,
+    backend,
+    rows,
+    records,
+    consistency,
+    length,
+    init_ms,
+    cold,
+    energy,
+    memory,
+    error,
+    args,
+):
     main = [r for r in records if r.phase == "main"]
     scored = [r for r in records if r.phase in {"main", "length_short"}]
     latencies = [r.latency_ms for r in main]
@@ -857,8 +837,8 @@ def _summarise(
 # --------------------------------------------------------------------------- #
 # Output
 # --------------------------------------------------------------------------- #
-def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
-    def fmt(value: Any, digits: int = 1) -> str:
+def render_report(summary, manifest):
+    def fmt(value, digits=1):
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return "—"
         if isinstance(value, (int, np.integer)):
@@ -917,7 +897,7 @@ def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
+def main():
     args = parse_args()
     if args.runs < 1:
         raise SystemExit("--runs must be >= 1")
@@ -933,8 +913,8 @@ def main() -> None:
         f"({', '.join(backends)}) | counts={meta['sample_action_counts']}"
     )
 
-    summary_rows: list[dict[str, Any]] = []
-    all_records: list[CallRecord] = []
+    summary_rows = []
+    all_records = []
     for name in backends:
         print(f"\n=== {name} ===", flush=True)
         summary, records = run_backend(name, rows, args)

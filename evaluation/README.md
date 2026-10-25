@@ -237,13 +237,14 @@ Flat files under `evaluation/results/`:
 
 | File | Contents |
 |------|----------|
-| `operational_benchmark_summary.csv` | One row per backend: latency, memory, size, tokens, energy, consistency, agreement. |
+| `operational_benchmark_summary.csv` | One row per backend: 20 headline metrics (latency, memory, size, token means, energy/CO2, invalid rate, consistency, agreement). |
 | `operational_benchmark_runs.csv` | Every call: phase, latency, labels, raw validity, tokens. |
 | `operational_benchmark_manifest.json` | Sample IDs, arguments, versions, input protocol. |
 | `operational_benchmark_report.txt` | Human-readable summary table. |
 
-Per-email consistency and short/full agreement are summarized in the summary
-and report; the raw calls remain in `runs.csv`.
+The summary is intentionally narrow. Per-call latency, labels, raw validity,
+and token counts remain in `runs.csv`; the summary keeps only the headline
+metrics needed for the evaluation rubric.
 
 ## Caveats
 

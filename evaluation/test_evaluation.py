@@ -32,7 +32,7 @@ from evaluation.offline_f1 import (  # noqa: E402
 )
 from evaluation.operational_benchmark import (  # noqa: E402
     CallRecord,
-    _agreement_rows,
+    _agreement,
     _llama_raw_status,
     render_report,
 )
@@ -218,18 +218,9 @@ class AgreementTests(unittest.TestCase):
             _record("b", "length_short", 0, "medical", "needs_action", "short"),
         ]
         args = SimpleNamespace(runs=2)
-        consistency, length = _agreement_rows("llama", records, args)
-        self.assertEqual(len(consistency), 2)
-        by_id = {r["review_id"]: r for r in consistency}
-        self.assertTrue(by_id["a"]["exact"])
-        self.assertFalse(by_id["b"]["exact"])
-        self.assertTrue(by_id["b"]["category_consistent"])
-        self.assertFalse(by_id["b"]["action_consistent"])
-
-        length_by_id = {r["review_id"]: r for r in length}
-        self.assertTrue(length_by_id["a"]["both_agree"])
-        self.assertTrue(length_by_id["b"]["category_agree"])
-        self.assertFalse(length_by_id["b"]["action_agree"])
+        consistency, length = _agreement(records, args)
+        self.assertEqual(consistency, [True, False])
+        self.assertEqual(length, [True, False])
 
 
 class ReportTests(unittest.TestCase):

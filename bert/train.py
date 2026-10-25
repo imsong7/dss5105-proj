@@ -1,9 +1,4 @@
-"""Train the BERT heads or a full DistilBERT model.
-
-Head mode (default) uses a frozen encoder plus a logistic-regression head.
-Full mode fine-tunes DistilBERT. Data comes from bert/data/labels.csv and
-outputs go to bert/models or bert/results.
-"""
+"""Train BERT heads (default) or a full DistilBERT model."""
 import argparse
 import os
 import sys
@@ -12,10 +7,7 @@ import pandas as pd
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Make bert.src importable when run as `python bert/train.py`
-SRC_DIR = os.path.join(SCRIPT_DIR, "src")
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
+sys.path.insert(0, os.path.join(SCRIPT_DIR, "src"))
 
 from src.data import (
     DEFAULT_ENCODERS,
@@ -40,22 +32,14 @@ DEFAULT_REVIEW = os.path.join(SCRIPT_DIR, "data", "labels.csv")
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=["head", "full"], default="head",
-                    help="training mode (default: head)")
-    ap.add_argument("--task", choices=["category", "action", "both"], default="both",
-                    help="task to train (default: both)")
-    ap.add_argument("--review", default=DEFAULT_REVIEW, metavar="CSV",
-                    help="review CSV (default: bert/data/labels.csv)")
-    ap.add_argument("--encoder", choices=list(ENCODERS),
-                    help="head-mode encoder (default: task-specific)")
-    ap.add_argument("--synthetic", metavar="CSV",
-                    help="synthetic CSV added to TRAIN only")
-    ap.add_argument("--synthetic-tasks", choices=["category", "action", "both"], default="action",
-                    help="tasks using synthetic data (default: action)")
-    ap.add_argument("--compare-seeds", metavar="LIST",
-                    help="seeds for comparison runs, e.g. 1,2,3")
-    ap.add_argument("--check-only", action="store_true",
-                    help="validate data and splits (no training)")
+    ap.add_argument("--mode", choices=["head", "full"], default="head", help="training mode (default: head)")
+    ap.add_argument("--task", choices=["category", "action", "both"], default="both", help="task to train (default: both)")
+    ap.add_argument("--review", default=DEFAULT_REVIEW, metavar="CSV", help="review CSV (default: bert/data/labels.csv)")
+    ap.add_argument("--encoder", choices=list(ENCODERS), help="head-mode encoder (default: task-specific)")
+    ap.add_argument("--synthetic", metavar="CSV", help="synthetic CSV added to TRAIN only")
+    ap.add_argument("--synthetic-tasks", choices=["category", "action", "both"], default="action", help="tasks using synthetic data (default: action)")
+    ap.add_argument("--compare-seeds", metavar="LIST", help="seeds for comparison runs, e.g. 1,2,3")
+    ap.add_argument("--check-only", action="store_true", help="validate data and splits (no training)")
     args = ap.parse_args()
 
     labels, digest = load_taxonomy()
@@ -103,16 +87,6 @@ def main():
             head_compare(data, syn_data, list(ENCODERS), seeds, RESULTS_DIR)
         else:
             full_compare_seeds(data, syn_data, labels, digest, args, seeds)
-
-        # Display comparison results
-        summary_name = "compare_head_summary.txt" if args.mode == "head" else "compare_full_summary.txt"
-        summary_path = os.path.join(RESULTS_DIR, summary_name)
-        if os.path.exists(summary_path):
-            print("\n" + "=" * 70)
-            print(f"Comparison results -> {summary_path}")
-            print("=" * 70)
-            with open(summary_path) as f:
-                print(f.read())
         return
 
     for t, (df, info) in data.items():

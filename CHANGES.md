@@ -108,4 +108,5 @@ agent backend.
   `--allow-missing-labels`, `--encoders`, and `--tfidf-only`.
 - Head training now defaults to bge-small-en for category and e5-small-multi
   for action; `--encoder` overrides both.
-- Shortened the trainer docstring and `--help` descriptions.
+- Shortened the trainer docstring and `--help` descriptions, and removed
+  redundant setup/summary lines.

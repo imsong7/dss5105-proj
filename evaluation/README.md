@@ -68,6 +68,12 @@ Unit tests for the bootstrap and rule/head merging logic:
 .venv/bin/python -m unittest evaluation.test_offline_f1 -v
 ```
 
+The BERT app input-selection tests do not load the models:
+
+```bash
+.venv/bin/python -m unittest evaluation.test_bert_classifier -v
+```
+
 ## What is scored
 
 | Dataset | N | What it means |
@@ -77,10 +83,10 @@ Unit tests for the bootstrap and rule/head merging logic:
 | `action` | 134 | Action head. |
 | `both_labels` | 133 | Exact match on emails scored by both tasks. The action set has 134 rows, but one has category `__skip__`, so only 133 can be scored jointly. |
 
-Inputs match the BERT backend: `Subject: ...` plus the email preview (200
-characters in the current app). The encoder is frozen; only the logistic head is
-refit for each fold. Synthetic rows are appended to the training folds and never
-to the validation fold.
+Inputs match the BERT backend: `Subject: ...` plus the full email body, falling
+back to `preview` when the body is empty. BERT truncates at 256 tokens. The
+encoder is frozen; only the logistic head is refit for each fold. Synthetic rows
+are appended to the training folds and never to the validation fold.
 
 Macro-F1 uses the labels the model is allowed to predict:
 
@@ -176,10 +182,11 @@ Key options:
 - **Sample:** 30 emails stratified by action label, fixed seed 42. The full
   action-usable set is 134 unique emails. The sample keeps the benchmark
   practical for Llama; use `--limit 0` for all 134.
-- **Full input:** the email `Preview` field, which is the body text in
-  `labels.csv`. The app truncates Llama to 3,000 characters and BERT to 256
-  tokens.
-- **Short input:** the first 200 characters of `Preview`.
+- **Full input:** the full email body (`Preview` in `labels.csv`). The app uses
+  the provider body, falling back to preview. Llama truncates to 3,000
+  characters and BERT to 256 tokens.
+- **Short input:** the first 200 characters of `Preview`. This is a
+  length-sensitivity check, not the app input.
 - **Cold:** the first call after classifier construction. With
   `--unload-ollama`, Ollama is stopped first so the cold call includes model
   loading.
@@ -254,8 +261,8 @@ Flat files under `evaluation/results/`:
 - Llama token counts include the ~350-token system prompt, so they are not
   directly comparable to BERT head input tokens.
 - The dataset provides one `Preview` field, not a separate full MIME body. The
-  "full" condition is therefore the full available preview text after the app's
-  input limits.
+  offline evaluator uses that full text; the app uses the provider body, with
+  `preview` as a fallback.
 - BERT's 256-token limit means its "full" input is truncated too; the
   short/full comparison still shows whether the first 200 characters change the
   label.

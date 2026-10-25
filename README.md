@@ -84,9 +84,10 @@ python evaluation/offline_f1.py --no-synthetic
 # (needs Ollama for the Llama backend)
 python evaluation/operational_benchmark.py
 
-# Unit tests for both evaluators
+# Unit tests for both evaluators and the BERT input path
 python -m unittest evaluation.test_offline_f1 -v
 python -m unittest evaluation.test_operational_benchmark -v
+python -m unittest evaluation.test_bert_classifier -v
 ```
 
 The operational benchmark uses two optional packages; install them once:
@@ -196,8 +197,9 @@ Choose the backend in the UI. BERT loads
 | Action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] real+synthetic; 0.697 real-only | Synthetic helps the head; tiny file |
 
 These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
-uses all labelled emails instead of the old 27-row test split. The historical
-split results remain in `bert/README.md`.
+uses all labelled emails instead of the old 27-row test split. The app feeds BERT
+the email body (falling back to the 200-character preview) and truncates at 256
+tokens. The historical split results remain in `bert/README.md`.
 
 Operational benchmark on a 30-email stratified sample, 5 runs per email, seed
 42, CodeCarbon enabled, and a cold Ollama start:

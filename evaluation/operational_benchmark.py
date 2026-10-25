@@ -16,8 +16,9 @@ Measured per backend
 
 Input protocol
 --------------
-``full`` uses the email's ``Preview`` field, which is the body text available
-in the labelled dataset. The app truncates Llama input to
+``full`` uses the email's full body. The labelled dataset stores that text in
+its ``Preview`` field, which the benchmark passes as both body and preview. The
+app sends the provider body and falls back to preview. Llama truncates to
 ``settings.body_char_limit`` (3000 chars) and BERT to 256 tokens. ``short`` uses
 the first ``--short-chars`` characters (default 200).
 
@@ -511,7 +512,11 @@ class BertBackend:
     def _count_tokens(self, predictor: Any, email: Email) -> int:
         if predictor is None:
             return 0
-        text = predictor.enc.prefix + build_text(email.subject, email.sender, email.preview)
+        from app.bert_classifier import _model_text
+
+        text = predictor.enc.prefix + build_text(
+            email.subject, email.sender, _model_text(email)
+        )
         ids = predictor.enc.tok(
             text, truncation=True, max_length=MAX_LEN
         )["input_ids"]
@@ -1001,7 +1006,7 @@ def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
         "Operational benchmark — email-sorter backends",
         f"Sample: {manifest['sample_n']} of {manifest['total_rows']} action-usable emails "
         f"| runs/email: {manifest['runs']} | seed: {manifest['seed']}",
-        f"Input: full = Preview (Llama cap {manifest['body_char_limit']} chars); "
+        f"Input: full = body/Preview (Llama cap {manifest['body_char_limit']} chars); "
         f"short = first {manifest['short_chars']} chars",
         "",
     ]
@@ -1036,9 +1041,10 @@ def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
             "- Peak MB is benchmark process + Ollama server RSS (Llama); model MB is on-disk size.",
             "- Llama tokens include the system prompt; BERT tokens are head input tokens.",
             "- Invalid = raw JSON/labels not matching the taxonomy before Pydantic coercion.",
-            "- Consistency = all runs identical; Short/full = first full run vs first 200 chars.",
+            f"- Consistency = all runs identical; Short/full = first full run vs first "
+            f"{manifest['short_chars']} chars.",
             "- Energy is CodeCarbon machine-wide; it may include the Ollama server.",
-            "- This is a sample, not the full 134-email quality evaluation.",
+            "- This is an operational benchmark, not the offline quality evaluation.",
         ]
     )
     if manifest.get("sample_action_counts"):
@@ -1118,8 +1124,8 @@ def main() -> None:
         "ollama_model": settings.ollama_model,
         "taxonomy_sha256_16": meta["taxonomy_sha256_16"],
         "input_protocol": {
-            "full": "Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
-            "short": f"first {args.short_chars} characters of Preview",
+            "full": "body/Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
+            "short": f"first {args.short_chars} characters of body/Preview",
         },
         "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
         "versions": {

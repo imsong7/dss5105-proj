@@ -1,7 +1,6 @@
 """Offline quality evaluation with out-of-fold predictions and bootstrap CIs.
 
-Each email is predicted once by a model trained on the other folds, so no row is
-scored by its own training data. CIs use a stratified bootstrap over emails.
+Each email is scored once by a model trained on the other folds.
 
 Usage:
     python evaluation/offline_quality.py
@@ -44,7 +43,7 @@ DEFAULT_SYNTHETIC = BERT_DIR / "data" / "synthetic.csv"
 DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -65,8 +64,10 @@ def parse_args():
     return ap.parse_args()
 
 
-# --- Out-of-fold predictions ---
-def oof_for_task(task, df, encoder_name, syn, folds, seed):
+# Out-of-fold predictions
+def oof_for_task(
+    task: str, df: pd.DataFrame, encoder_name: str, syn, folds: int, seed: int
+) -> pd.DataFrame:
     """Return one held-out prediction per row using stratified K-fold CV."""
     from sklearn.model_selection import StratifiedKFold
 
@@ -127,7 +128,9 @@ def oof_for_task(task, df, encoder_name, syn, folds, seed):
     return out
 
 
-def category_end_to_end(review, oof, expected_labels):
+def category_end_to_end(
+    review: pd.DataFrame, oof: pd.DataFrame, expected_labels: list
+) -> pd.DataFrame:
     """Combine the Canvas sender rule with category-head OOF predictions."""
     vals = review["category"].fillna("").astype(str).str.strip()
     raw = review[vals.ne("") & vals.ne(SKIP)].copy()
@@ -176,8 +179,8 @@ def category_end_to_end(review, oof, expected_labels):
     return out
 
 
-# --- Metrics and bootstrap ---
-def bootstrap_metrics(y_true, y_pred, labels, n_boot, seed):
+# Metrics and bootstrap
+def bootstrap_metrics(y_true, y_pred, labels, n_boot: int, seed: int) -> tuple:
     """Stratified bootstrap CIs for accuracy and macro F1."""
     from sklearn.metrics import accuracy_score, f1_score
 
@@ -200,7 +203,15 @@ def bootstrap_metrics(y_true, y_pred, labels, n_boot, seed):
     return (float(acc_lo), float(acc_hi)), (float(f1_lo), float(f1_hi))
 
 
-def evaluate_frame(name, task, frame, labels, n_boot, seed, notes=""):
+def evaluate_frame(
+    name: str,
+    task: str,
+    frame: pd.DataFrame,
+    labels: list,
+    n_boot: int,
+    seed: int,
+    notes: str = "",
+) -> dict:
     """Return the summary row for a prediction frame."""
     from sklearn.metrics import accuracy_score, f1_score
 
@@ -226,8 +237,10 @@ def evaluate_frame(name, task, frame, labels, n_boot, seed, notes=""):
     }
 
 
-# --- Evaluation steps ---
-def load_synthetic(args, tasks, labels, datasets):
+# Evaluation steps
+def load_synthetic(
+    args: argparse.Namespace, tasks: list, labels: dict, datasets: dict
+) -> tuple:
     path = None if args.no_synthetic else args.synthetic
     if path and not Path(path).is_file():
         raise SystemExit(f"Synthetic CSV not found: {path} (or pass --no-synthetic)")
@@ -252,7 +265,15 @@ def load_synthetic(args, tasks, labels, datasets):
     return syn_data, path
 
 
-def evaluate_task(task, review, datasets, infos, syn_data, labels, args):
+def evaluate_task(
+    task: str,
+    review: pd.DataFrame,
+    datasets: dict,
+    infos: dict,
+    syn_data,
+    labels: dict,
+    args: argparse.Namespace,
+) -> tuple:
     encoder = args.encoder_category if task == "category" else args.encoder_action
     print(f"[{task}] encoding with {encoder} ...", flush=True)
     oof = oof_for_task(
@@ -299,7 +320,7 @@ def evaluate_task(task, review, datasets, infos, syn_data, labels, args):
     return {"category_model": model, "category_end_to_end": e2e}, rows
 
 
-def both_labels_summary(eval_frames, args):
+def both_labels_summary(eval_frames: list, args: argparse.Namespace) -> dict | None:
     if not {"category_end_to_end", "action"} <= set(eval_frames):
         return None
 
@@ -336,8 +357,10 @@ def both_labels_summary(eval_frames, args):
     }
 
 
-# --- Output ---
-def write_artifacts(out_dir, summary_rows, oof_frames, manifest):
+# Output
+def write_artifacts(
+    out_dir: Path, summary_rows: list, oof_frames: list, manifest: dict
+) -> None:
     summary = pd.DataFrame(summary_rows)
     if "label_count" in summary.columns:
         summary["label_count"] = summary["label_count"].astype("Int64")
@@ -364,7 +387,7 @@ def write_artifacts(out_dir, summary_rows, oof_frames, manifest):
     print(f"Saved artifacts -> {out_dir}")
 
 
-def render_report(summary, manifest):
+def render_report(summary: pd.DataFrame, manifest: dict) -> str:
     lines = [
         "Offline quality — out-of-fold predictions",
         f"Review CSV: {manifest['review_csv']}",
@@ -404,7 +427,7 @@ def render_report(summary, manifest):
     return "\n".join(lines + ["", "Notes:", *notes]) + "\n"
 
 
-def main():
+def main() -> None:
     args = parse_args()
     if args.folds < 2:
         raise SystemExit("--folds must be >= 2")

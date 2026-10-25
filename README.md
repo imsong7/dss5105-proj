@@ -83,10 +83,8 @@ python evaluation/offline_f1.py --no-synthetic
 # (needs Ollama for the Llama backend)
 python evaluation/operational_benchmark.py
 
-# Unit tests for both evaluators and the BERT input path
-python -m unittest evaluation.test_offline_f1 -v
-python -m unittest evaluation.test_operational_benchmark -v
-python -m unittest evaluation.test_bert_classifier -v
+# Unit tests for the evaluators and the BERT input path
+python -m unittest evaluation.test_evaluation -v
 ```
 
 The operational benchmark uses two optional packages; install them once:
@@ -162,21 +160,16 @@ bert/
 evaluation/
   offline_f1.py             # OOF predictions + stratified bootstrap CIs
   operational_benchmark.py  # latency, memory, tokens, energy, consistency
-  test_offline_f1.py
-  test_operational_benchmark.py
+  test_evaluation.py        # unit tests for both evaluators + BERT input
   requirements.txt          # optional benchmark deps (psutil, codecarbon)
   README.md                 # methodology and current results
   results/
     offline_f1_summary.csv
-    offline_f1_per_class.csv
-    offline_f1_confusion.csv
     offline_f1_oof_predictions.csv
     offline_f1_manifest.json
     offline_f1_report.txt
     operational_benchmark_summary.csv
     operational_benchmark_runs.csv
-    operational_benchmark_consistency.csv
-    operational_benchmark_length.csv
     operational_benchmark_manifest.json
     operational_benchmark_report.txt
 ```

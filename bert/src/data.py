@@ -21,9 +21,8 @@ HEAD_C = 10.0  # inverse L2 strength of the logistic-regression head
 
 TASKS = {"category": "CONTENT_CATEGORIES", "action": "REPLY_NATURE"}
 
-SENDER_RULES = {
-    "category": {"notifications@instructure.com": "canva"},
-}
+SENDER_RULES = {"category": {"notifications@instructure.com": "canva"}}
+
 # name -> (HF model id, text prefix, pooling)
 ENCODERS = {
     "bge-small-en": ("BAAI/bge-small-en-v1.5", "", "cls"),

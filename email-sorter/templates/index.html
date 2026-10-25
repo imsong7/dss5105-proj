@@ -4,27 +4,7 @@
 {% block sidebar %}
 <section>
   <h2>Connect a mailbox</h2>
-  <label for="provider">Mail source</label>
-  <select id="provider">
-    <option value="outlook">Outlook (Graph token)</option>
-    <option value="imap">Gmail or other (IMAP)</option>
-  </select>
-
-  <div id="f-outlook">
-    <label for="token">Graph access token</label>
-    <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste the token from Graph Explorer"></textarea>
-  </div>
-  <div id="f-imap" hidden>
-    <label for="host">IMAP server</label>
-    <input id="host" placeholder="imap.gmail.com" autocomplete="off">
-    <label for="user">Email address</label>
-    <input id="user" autocomplete="off">
-    <label for="pass">App password</label>
-    <input id="pass" type="password" autocomplete="off">
-  </div>
-
-  <label for="count">How many recent emails</label>
-  <input id="count" type="number" min="1" value="10">
+  {{ mailbox_fields() }}
   <button id="go">Fetch and sort emails</button>
   <button id="cancel" class="btn-secondary" hidden>Cancel</button>
   <button id="retry" class="btn-secondary" hidden>Retry failed emails</button>

@@ -9,7 +9,7 @@ This directory contains the BERT-based experiments for the email-sorter project:
 ```
 bert/
   src/                    # Python package
-    __init__.py           # public API
+    __init__.py           # package marker
     data.py               # data loading, validation, split, synthetic
     model.py              # Encoder, head training, EmbedPredictor
   train.py                # unified CLI (--mode head|full)
@@ -18,9 +18,9 @@ bert/
     synthetic.csv         # 91 synthetic emails (seed-fixed)
   models/                 # trained app models (flat naming: {task}_{mode})
     action_head/          # frozen encoder head for action
-    action_full/          # distilbert fine-tune for action (~512MB)
+    action_full/          # optional distilbert fine-tune, generated locally
     category_head/        # frozen encoder head for category
-    category_full/        # distilbert fine-tune for category (~512MB)
+    category_full/        # optional distilbert fine-tune, generated locally
   results/                # experiment comparison records (flat files)
     compare_head_summary.txt    # head mode comparison results
     compare_head_runs.csv

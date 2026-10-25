@@ -66,11 +66,12 @@ class BertClassifier(BaseClassifier):
         self.models_dir = models_dir or BERT_MODELS_DIR
         self._action_clf = None
         self._category_clf = None
+        self._load_errors: dict[str, str] = {}
         self._load_error: str | None = None
         self._load()
 
-    def _load(self):
-        """Lazy-load both heads; missing dirs/deps are tolerated."""
+    def _load(self) -> None:
+        """Load both heads; record every failure instead of silently skipping."""
         # Lazy import of EmbedPredictor (requires numpy/torch/transformers)
         try:
             from src.model import EmbedPredictor  # noqa: E402
@@ -79,23 +80,35 @@ class BertClassifier(BaseClassifier):
             print(f"[bert] {self._load_error}")
             return
 
-        for task, d in MODEL_DIRS.items():
-            d = os.path.join(self.models_dir, os.path.basename(d))
-            if not os.path.isdir(d):
-                print(f"[bert] model dir not found, skipping: {d}")
+        for task, default_dir in MODEL_DIRS.items():
+            model_dir = os.path.join(self.models_dir, os.path.basename(default_dir))
+            if not os.path.isdir(model_dir):
+                self._load_errors[task] = f"model dir not found: {model_dir}"
+                print(f"[bert] {self._load_errors[task]}")
                 continue
             try:
+                predictor = EmbedPredictor(model_dir)
                 if task == "category":
-                    self._category_clf = EmbedPredictor(d)
+                    self._category_clf = predictor
                 else:
-                    self._action_clf = EmbedPredictor(d)
-                print(f"[bert] loaded {task} model from {d}")
+                    self._action_clf = predictor
+                print(f"[bert] loaded {task} model from {model_dir}")
             except Exception as exc:  # pragma: no cover - runtime loading
+                self._load_errors[task] = str(exc)
                 print(f"[bert] failed to load {task} model: {exc}")
+
+        if self._load_errors:
+            self._load_error = "; ".join(
+                f"{task}: {message}" for task, message in self._load_errors.items()
+            )
 
     @property
     def available(self) -> bool:
-        return self._category_clf is not None or self._action_clf is not None
+        return (
+            self._load_error is None
+            and self._category_clf is not None
+            and self._action_clf is not None
+        )
 
     def load_error(self) -> str | None:
         """Return the load error message, if any."""
@@ -104,9 +117,9 @@ class BertClassifier(BaseClassifier):
     def classify(self, email: Email) -> Classification:
         """Classify an email and return a ``Classification`` object.
 
-        Sender rules run first (Canvas -> canva). The BERT head predicts the
-        other label. Any label the model can't cover falls back to the app
-        defaults.
+        Sender rules run first (Canvas -> canva). The BERT heads predict the
+        other labels. If a head is unavailable at runtime, its label falls back
+        to the app default.
         """
         if self._load_error:
             raise RuntimeError(

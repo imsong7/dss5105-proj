@@ -83,3 +83,18 @@ agent backend.
   classification routing.
 - Updated the evaluation and root READMEs. No model retraining was needed; the
   offline OOF scores already use the full body and are unchanged.
+
+## 9. Repository cleanup
+- Removed the unused legacy Excel review pipeline and `--export-review` /
+  `--prefill` options. `bert/data/labels.csv` is now the source of truth.
+- Removed the unused `bert/src/__init__.py` re-export list.
+- Moved duplicated evaluation helpers into `evaluation/__init__.py`.
+- Shared the Llama chain construction between the app and the operational
+  benchmark, and shared mailbox/credential/classification helpers in the
+  frontend.
+- Fixed full-mode synthetic training (`random_state`), `make_synthetic.py`
+  output path, BERT readiness/partial-load reporting, Ollama URL parsing, the
+  hardcoded Canvas count, and CSV formula-injection escaping.
+- Stopped tracking generated full-model directories and head prediction CSVs;
+  the files remain locally and are ignored by Git. Removed stale
+  `VERIFICATION.md`.

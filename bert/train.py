@@ -43,11 +43,17 @@ SRC_DIR = os.path.join(SCRIPT_DIR, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from src.data import load_taxonomy, split_dataset, synthetic_dataset, task_dataset
+from src.data import (
+    DataError,
+    ENCODERS,
+    SEED,
+    load_taxonomy,
+    split_dataset,
+    synthetic_dataset,
+    task_dataset,
+)
 from src.model import (head_compare, train_full_task, train_head_final, tfidf_run,
                        full_compare_seeds)
-
-SEED = 42
 
 
 def main():
@@ -57,10 +63,6 @@ def main():
                     help="head = frozen encoder + logreg head (default, recommended); "
                          "full = full DistilBERT fine-tune")
     ap.add_argument("--review", metavar="CSV")
-    ap.add_argument("--export-review", metavar="CSV",
-                    help="full mode only: export a review CSV from the source Excel")
-    ap.add_argument("--prefill", action="store_true",
-                    help="full mode only: pre-fill suggested labels (provisional)")
     ap.add_argument("--check-only", action="store_true",
                     help="validate labels and print splits, no training")
     ap.add_argument("--task", choices=["category", "action", "both"], default="both")
@@ -71,8 +73,7 @@ def main():
                     help="full mode only: training epochs")
     ap.add_argument("--lr", type=float, default=5e-5,
                     help="full mode only: learning rate")
-    ap.add_argument("--encoder", choices=list(__import__("src.model", fromlist=["ENCODERS"]).ENCODERS),
-                    default="bge-small-en",
+    ap.add_argument("--encoder", choices=list(ENCODERS), default="bge-small-en",
                     help="head mode only: frozen encoder name")
     ap.add_argument("--out-dir", metavar="DIR",
                     help="output dir (default: models/)")
@@ -85,22 +86,17 @@ def main():
                          "real+synthetic (models are NOT saved)")
     ap.add_argument("--compare-dir", metavar="DIR",
                     help="comparison output dir (default: results/)")
-    ap.add_argument("--encoders", default=",".join(
-        __import__("src.model", fromlist=["ENCODERS"]).ENCODERS),
+    ap.add_argument("--encoders", default=",".join(ENCODERS),
                     help="head mode only: encoders used with --compare-seeds")
     ap.add_argument("--tfidf-only", action="store_true",
                     help="full mode only: with --compare-seeds, skip BERT, run TF-IDF only (fast)")
     args = ap.parse_args()
 
-    if args.export_review:
-        from src.data import export_review
-        export_review(args.export_review, args.prefill)
-        return
     if not args.review:
-        ap.error("--review CSV is required (or use --export-review)")
+        ap.error("--review CSV is required")
 
     labels, digest = load_taxonomy()
-    review = pd_read_csv(args.review)
+    review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
     args.provisional = bool((review.get("label_source", pd.Series(dtype=str)) == "provisional").any())
     tasks = ["category", "action"] if args.task == "both" else [args.task]
     data, syn_data = {}, {}
@@ -111,7 +107,7 @@ def main():
             print(f"[{t}] OK rows={data[t][1]['rows_used']} counts={data[t][1]['counts']} "
                   f"rule={data[t][1]['rule_labels']} (excluded {data[t][1]['rule_rows_excluded']}) "
                   f"unsupported={data[t][1]['unsupported_labels']}")
-        except Exception as e:  # DataError
+        except DataError as e:
             ok = False
             print("ERROR", e)
     if args.synthetic and ok:
@@ -123,7 +119,7 @@ def main():
                 print(f"[{t}] synthetic OK rows={si['rows']} counts={si['counts']} "
                       f"(dropped: duplicates {si['removed_duplicates']}, "
                       f"too similar to real {si['removed_near_real']})")
-            except Exception as e:  # DataError
+            except DataError as e:
                 ok = False
                 print("ERROR", e)
     if not ok:
@@ -169,11 +165,6 @@ def main():
             train_head_final(t, df, info, syn, si, args.encoder, labels[t], digest, args)
         else:
             train_full_task(t, df, info, labels[t], digest, args, syn, si)
-
-
-def pd_read_csv(path):
-    import pandas as pd
-    return pd.read_csv(path, dtype=str, keep_default_na=False)
 
 
 if __name__ == "__main__":

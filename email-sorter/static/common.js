@@ -54,6 +54,30 @@ async function api(path, body, { signal, timeoutMs = 30000 } = {}) {
   }
 }
 
+function setProgress(done, total, text) {
+  $("#progress > div").style.width = (total ? done / total * 100 : 0) + "%";
+  if (text) $("#count-label").textContent = text;
+}
+
+function initMailboxForm() {
+  $("#provider").addEventListener("change", e => {
+    $("#f-outlook").hidden = e.target.value !== "outlook";
+    $("#f-imap").hidden = e.target.value !== "imap";
+  });
+}
+
+function readCredentials() {
+  const provider = $("#provider").value;
+  const credentials = provider === "outlook"
+    ? { token: $("#token").value }
+    : { host: $("#host").value, user: $("#user").value, password: $("#pass").value };
+  return { provider, credentials };
+}
+
+function classifyEmail(email, backend, signal) {
+  return api("/api/classify", { email, backend }, { signal, timeoutMs: 180000 });
+}
+
 function formatLatency(ms) {
   if (ms < 1000) return ms + "ms";
   const seconds = Math.floor(ms / 1000);

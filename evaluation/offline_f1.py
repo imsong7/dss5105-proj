@@ -28,7 +28,6 @@ Usage (repo root, root .venv activated)::
 from __future__ import annotations
 
 import argparse
-import importlib.metadata
 import json
 import sys
 from datetime import datetime, timezone
@@ -39,9 +38,15 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BERT_DIR = REPO_ROOT / "bert"
-if str(BERT_DIR) not in sys.path:
-    sys.path.insert(0, str(BERT_DIR))
+for _path in (REPO_ROOT, BERT_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
+from evaluation import (  # noqa: E402
+    bootstrap_rate,
+    display_path,
+    package_version,
+)
 from src.data import (  # noqa: E402
     ENCODERS,
     SKIP,
@@ -252,19 +257,6 @@ def bootstrap_metrics(
     acc_ci = tuple(float(x) for x in np.percentile(accs, [2.5, 97.5]))
     f1_ci = tuple(float(x) for x in np.percentile(f1s, [2.5, 97.5]))
     return acc_ci, f1_ci  # type: ignore[return-value]
-
-
-def bootstrap_rate(
-    correct: np.ndarray, n_boot: int, seed: int
-) -> tuple[float, float]:
-    """Simple bootstrap CI for a proportion."""
-    rng = np.random.default_rng(seed)
-    n = len(correct)
-    boots = np.empty(n_boot, dtype=float)
-    for i in range(n_boot):
-        idx = rng.integers(0, n, size=n)
-        boots[i] = correct[idx].mean()
-    return tuple(float(x) for x in np.percentile(boots, [2.5, 97.5]))  # type: ignore[return-value]
 
 
 def evaluate_frame(
@@ -508,7 +500,7 @@ def main() -> None:
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "review_csv": _display_path(args.review),
+        "review_csv": display_path(args.review, REPO_ROOT),
         "taxonomy_sha256_16": tax_digest,
         "task": args.task,
         "folds": args.folds,
@@ -520,15 +512,16 @@ def main() -> None:
             "action": args.encoder_action,
         },
         "synthetic": (
-            _display_path(synthetic_path) if syn_data else None
+            display_path(synthetic_path, REPO_ROOT) if syn_data else None
         ),
         "synthetic_tasks": ",".join(sorted(syn_data)) if syn_data else None,
         "rows": {task: len(datasets[task]) for task in tasks},
+        "category_rule_rows": infos.get("category", {}).get("rule_rows_excluded"),
         "evaluation_rows": {
             row["dataset"]: int(row["n"]) for row in summary_rows
         },
         "versions": {
-            pkg: _version(pkg)
+            pkg: package_version(pkg)
             for pkg in ("numpy", "pandas", "scikit-learn", "torch", "transformers")
         },
     }
@@ -541,22 +534,6 @@ def main() -> None:
     print(report)
     print("=" * 78)
     print(f"Saved artifacts -> {out_dir}")
-
-
-def _version(package: str) -> str | None:
-    try:
-        return importlib.metadata.version(package)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-
-
-def _display_path(path: str) -> str:
-    """Prefer a repo-relative path in committed artifacts."""
-    resolved = Path(path).resolve()
-    try:
-        return str(resolved.relative_to(REPO_ROOT))
-    except ValueError:
-        return str(resolved)
 
 
 def render_report(summary: pd.DataFrame, manifest: dict) -> str:
@@ -589,11 +566,17 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
         lines.append(f"{row['dataset']:<24} {int(row['n']):>4}  {acc:<26} {f1:<26}")
     both = summary.loc[summary["dataset"] == "both_labels", "n"]
     both_n = int(both.iloc[0]) if len(both) else 0
+    rule_n = manifest.get("category_rule_rows")
+    if rule_n is None:
+        rows = manifest.get("evaluation_rows", {})
+        rule_n = int(rows.get("category_end_to_end", 0)) - int(rows.get("category_model", 0))
+    rule_n = int(rule_n or 0)
+    rule_note = f"the {rule_n} Canvas sender-rule rows" if rule_n else "Canvas sender-rule rows"
     lines.extend(
         [
             "",
             "Notes:",
-            "- category_model excludes the 68 Canvas sender-rule rows from the model;",
+            f"- category_model excludes {rule_note} from the model;",
             "  category_end_to_end includes them (rule + head).",
             "- action uses the configured training condition (real+synthetic by default).",
             f"- both_labels is the exact-match rate on {both_n} unique emails covered by",

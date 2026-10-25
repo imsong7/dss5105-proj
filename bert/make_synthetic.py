@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""Write bert/synthetic.csv: hand-written synthetic emails for a NUS student inbox.
+"""Write bert/data/synthetic.csv: hand-written synthetic emails for a NUS student inbox.
 
 Focus: the weak action labels (needs_reply, needs_action, reminder) plus hard negatives
 (no_immediate_action mails that mention dates, links or the word "reply").
-Every row is marked is_synthetic=1 / label_source=synthetic. train_full.py only ever puts
+Every row is marked is_synthetic=1 / label_source=synthetic. bert/train.py only ever puts
 these rows into the TRAIN split, so validation/test stay real emails.
 
-    python bert/make_synthetic.py     # -> bert/synthetic.csv
+    python bert/make_synthetic.py     # -> bert/data/synthetic.csv
 """
 import csv
 import hashlib
@@ -14,7 +14,9 @@ import os
 import random
 
 random.seed(5105)
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synthetic.csv")
+OUT = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "data", "synthetic.csv"
+)
 
 # (subject, sender, body, category, action)
 E = []
@@ -240,7 +242,7 @@ def wrap(sender, body):
     name = sender.split("<")[0].strip() or "Team"
     domain = sender.split("@")[-1].rstrip(">").lower()
     text = body + random.choice(SIGNATURES).format(name=name)
-    if not domain.endswith(INTERNAL):
+    if not domain.endswith(INTERNAL) and not text.startswith("- External Email -"):
         text = "- External Email - " + text
     return text + random.choice(FOOTERS)
 
@@ -252,6 +254,7 @@ def main():
         rid = "syn_" + hashlib.sha1((subj + sender + prev).encode()).hexdigest()[:8]
         rows.append({"review_id": rid, "Subject": subj, "From": sender, "Preview": prev,
                      "category": cat, "action": act, "label_source": "synthetic", "is_synthetic": "1"})
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()

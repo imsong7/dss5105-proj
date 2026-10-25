@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import os
-import random
 
 import numpy as np
 import pandas as pd
@@ -29,33 +28,6 @@ HEAD_C = 10.0  # inverse L2 strength of the logistic-regression head
 
 TASKS = {"category": "CONTENT_CATEGORIES", "action": "REPLY_NATURE"}
 
-# Legacy sheet -> app key. Earlier sheets win when an email appears in several.
-CATEGORY_SHEETS = {
-    "ak-reminder": "others",
-    "ak-FoS": "general",
-    "ak-others": "others",
-    "medical": "medical",
-    "promotion": "promotional",
-    "career+external emails": "career",
-    "others": "others",
-    "ssy - canvas": "canva",
-}
-CAREER_OVERRIDES = [
-    ("Mahin's Manchester", "others"),
-    ("Enveda CASMI", "others"),
-    ("Requesting data set", "others"),
-    ("Save $519 on the LG Gram", "promotional"),
-    ("N2CR Invited Speaker", "others"),
-    ("Where's your next opportunity", "promotional"),
-    ("OpenAI says GPT-6 won", "promotional"),
-]
-ACTION_SHEETS = {
-    "ssy - need a reply": "needs_reply",
-    "ssy - ignore": "no_immediate_action",
-    "ak-ignore": "no_immediate_action",
-    "ak-need an action": "needs_action",
-    "ak-need a reply": "needs_reply",
-}
 SENDER_RULES = {
     "category": {"notifications@instructure.com": "canva"},
 }
@@ -65,11 +37,8 @@ ENCODERS = {
     "e5-small-multi": ("intfloat/multilingual-e5-small", "query: ", "mean"),
     "distilbert-mean": ("distilbert-base-uncased", "", "mean"),
 }
-PAYMENT_WORDS = ("payment", "fees", "giro")
 
 SKIP = "__skip__"
-XLSX = os.path.join(SCRIPT_DIR, "..", "data_1012.xlsx")
-
 NEAR_DUP_SIM = 0.8  # TF-IDF cosine; synthetic rows this close to any real email are dropped
 
 
@@ -84,10 +53,6 @@ def build_text(subject, from_addr, preview, strip_sender=STRIP_SENDER):
     if strip_sender:
         return f"Subject: {_s(subject)}\n{_s(preview)}"
     return f"From: {_s(from_addr)}\nSubject: {_s(subject)}\n{_s(preview)}"
-
-
-def content_key(subject, from_addr, preview):
-    return f"{_s(subject).lower()}||{_s(from_addr).lower()}||{_s(preview).lower()}"
 
 
 def sender_address(from_field):
@@ -115,89 +80,6 @@ def load_taxonomy(path=TAXONOMY_PATH):
     with open(path, "rb") as f:
         digest = hashlib.sha256(f.read()).hexdigest()[:16]
     return labels, digest
-
-
-# --------------------------------------------------------------------------- #
-# Review CSV building (from legacy Excel sheets)
-# --------------------------------------------------------------------------- #
-def build_records(xlsx=XLSX):
-    """Merge every labeled sheet into one record per email with Category + Action."""
-    xl = pd.ExcelFile(xlsx)
-    known = set(CATEGORY_SHEETS) | set(ACTION_SHEETS)
-    unknown = [s for s in xl.sheet_names if s not in known]
-    if unknown:
-        print(f"[warn] sheets not mapped to any label (ignored): {unknown}")
-    recs = {}
-    order = list(CATEGORY_SHEETS) + list(ACTION_SHEETS)
-    for sheet in order:
-        if sheet not in xl.sheet_names:
-            continue
-        df = xl.parse(sheet, dtype=object)
-        for _, r in df.iterrows():
-            subj, frm, prev = _s(r.get("Subject")), _s(r.get("From")), _s(r.get("Preview"))
-            if not (subj or frm or prev):
-                continue
-            k = content_key(subj, frm, prev)
-            rec = recs.setdefault(k, {
-                "review_id": hashlib.sha1(k.encode()).hexdigest()[:12],
-                "Subject": subj, "From": frm, "Preview": prev,
-                "Received DateTime": _s(r.get("Received DateTime")),
-                "source_sheets": [], "legacy_category": "", "legacy_action": ""})
-            rec["source_sheets"].append(sheet)
-            if sheet in CATEGORY_SHEETS and not rec["legacy_category"]:
-                cat = CATEGORY_SHEETS[sheet]
-                if sheet == "career+external emails":
-                    for pat, new in CAREER_OVERRIDES:
-                        if pat.lower() in subj.lower():
-                            cat = new
-                rec["legacy_category"] = cat or ""
-            if sheet in ACTION_SHEETS and not rec["legacy_action"]:
-                rec["legacy_action"] = ACTION_SHEETS[sheet]
-    out = pd.DataFrame(recs.values())
-    out["source_sheets"] = out["source_sheets"].apply(lambda s: "+".join(dict.fromkeys(s)))
-    return out
-
-
-def suggest_category(rec):
-    rule = sender_rule_label(rec["From"], "category")
-    if rule:
-        return rule, "sender rule (excluded from model training)"
-    if rec["legacy_category"]:
-        return rec["legacy_category"], "legacy sheet"
-    return "", ""
-
-
-def suggest_action(rec):
-    sheets = rec["source_sheets"].split("+")
-    if "ak-reminder" in sheets:
-        if any(w in rec["Subject"].lower() for w in PAYMENT_WORDS):
-            return "needs_action", "reminder sheet, but asks for payment (priority rule)"
-        if rec["legacy_action"] in ("needs_action", "needs_reply"):
-            return rec["legacy_action"], "reminder sheet, higher-priority legacy label kept"
-        return "reminder", "reminder sheet: date/time, no action asked"
-    if rec["legacy_action"]:
-        return rec["legacy_action"], "legacy sheet"
-    return "", ""
-
-
-def export_review(path, prefill=False):
-    """Build and write a review CSV for manual labeling."""
-    rec = build_records()
-    sc = rec.apply(suggest_category, axis=1, result_type="expand")
-    sa = rec.apply(suggest_action, axis=1, result_type="expand")
-    rec["suggested_category"], rec["category_note"] = sc[0], sc[1]
-    rec["suggested_action"], rec["action_note"] = sa[0], sa[1]
-    if prefill:
-        rec["category"] = rec["suggested_category"].replace("", SKIP)
-        rec["action"] = rec["suggested_action"].replace("", SKIP)
-        rec["label_source"] = "provisional"
-    else:
-        rec["category"], rec["action"], rec["label_source"] = "", "", ""
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    rec.to_csv(path, index=False, encoding="utf-8-sig")
-    print(f"Wrote {len(rec)} unique emails to {path} (prefill={prefill})")
-    print("suggested category:", rec["suggested_category"].replace("", "(none)").value_counts().to_dict())
-    print("suggested action  :", rec["suggested_action"].replace("", "(none)").value_counts().to_dict())
 
 
 # --------------------------------------------------------------------------- #

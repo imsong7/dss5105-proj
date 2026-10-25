@@ -247,7 +247,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         cols = ["review_id", "Subject", "From", "Preview", "label_key", "text"]
         train_df = pd.concat([train_df.assign(is_synthetic=False),
                               syn[cols].assign(is_synthetic=True)],
-                             ignore_index=True).sample(frac=1, random_seed=random_seed)
+                             ignore_index=True).sample(frac=1, random_state=random_seed)
         train_df = train_df.reset_index(drop=True)
         print(f"[{task}] + {len(syn)} synthetic rows in TRAIN only (val/test stay real)")
     for d in (train_df, val_df, test_df):

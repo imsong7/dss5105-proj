@@ -63,6 +63,20 @@ class ModelTextTests(unittest.TestCase):
         self.assertEqual(_model_text(_email("", "")), "")
 
 
+class AvailabilityTests(unittest.TestCase):
+    def test_both_heads_are_required(self) -> None:
+        clf = _classifier()
+        self.assertTrue(clf.available)
+        clf._action_clf = None
+        self.assertFalse(clf.available)
+
+    def test_load_error_blocks_classification(self) -> None:
+        clf = _classifier()
+        clf._load_error = "missing action head"
+        with self.assertRaises(RuntimeError):
+            clf.classify(_email("full body", "short preview"))
+
+
 class ClassifyInputTests(unittest.TestCase):
     def test_both_heads_receive_the_body(self) -> None:
         clf = _classifier()

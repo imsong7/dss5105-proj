@@ -38,7 +38,6 @@ from __future__ import annotations
 
 import argparse
 import gc
-import importlib.metadata
 import json
 import os
 import statistics
@@ -59,13 +58,18 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EMAIL_DIR = REPO_ROOT / "email-sorter"
 BERT_DIR = REPO_ROOT / "bert"
-for _path in (EMAIL_DIR, BERT_DIR):
+for _path in (REPO_ROOT, EMAIL_DIR, BERT_DIR):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
 from app.config import settings  # noqa: E402
 from app.models import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
+from evaluation import (  # noqa: E402
+    bootstrap_proportion as _bootstrap_proportion,
+    display_path as _display_path,
+    package_version as _version,
+)
 from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
 
 DEFAULT_REVIEW = BERT_DIR / "data" / "labels.csv"
@@ -374,27 +378,9 @@ class LlamaBackend:
     name = "llama"
 
     def __init__(self) -> None:
-        from langchain_core.prompts import ChatPromptTemplate
-        from langchain_ollama import ChatOllama
+        from app.classifier import build_chain
 
-        from app.classifier import HUMAN, SYSTEM, _defs
-        from app.models import Classification
-
-        llm = ChatOllama(
-            model=settings.ollama_model,
-            base_url=settings.ollama_base_url,
-            temperature=0,
-            num_ctx=4096,
-        )
-        prompt = ChatPromptTemplate.from_messages(
-            [("system", SYSTEM), ("human", HUMAN)]
-        ).partial(
-            content_defs=_defs(CONTENT_CATEGORIES),
-            reply_defs=_defs(REPLY_NATURE),
-        )
-        self.chain = prompt | llm.with_structured_output(
-            Classification, include_raw=True
-        )
+        self.chain = build_chain(include_raw=True)
 
     def predict(self, email: Email) -> Prediction:
         result = self.chain.invoke(
@@ -756,21 +742,6 @@ def run_backend(
     return summary, records, consistency_rows, length_rows
 
 
-def _bootstrap_proportion(
-    flags: list[bool], n_boot: int, seed: int
-) -> tuple[float, float, float]:
-    arr = np.asarray(flags, dtype=float)
-    if len(arr) == 0:
-        return float("nan"), float("nan"), float("nan")
-    point = float(arr.mean())
-    rng = np.random.default_rng(seed)
-    boots = np.array(
-        [rng.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_boot)]
-    )
-    lo, hi = np.percentile(boots, [2.5, 97.5])
-    return point, float(lo), float(hi)
-
-
 def _agreement_rows(
     name: str, records: list[CallRecord], args: argparse.Namespace
 ) -> tuple[list[dict], list[dict]]:
@@ -977,21 +948,6 @@ def _summarise(
 # --------------------------------------------------------------------------- #
 # Output
 # --------------------------------------------------------------------------- #
-def _display_path(path: str) -> str:
-    resolved = Path(path).resolve()
-    try:
-        return str(resolved.relative_to(REPO_ROOT))
-    except ValueError:
-        return str(resolved)
-
-
-def _version(package: str) -> str | None:
-    try:
-        return importlib.metadata.version(package)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-
-
 def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
     def fmt(value: Any, digits: int = 1) -> str:
         if value is None or (isinstance(value, float) and np.isnan(value)):

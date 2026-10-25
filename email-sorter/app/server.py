@@ -10,6 +10,7 @@ Usage::
 import logging
 import socket
 import time
+from urllib.parse import urlparse
 
 import requests
 from flask import Flask, jsonify, render_template, request
@@ -30,18 +31,18 @@ logging.basicConfig(level=logging.INFO)
 
 def _ollama_status() -> tuple[bool, bool]:
     """Return ``(server_reachable, configured_model_present)``."""
-    host = settings.ollama_base_url.replace("http://", "").replace("https://", "")
-    port = 11434
-    if ":" in host:
-        host, port = host.split(":")
-        port = int(port)
+    raw_url = settings.ollama_base_url
+    base_url = raw_url if "://" in raw_url else f"http://{raw_url}"
+    parsed = urlparse(base_url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or (443 if parsed.scheme == "https" else 11434)
     try:
         with socket.create_connection((host, port), timeout=1):
             pass
     except (OSError, socket.timeout):
         return False, False
     try:
-        r = requests.get(f"{settings.ollama_base_url}/api/tags", timeout=2)
+        r = requests.get(f"{base_url.rstrip('/')}/api/tags", timeout=2)
         names = [m["name"] for m in r.json().get("models", [])]
         ready = any(
             n == settings.ollama_model or n.split(":")[0] == settings.ollama_model
@@ -53,10 +54,12 @@ def _ollama_status() -> tuple[bool, bool]:
 
 
 def _bert_ready() -> bool:
-    """BERT heads are usable when both head files exist."""
+    """BERT heads are usable when both head files and manifests exist."""
+    models_dir = ROOT.parent / "bert" / "models"
     return all(
-        (ROOT.parent / "bert" / "models" / name / "head.joblib").is_file()
+        (models_dir / name / filename).is_file()
         for name in ("category_head", "action_head")
+        for filename in ("head.joblib", "manifest.json")
     )
 
 

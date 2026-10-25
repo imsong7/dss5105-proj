@@ -14,8 +14,6 @@ import argparse
 from app.config import settings
 from app.server import create_app
 
-app = create_app()
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the email-sorter Flask app.")
     parser.add_argument(

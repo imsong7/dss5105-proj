@@ -103,9 +103,7 @@ def train_once(df, syn, X, Xs, seed):
     return clf, (tr, va, te)
 
 
-# --------------------------------------------------------------------------- #
-# Mode: head — frozen encoder + logistic-regression head
-# --------------------------------------------------------------------------- #
+# --- Mode: head (frozen encoder + logistic-regression head) ---
 class EmbedPredictor:
     """Predict labels with a saved frozen-encoder head."""
 
@@ -216,9 +214,7 @@ def head_compare(data, syn_data, encoders, seeds, out_dir):
     print("\n" + "=" * 70 + "\n" + txt + "\n" + "=" * 70 + f"\nsaved -> {out_dir}/compare_head_summary.txt")
 
 
-# --------------------------------------------------------------------------- #
-# Mode: full — full DistilBERT fine-tune
-# --------------------------------------------------------------------------- #
+# --- Mode: full (DistilBERT fine-tune) ---
 def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_info=None,
                     seed=SEED, out_dir=None, keep_model=True):
     """Fine-tune distilbert-base-uncased for a task."""

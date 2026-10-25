@@ -1,10 +1,8 @@
 """Shared helpers for the evaluation scripts."""
 
-from __future__ import annotations
-
 import importlib.metadata
+import json
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 
@@ -26,17 +24,22 @@ def display_path(path: str, repo_root: Path) -> str:
         return str(resolved)
 
 
-def bootstrap_proportion(
-    flags: Sequence[bool], n_boot: int, seed: int
-) -> tuple[float, float, float]:
+def write_csv(frame, path: Path) -> None:
+    """Write a DataFrame as a UTF-8 CSV artifact."""
+    frame.to_csv(path, index=False, encoding="utf-8-sig")
+
+
+def write_json(data: dict, path: Path) -> None:
+    """Write a JSON artifact."""
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def bootstrap_proportion(flags, n_boot: int, seed: int) -> tuple:
     """Return point estimate and percentile 95% CI for a proportion."""
     values = np.asarray(flags, dtype=float)
-    if len(values) == 0:
+    if not len(values):
         return float("nan"), float("nan"), float("nan")
-    point = float(values.mean())
     rng = np.random.default_rng(seed)
-    boots = np.array(
-        [rng.choice(values, size=len(values), replace=True).mean() for _ in range(n_boot)]
-    )
+    boots = [rng.choice(values, len(values), replace=True).mean() for _ in range(n_boot)]
     lo, hi = np.percentile(boots, [2.5, 97.5])
-    return point, float(lo), float(hi)
+    return float(values.mean()), float(lo), float(hi)

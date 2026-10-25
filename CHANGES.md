@@ -113,4 +113,4 @@ agent backend.
 
 ## 11. BERT model cleanup
 - Removed the unused `labels` argument from `train_once`, dropped redundant
-  local aliases, and added type hints/docstrings in `bert/src/model.py`.
+  local aliases, and simplified/annotated helpers in `bert/src/model.py`.

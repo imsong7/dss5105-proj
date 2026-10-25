@@ -5,11 +5,10 @@ Two modes:
   full   — full DistilBERT fine-tune.
 """
 
-from __future__ import annotations
-
 import json
 import os
-from typing import Any, Iterable, Sequence
+import random
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -35,7 +34,7 @@ FULL_EPOCHS = 10
 FULL_LR = 5e-5
 
 
-def _from_pretrained(factory: Any, model_id: str) -> Any:
+def _from_pretrained(factory, model_id):
     """Load a cached model/tokenizer without a Hugging Face hub round-trip.
 
     ``from_pretrained`` can spend seconds checking the hub even when the files
@@ -51,7 +50,7 @@ def _from_pretrained(factory: Any, model_id: str) -> Any:
 class FrozenEncoder:
     """Frozen sentence encoder that produces L2-normalized embeddings."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name):
         import torch
         from transformers import AutoModel, AutoTokenizer
         self.name = name
@@ -62,7 +61,7 @@ class FrozenEncoder:
         for p in self.model.parameters():
             p.requires_grad = False
 
-    def encode(self, texts: Sequence[str], bs: int = 16) -> np.ndarray:
+    def encode(self, texts, bs=16):
         torch = self.torch
         out = []
         with torch.no_grad():
@@ -79,15 +78,13 @@ class FrozenEncoder:
         return np.vstack(out) if out else np.zeros((0, self.model.config.hidden_size))
 
 
-def fit_head(X: np.ndarray, y: Sequence[str]) -> Any:
+def fit_head(X, y):
     """Fit a logistic-regression head on embeddings."""
     from sklearn.linear_model import LogisticRegression
     return LogisticRegression(max_iter=5000, C=HEAD_C, class_weight="balanced").fit(X, y)
 
 
-def evaluate(
-    clf: Any, X: np.ndarray, d: pd.DataFrame, labels: Sequence[str]
-) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+def evaluate(clf, X, d, labels):
     """Evaluate a classifier on embeddings X for dataframe d."""
     from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
     probs = clf.predict_proba(X)
@@ -99,22 +96,14 @@ def evaluate(
         "report": rep, "confusion_matrix": confusion_matrix(d["label_key"], pred, labels=labels).tolist()}
 
 
-def embed_all(
-    enc: FrozenEncoder, df: pd.DataFrame, syn: pd.DataFrame | None
-) -> tuple[np.ndarray, np.ndarray | None]:
+def embed_all(enc, df, syn):
     """Embed the real rows and, when present, the synthetic rows."""
     X = enc.encode(list(df["text"]))
     Xs = enc.encode(list(syn["text"])) if syn is not None and len(syn) else None
     return X, Xs
 
 
-def train_once(
-    df: pd.DataFrame,
-    syn: pd.DataFrame | None,
-    X: np.ndarray,
-    Xs: np.ndarray | None,
-    seed: int,
-) -> tuple[Any, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
+def train_once(df, syn, X, Xs, seed):
     """Train one head on a train/val/test split."""
     tr, va, te = split_dataset(df, seed=seed)
     Xtr, ytr = X[tr["_i"]], list(tr["label_key"])
@@ -131,31 +120,21 @@ class EmbedPredictor:
     """For the app: EmbedPredictor('bert/models/embed/action').predict(subject, body)
     -> (label, confidence)."""
 
-    def __init__(self, model_dir: str) -> None:
+    def __init__(self, model_dir):
         import joblib
         with open(os.path.join(model_dir, "manifest.json")) as f:
             self.manifest = json.load(f)
         self.head = joblib.load(os.path.join(model_dir, "head.joblib"))
         self.enc = FrozenEncoder(self.manifest["encoder"])
 
-    def predict(self, subject: str, body: str, from_addr: str = "") -> tuple[str, float]:
+    def predict(self, subject, body, from_addr=""):
         """Return the predicted label and confidence for one email."""
         X = self.enc.encode([build_text(subject, from_addr, body)])
         p = self.head.predict_proba(X)[0]
         return str(self.head.classes_[p.argmax()]), float(p.max())
 
 
-def train_head_final(
-    task: str,
-    df: pd.DataFrame,
-    info: dict[str, Any],
-    syn: pd.DataFrame | None,
-    syn_info: dict[str, Any] | None,
-    en: str,
-    labels_all: Sequence[str],
-    digest: str,
-    args: Any,
-) -> dict[str, Any]:
+def train_head_final(task, df, info, syn, syn_info, en, labels_all, digest, args):
     """Train a frozen-encoder head for a task."""
     import joblib
     labels = info["supported_labels"]
@@ -202,13 +181,7 @@ def train_head_final(
     return res
 
 
-def head_compare(
-    data: dict[str, tuple[pd.DataFrame, dict[str, Any]]],
-    syn_data: dict[str, tuple[pd.DataFrame | None, dict[str, Any] | None]],
-    encoders: Iterable[str],
-    seeds: Sequence[int],
-    out_dir: str,
-) -> None:
+def head_compare(data, syn_data, encoders, seeds, out_dir):
     """Compare encoders on real vs real+synthetic, multiple seeds."""
     rows = []
     for t, (df, info) in data.items():
@@ -222,9 +195,7 @@ def head_compare(
             conds = [("real", None)] + ([("real+syn", Xs)] if Xs is not None else [])
             for seed in seeds:
                 for cname, xs in conds:
-                    clf, (_, _, te) = train_once(
-                        df, syn if xs is not None else None, X, xs, seed
-                    )
+                    clf, (_, _, te) = train_once(df, syn if xs is not None else None, X, xs, seed)
                     _, _, r = evaluate(clf, X[te["_i"]], te, labels)
                     row = {"task": t, "encoder": en, "condition": cname, "seed": seed,
                            "accuracy": r["accuracy"], "macro_f1": r["macro_f1"]}
@@ -259,29 +230,18 @@ def head_compare(
 # --------------------------------------------------------------------------- #
 # Mode: full — full DistilBERT fine-tune
 # --------------------------------------------------------------------------- #
-def train_full_task(
-    task: str,
-    df: pd.DataFrame,
-    info: dict[str, Any],
-    labels_all: Sequence[str],
-    tax_digest: str,
-    args: Any,
-    syn: pd.DataFrame | None = None,
-    syn_info: dict[str, Any] | None = None,
-    seed: int = SEED,
-    out_dir: str | None = None,
-    keep_model: bool = True,
-) -> dict[str, Any]:
+def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_info=None,
+                    seed=SEED, out_dir=None, keep_model=True):
     """Fine-tune distilbert-base-uncased for a task."""
     import torch
-    import shutil
     from datasets import Dataset
     from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
     from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                               DataCollatorWithPadding, Trainer, TrainingArguments)
 
-    import random as _random
-    _random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     labels = info["supported_labels"]
     label2id = {l: i for i, l in enumerate(labels)}
     id2label = {i: l for l, i in label2id.items()}
@@ -301,10 +261,10 @@ def train_full_task(
 
     tok = AutoTokenizer.from_pretrained(FULL_MODEL)
 
-    def enc(b: dict[str, Any]) -> Any:
+    def enc(b):
         return tok(b["text"], truncation=True, max_length=MAX_LEN)
 
-    def ds(d: pd.DataFrame) -> Any:
+    def ds(d):
         x = Dataset.from_pandas(d[["text", "label"]]).map(enc, batched=True)
         x.set_format("torch", columns=["input_ids", "attention_mask", "label"])
         return x
@@ -325,7 +285,7 @@ def train_full_task(
             loss = torch.nn.CrossEntropyLoss(weight=cw.to(out.logits.device))(out.logits, y)
             return (loss, out) if return_outputs else loss
 
-    def metrics(p: Any) -> dict[str, float]:
+    def metrics(p):
         pred = np.argmax(p.predictions, -1)
         return {"accuracy": accuracy_score(p.label_ids, pred),
                 "macro_f1": f1_score(p.label_ids, pred, average="macro", zero_division=0)}
@@ -350,7 +310,7 @@ def train_full_task(
     trainer.save_model(out_dir)
     tok.save_pretrained(out_dir)
 
-    def evaluate(d: pd.DataFrame, x: Any, name: str) -> dict[str, Any]:
+    def evaluate(d, x, name):
         p = trainer.predict(x)
         probs = torch.softmax(torch.from_numpy(p.predictions), -1).numpy()
         pred = probs.argmax(-1)
@@ -408,12 +368,7 @@ def train_full_task(
     return res
 
 
-def tfidf_run(
-    df: pd.DataFrame,
-    labels: Sequence[str],
-    seed: int,
-    syn: pd.DataFrame | None = None,
-) -> dict[str, Any]:
+def tfidf_run(df, labels, seed, syn=None):
     """Cheap reference: TF-IDF + logistic regression on the same split."""
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
@@ -432,19 +387,12 @@ def tfidf_run(
                                  average="macro", zero_division=0), "report": rep}
 
 
-def info_labels(g: pd.DataFrame) -> list[str]:
+def info_labels(g):
     """Return the per-label F1 columns present in a comparison group."""
     return [c[3:] for c in g.columns if c.startswith("f1_") and g[c].notna().any()]
 
 
-def _row(
-    task: str,
-    seed: int,
-    model: str,
-    cond: str,
-    r: dict[str, Any],
-    labels: Sequence[str],
-) -> dict[str, Any]:
+def _row(task, seed, model, cond, r, labels):
     """Build one comparison row from an evaluation result."""
     row = {"task": task, "seed": seed, "model": model, "condition": cond, "n_test": r["n"],
            "accuracy": r["accuracy"], "macro_f1": r["macro_f1"]}
@@ -453,14 +401,7 @@ def _row(
     return row
 
 
-def full_compare_seeds(
-    data: dict[str, tuple[pd.DataFrame, dict[str, Any]]],
-    syn_data: dict[str, tuple[pd.DataFrame | None, dict[str, Any] | None]],
-    labels_tax: dict[str, Sequence[str]],
-    digest: str,
-    args: Any,
-    seeds: Sequence[int],
-) -> None:
+def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
     """Train real-only vs real+synthetic on several splits; report mean +- sd and paired differences."""
     os.makedirs(RESULTS_DIR, exist_ok=True)
     rows = []

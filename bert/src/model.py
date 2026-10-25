@@ -17,16 +17,21 @@ from .data import (
     BATCH_SIZE,
     ENCODERS,
     HEAD_C,
-    LR,
     MAX_LEN,
     SEED,
     STRIP_SENDER,
-    TASKS,
     WARMUP_RATIO,
     WEIGHT_DECAY,
     build_text,
     split_dataset,
 )
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODELS_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "models")
+RESULTS_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "results")
+FULL_MODEL = "distilbert-base-uncased"
+FULL_EPOCHS = 10
+FULL_LR = 5e-5
 
 
 def _from_pretrained(factory, model_id):
@@ -135,7 +140,7 @@ def train_head_final(t, df, info, syn, syn_info, en, labels_all, digest, args):
     enc = FrozenEncoder(en)
     X, Xs = embed_all(enc, df, syn)
     clf, (tr, va, te) = train_once(df, syn, X, Xs, labels, SEED)
-    out = os.path.join(args.out_dir, f"{t}_head")
+    out = os.path.join(MODELS_DIR, f"{t}_head")
     os.makedirs(out, exist_ok=True)
     res = {}
     for name, d in [("validation", va), ("test", te)]:
@@ -254,7 +259,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         d["label"] = d["label_key"].map(label2id)
     print(f"\n[{task}] train/val/test = {len(train_df)}/{len(val_df)}/{len(test_df)} | labels={labels}")
 
-    tok = AutoTokenizer.from_pretrained(args.model)
+    tok = AutoTokenizer.from_pretrained(FULL_MODEL)
 
     def enc(b):
         return tok(b["text"], truncation=True, max_length=MAX_LEN)
@@ -266,7 +271,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
 
     train_ds, val_ds, test_ds = ds(train_df), ds(val_df), ds(test_ds)
     model = AutoModelForSequenceClassification.from_pretrained(
-        args.model, num_labels=len(labels), id2label=id2label, label2id=label2id)
+        FULL_MODEL, num_labels=len(labels), id2label=id2label, label2id=label2id)
 
     counts = train_df["label"].value_counts().reindex(range(len(labels)), fill_value=0)
     cw = torch.tensor((len(train_df) / (len(labels) * counts.clip(lower=1))).values,
@@ -284,11 +289,11 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         return {"accuracy": accuracy_score(p.label_ids, pred),
                 "macro_f1": f1_score(p.label_ids, pred, average="macro", zero_division=0)}
 
-    out_dir = out_dir or os.path.join(args.out_dir, f"{task}_full")
+    out_dir = out_dir or os.path.join(MODELS_DIR, f"{task}_full")
     steps_per_epoch = -(-len(train_df) // BATCH_SIZE)
-    warmup_steps = int(WARMUP_RATIO * steps_per_epoch * args.epochs)
-    targs = dict(output_dir=os.path.join(out_dir, "checkpoints"), num_train_epochs=args.epochs,
-                 learning_rate=args.lr, per_device_train_batch_size=BATCH_SIZE,
+    warmup_steps = int(WARMUP_RATIO * steps_per_epoch * FULL_EPOCHS)
+    targs = dict(output_dir=os.path.join(out_dir, "checkpoints"), num_train_epochs=FULL_EPOCHS,
+                 learning_rate=FULL_LR, per_device_train_batch_size=BATCH_SIZE,
                  per_device_eval_batch_size=BATCH_SIZE, warmup_steps=warmup_steps,
                  weight_decay=WEIGHT_DECAY, save_strategy="epoch", save_total_limit=1,
                  load_best_model_at_end=True, metric_for_best_model="macro_f1",
@@ -329,7 +334,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
     res = {"validation": evaluate(val_df, val_ds, "val"), "test": evaluate(test_df, test_ds, "test"),
            "best_epoch_on_val": best_epoch, "val_history": hist}
     manifest = {
-        "task": task, "base_model": args.model, "app_label_keys": labels_all,
+        "task": task, "base_model": FULL_MODEL, "app_label_keys": labels_all,
         "supported_labels": labels, "unsupported_labels": info["unsupported_labels"],
         "rule_labels": info["rule_labels"], "sender_rules": info["sender_rules"],
         "rule_rows_excluded": info["rule_rows_excluded"],
@@ -343,7 +348,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         "synthetic": ({"csv": os.path.basename(args.synthetic), **syn_info} if syn_info else None),
         "label_counts_total": info["counts"], "duplicates_removed": info["duplicates_removed"],
         "class_weight": {labels[i]: round(float(w), 4) for i, w in enumerate(cw)},
-        "epochs": args.epochs, "lr": args.lr, "seed": random_seed,
+        "epochs": FULL_EPOCHS, "lr": FULL_LR, "seed": random_seed,
         "review_csv": os.path.basename(args.review),
     }
     with open(os.path.join(out_dir, "manifest.json"), "w") as f:
@@ -396,7 +401,7 @@ def _row(task, seed, model, cond, r, labels):
 
 def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
     """Train real-only vs real+synthetic on several splits; report mean +- sd and paired differences."""
-    base = args.compare_dir
+    base = RESULTS_DIR
     os.makedirs(base, exist_ok=True)
     rows = []
     for t, (df, info) in data.items():
@@ -405,11 +410,10 @@ def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
         labels = info["supported_labels"]
         for seed in seeds:
             for cname, s, si in conds:
-                if not args.tfidf_only:
-                    print(f"\n===== [{t}] seed={seed} condition={cname} (BERT) =====")
-                    r = train_full_task(t, df, info, labels_tax[t], digest, args, s, si,
-                                        seed=seed, keep_model=False)["test"]
-                    rows.append(_row(t, seed, "bert", cname, r, labels))
+                print(f"\n===== [{t}] seed={seed} condition={cname} (BERT) =====")
+                r = train_full_task(t, df, info, labels_tax[t], digest, args, s, si,
+                                    seed=seed, keep_model=False)["test"]
+                rows.append(_row(t, seed, "bert", cname, r, labels))
                 r = tfidf_run(df, labels, seed, s)
                 rows.append(_row(t, seed, "tfidf", cname, r, labels))
     runs = pd.DataFrame(rows)

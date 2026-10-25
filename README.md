@@ -59,15 +59,14 @@ The app has two pages:
 **Train BERT models** (from repo root, `.venv` activated):
 ```bash
 # Validate labels
-python bert/train.py --review bert/data/labels.csv --check-only
+python bert/train.py --check-only
 
 # Frozen-encoder head (recommended — tiny, fast) -> bert/models/{task}_head/
-python bert/train.py --review bert/data/labels.csv --mode head --task category
-python bert/train.py --review bert/data/labels.csv --mode head --task action \
-    --encoder e5-small-multi --synthetic bert/data/synthetic.csv
+python bert/train.py --task category
+python bert/train.py --task action --synthetic bert/data/synthetic.csv
 
 # DistilBERT fine-tune -> bert/models/{task}_full/
-python bert/train.py --review bert/data/labels.csv --mode full --task both
+python bert/train.py --mode full --task both
 ```
 
 See `bert/README.md` for full BERT training docs.

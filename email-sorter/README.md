@@ -64,9 +64,8 @@ The Sorter and Compare pages render it automatically.
 From the repo root, with the root `.venv` activated:
 
 ```bash
-.venv/bin/python bert/train.py --review bert/data/labels.csv --mode head --task category
-.venv/bin/python bert/train.py --review bert/data/labels.csv --mode head --task action \
-    --encoder e5-small-multi --synthetic bert/data/synthetic.csv
+.venv/bin/python bert/train.py --task category
+.venv/bin/python bert/train.py --task action --synthetic bert/data/synthetic.csv
 ```
 
 Models are written to `bert/models/{task}_{head,full}/`. The app uses the `_head`

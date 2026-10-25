@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,7 @@ FULL_EPOCHS = 10
 FULL_LR = 5e-5
 
 
-def _from_pretrained(factory, model_id):
+def _from_pretrained(factory: Any, model_id: str) -> Any:
     """Load a cached model/tokenizer without a Hugging Face hub round-trip.
 
     ``from_pretrained`` can spend seconds checking the hub even when the files
@@ -50,7 +51,7 @@ def _from_pretrained(factory, model_id):
 class FrozenEncoder:
     """Frozen sentence encoder that produces L2-normalized embeddings."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         import torch
         from transformers import AutoModel, AutoTokenizer
         self.name = name
@@ -61,7 +62,7 @@ class FrozenEncoder:
         for p in self.model.parameters():
             p.requires_grad = False
 
-    def encode(self, texts, bs=16):
+    def encode(self, texts: Sequence[str], bs: int = 16) -> np.ndarray:
         torch = self.torch
         out = []
         with torch.no_grad():
@@ -78,13 +79,15 @@ class FrozenEncoder:
         return np.vstack(out) if out else np.zeros((0, self.model.config.hidden_size))
 
 
-def fit_head(X, y):
+def fit_head(X: np.ndarray, y: Sequence[str]) -> Any:
     """Fit a logistic-regression head on embeddings."""
     from sklearn.linear_model import LogisticRegression
     return LogisticRegression(max_iter=5000, C=HEAD_C, class_weight="balanced").fit(X, y)
 
 
-def evaluate(clf, X, d, labels):
+def evaluate(
+    clf: Any, X: np.ndarray, d: pd.DataFrame, labels: Sequence[str]
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     """Evaluate a classifier on embeddings X for dataframe d."""
     from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
     probs = clf.predict_proba(X)
@@ -96,13 +99,22 @@ def evaluate(clf, X, d, labels):
         "report": rep, "confusion_matrix": confusion_matrix(d["label_key"], pred, labels=labels).tolist()}
 
 
-def embed_all(enc, df, syn):
+def embed_all(
+    enc: FrozenEncoder, df: pd.DataFrame, syn: pd.DataFrame | None
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Embed the real rows and, when present, the synthetic rows."""
     X = enc.encode(list(df["text"]))
     Xs = enc.encode(list(syn["text"])) if syn is not None and len(syn) else None
     return X, Xs
 
 
-def train_once(df, syn, X, Xs, labels, seed):
+def train_once(
+    df: pd.DataFrame,
+    syn: pd.DataFrame | None,
+    X: np.ndarray,
+    Xs: np.ndarray | None,
+    seed: int,
+) -> tuple[Any, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
     """Train one head on a train/val/test split."""
     tr, va, te = split_dataset(df, seed=seed)
     Xtr, ytr = X[tr["_i"]], list(tr["label_key"])
@@ -119,28 +131,39 @@ class EmbedPredictor:
     """For the app: EmbedPredictor('bert/models/embed/action').predict(subject, body)
     -> (label, confidence)."""
 
-    def __init__(self, model_dir):
+    def __init__(self, model_dir: str) -> None:
         import joblib
         with open(os.path.join(model_dir, "manifest.json")) as f:
             self.manifest = json.load(f)
         self.head = joblib.load(os.path.join(model_dir, "head.joblib"))
         self.enc = FrozenEncoder(self.manifest["encoder"])
 
-    def predict(self, subject, body, from_addr=""):
+    def predict(self, subject: str, body: str, from_addr: str = "") -> tuple[str, float]:
+        """Return the predicted label and confidence for one email."""
         X = self.enc.encode([build_text(subject, from_addr, body)])
         p = self.head.predict_proba(X)[0]
         return str(self.head.classes_[p.argmax()]), float(p.max())
 
 
-def train_head_final(t, df, info, syn, syn_info, en, labels_all, digest, args):
+def train_head_final(
+    task: str,
+    df: pd.DataFrame,
+    info: dict[str, Any],
+    syn: pd.DataFrame | None,
+    syn_info: dict[str, Any] | None,
+    en: str,
+    labels_all: Sequence[str],
+    digest: str,
+    args: Any,
+) -> dict[str, Any]:
     """Train a frozen-encoder head for a task."""
     import joblib
     labels = info["supported_labels"]
     df = df.reset_index(drop=True).assign(_i=lambda d: range(len(d)))
     enc = FrozenEncoder(en)
     X, Xs = embed_all(enc, df, syn)
-    clf, (tr, va, te) = train_once(df, syn, X, Xs, labels, SEED)
-    out = os.path.join(MODELS_DIR, f"{t}_head")
+    clf, (tr, va, te) = train_once(df, syn, X, Xs, SEED)
+    out = os.path.join(MODELS_DIR, f"{task}_head")
     os.makedirs(out, exist_ok=True)
     res = {}
     for name, d in [("validation", va), ("test", te)]:
@@ -159,7 +182,7 @@ def train_head_final(t, df, info, syn, syn_info, en, labels_all, digest, args):
     joblib.dump(final, os.path.join(out, "head.joblib"))
     model_id, prefix, pool = ENCODERS[en]
     manifest = {
-        "task": t, "type": "frozen_encoder+logreg", "encoder": en, "encoder_model_id": model_id,
+        "task": task, "type": "frozen_encoder+logreg", "encoder": en, "encoder_model_id": model_id,
         "text_prefix": prefix, "pooling": pool, "normalize": True, "head_C": HEAD_C,
         "labels": list(final.classes_), "app_label_keys": labels_all,
         "rule_labels": info["rule_labels"], "sender_rules": info["sender_rules"],
@@ -175,11 +198,17 @@ def train_head_final(t, df, info, syn, syn_info, en, labels_all, digest, args):
     with open(os.path.join(out, "metrics.json"), "w") as f:
         json.dump(res, f, indent=2, ensure_ascii=False)
     r = res["test"]
-    print(f"[{t}] {en} TEST acc={r['accuracy']:.4f} macro_f1={r['macro_f1']:.4f} -> {out}")
+    print(f"[{task}] {en} TEST acc={r['accuracy']:.4f} macro_f1={r['macro_f1']:.4f} -> {out}")
     return res
 
 
-def head_compare(data, syn_data, encoders, seeds, out_dir):
+def head_compare(
+    data: dict[str, tuple[pd.DataFrame, dict[str, Any]]],
+    syn_data: dict[str, tuple[pd.DataFrame | None, dict[str, Any] | None]],
+    encoders: Iterable[str],
+    seeds: Sequence[int],
+    out_dir: str,
+) -> None:
     """Compare encoders on real vs real+synthetic, multiple seeds."""
     rows = []
     for t, (df, info) in data.items():
@@ -193,8 +222,9 @@ def head_compare(data, syn_data, encoders, seeds, out_dir):
             conds = [("real", None)] + ([("real+syn", Xs)] if Xs is not None else [])
             for seed in seeds:
                 for cname, xs in conds:
-                    clf, (tr, va, te) = train_once(df, syn if xs is not None else None, X, xs,
-                                                   labels, seed)
+                    clf, (_, _, te) = train_once(
+                        df, syn if xs is not None else None, X, xs, seed
+                    )
                     _, _, r = evaluate(clf, X[te["_i"]], te, labels)
                     row = {"task": t, "encoder": en, "condition": cname, "seed": seed,
                            "accuracy": r["accuracy"], "macro_f1": r["macro_f1"]}
@@ -229,8 +259,19 @@ def head_compare(data, syn_data, encoders, seeds, out_dir):
 # --------------------------------------------------------------------------- #
 # Mode: full — full DistilBERT fine-tune
 # --------------------------------------------------------------------------- #
-def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_info=None,
-                    seed=SEED, out_dir=None, keep_model=True):
+def train_full_task(
+    task: str,
+    df: pd.DataFrame,
+    info: dict[str, Any],
+    labels_all: Sequence[str],
+    tax_digest: str,
+    args: Any,
+    syn: pd.DataFrame | None = None,
+    syn_info: dict[str, Any] | None = None,
+    seed: int = SEED,
+    out_dir: str | None = None,
+    keep_model: bool = True,
+) -> dict[str, Any]:
     """Fine-tune distilbert-base-uncased for a task."""
     import torch
     import shutil
@@ -239,20 +280,19 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
     from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                               DataCollatorWithPadding, Trainer, TrainingArguments)
 
-    random_seed = seed
     import random as _random
-    _random.seed(random_seed); np.random.seed(random_seed); torch.manual_seed(random_seed)
+    _random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     labels = info["supported_labels"]
     label2id = {l: i for i, l in enumerate(labels)}
     id2label = {i: l for l, i in label2id.items()}
-    train_df, val_df, test_df = split_dataset(df, seed=random_seed)
+    train_df, val_df, test_df = split_dataset(df, seed=seed)
     n_train_real = len(train_df)
     if syn is not None and len(syn):
         syn = syn[syn["label_key"].isin(labels)]
         cols = ["review_id", "Subject", "From", "Preview", "label_key", "text"]
         train_df = pd.concat([train_df.assign(is_synthetic=False),
                               syn[cols].assign(is_synthetic=True)],
-                             ignore_index=True).sample(frac=1, random_state=random_seed)
+                             ignore_index=True).sample(frac=1, random_state=seed)
         train_df = train_df.reset_index(drop=True)
         print(f"[{task}] + {len(syn)} synthetic rows in TRAIN only (val/test stay real)")
     for d in (train_df, val_df, test_df):
@@ -261,10 +301,10 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
 
     tok = AutoTokenizer.from_pretrained(FULL_MODEL)
 
-    def enc(b):
+    def enc(b: dict[str, Any]) -> Any:
         return tok(b["text"], truncation=True, max_length=MAX_LEN)
 
-    def ds(d):
+    def ds(d: pd.DataFrame) -> Any:
         x = Dataset.from_pandas(d[["text", "label"]]).map(enc, batched=True)
         x.set_format("torch", columns=["input_ids", "attention_mask", "label"])
         return x
@@ -279,12 +319,13 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
 
     class WeightedTrainer(Trainer):
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            # num_items_in_batch is required by Trainer even though this loss ignores it.
             y = inputs.pop("labels")
             out = model(**inputs)
             loss = torch.nn.CrossEntropyLoss(weight=cw.to(out.logits.device))(out.logits, y)
             return (loss, out) if return_outputs else loss
 
-    def metrics(p):
+    def metrics(p: Any) -> dict[str, float]:
         pred = np.argmax(p.predictions, -1)
         return {"accuracy": accuracy_score(p.label_ids, pred),
                 "macro_f1": f1_score(p.label_ids, pred, average="macro", zero_division=0)}
@@ -297,7 +338,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
                  per_device_eval_batch_size=BATCH_SIZE, warmup_steps=warmup_steps,
                  weight_decay=WEIGHT_DECAY, save_strategy="epoch", save_total_limit=1,
                  load_best_model_at_end=True, metric_for_best_model="macro_f1",
-                 greater_is_better=True, logging_steps=5, seed=random_seed, report_to=[])
+                 greater_is_better=True, logging_steps=5, seed=seed, report_to=[])
     try:
         targs_obj = TrainingArguments(eval_strategy="epoch", **targs)
     except TypeError:  # transformers < 4.41
@@ -309,7 +350,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
     trainer.save_model(out_dir)
     tok.save_pretrained(out_dir)
 
-    def evaluate(d, x, name):
+    def evaluate(d: pd.DataFrame, x: Any, name: str) -> dict[str, Any]:
         p = trainer.predict(x)
         probs = torch.softmax(torch.from_numpy(p.predictions), -1).numpy()
         pred = probs.argmax(-1)
@@ -327,10 +368,8 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
                                      average="macro", zero_division=0),
                 "report": rep, "confusion_matrix": cm}
 
-    best_epoch = None
     hist = [h for h in trainer.state.log_history if "eval_macro_f1" in h]
-    if hist:
-        best_epoch = max(hist, key=lambda h: h["eval_macro_f1"])["epoch"]
+    best_epoch = max(hist, key=lambda h: h["eval_macro_f1"])["epoch"] if hist else None
     res = {"validation": evaluate(val_df, val_ds, "val"), "test": evaluate(test_df, test_ds, "test"),
            "best_epoch_on_val": best_epoch, "val_history": hist}
     manifest = {
@@ -348,7 +387,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         "synthetic": ({"csv": os.path.basename(args.synthetic), **syn_info} if syn_info else None),
         "label_counts_total": info["counts"], "duplicates_removed": info["duplicates_removed"],
         "class_weight": {labels[i]: round(float(w), 4) for i, w in enumerate(cw)},
-        "epochs": FULL_EPOCHS, "lr": FULL_LR, "seed": random_seed,
+        "epochs": FULL_EPOCHS, "lr": FULL_LR, "seed": seed,
         "review_csv": os.path.basename(args.review),
     }
     with open(os.path.join(out_dir, "manifest.json"), "w") as f:
@@ -363,12 +402,18 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
                 shutil.rmtree(p, ignore_errors=True)
             elif not fn.endswith((".json", ".csv")):
                 os.remove(p)
-    t = res["test"]
-    print(f"[{task}] TEST acc={t['accuracy']:.4f} macro_f1={t['macro_f1']:.4f} -> {out_dir}")
+    test_metrics = res["test"]
+    print(f"[{task}] TEST acc={test_metrics['accuracy']:.4f} "
+          f"macro_f1={test_metrics['macro_f1']:.4f} -> {out_dir}")
     return res
 
 
-def tfidf_run(df, labels, seed, syn=None):
+def tfidf_run(
+    df: pd.DataFrame,
+    labels: Sequence[str],
+    seed: int,
+    syn: pd.DataFrame | None = None,
+) -> dict[str, Any]:
     """Cheap reference: TF-IDF + logistic regression on the same split."""
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
@@ -387,11 +432,20 @@ def tfidf_run(df, labels, seed, syn=None):
                                  average="macro", zero_division=0), "report": rep}
 
 
-def info_labels(g):
+def info_labels(g: pd.DataFrame) -> list[str]:
+    """Return the per-label F1 columns present in a comparison group."""
     return [c[3:] for c in g.columns if c.startswith("f1_") and g[c].notna().any()]
 
 
-def _row(task, seed, model, cond, r, labels):
+def _row(
+    task: str,
+    seed: int,
+    model: str,
+    cond: str,
+    r: dict[str, Any],
+    labels: Sequence[str],
+) -> dict[str, Any]:
+    """Build one comparison row from an evaluation result."""
     row = {"task": task, "seed": seed, "model": model, "condition": cond, "n_test": r["n"],
            "accuracy": r["accuracy"], "macro_f1": r["macro_f1"]}
     for l in labels:
@@ -399,10 +453,16 @@ def _row(task, seed, model, cond, r, labels):
     return row
 
 
-def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
+def full_compare_seeds(
+    data: dict[str, tuple[pd.DataFrame, dict[str, Any]]],
+    syn_data: dict[str, tuple[pd.DataFrame | None, dict[str, Any] | None]],
+    labels_tax: dict[str, Sequence[str]],
+    digest: str,
+    args: Any,
+    seeds: Sequence[int],
+) -> None:
     """Train real-only vs real+synthetic on several splits; report mean +- sd and paired differences."""
-    base = RESULTS_DIR
-    os.makedirs(base, exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
     rows = []
     for t, (df, info) in data.items():
         syn, syn_info = syn_data.get(t, (None, None))
@@ -417,10 +477,10 @@ def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
                 r = tfidf_run(df, labels, seed, s)
                 rows.append(_row(t, seed, "tfidf", cname, r, labels))
     runs = pd.DataFrame(rows)
-    runs.to_csv(os.path.join(base, "compare_full_runs.csv"), index=False, encoding="utf-8-sig")
+    runs.to_csv(os.path.join(RESULTS_DIR, "compare_full_runs.csv"), index=False, encoding="utf-8-sig")
     metric_cols = [c for c in runs.columns if c not in ("task", "seed", "model", "condition", "n_test")]
     summ = runs.groupby(["task", "model", "condition"])[metric_cols].agg(["mean", "std"]).round(3)
-    summ.to_csv(os.path.join(base, "compare_full_summary.csv"), encoding="utf-8-sig")
+    summ.to_csv(os.path.join(RESULTS_DIR, "compare_full_summary.csv"), encoding="utf-8-sig")
     lines = [f"seeds={seeds}  (same seed -> same real train/val/test split for both conditions; "
              f"test is always real)"]
     for (t, m), g in runs.groupby(["task", "model"]):
@@ -439,7 +499,8 @@ def full_compare_seeds(data, syn_data, labels_tax, digest, args, seeds):
                          f"better {int((d > 0).sum())} / tie {int((d == 0).sum())} / "
                          f"worse {int((d < 0).sum())} of {len(d)}")
     txt = "\n".join(lines)
-    with open(os.path.join(base, "compare_full_summary.txt"), "w") as f:
+    with open(os.path.join(RESULTS_DIR, "compare_full_summary.txt"), "w") as f:
         f.write(txt + "\n")
     print("\n" + "=" * 70 + "\n" + txt + "\n" + "=" * 70)
-    print(f"saved -> {base}/compare_full_summary.txt, compare_full_summary.csv, compare_full_runs.csv")
+    print(f"saved -> {RESULTS_DIR}/compare_full_summary.txt, "
+          f"compare_full_summary.csv, compare_full_runs.csv")

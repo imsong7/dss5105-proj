@@ -141,3 +141,10 @@ agent backend.
   `operational_benchmark_runs.csv`.
 - Simplified the agreement helper to return exact-match booleans only, and
   removed the now-unused bootstrap calls and elapsed-time plumbing.
+
+## 15. Consolidate requirements
+- Added a repo-root `requirements.txt` that includes the app/BERT requirements
+  plus the evaluation benchmark dependencies (`psutil`, `codecarbon`).
+- Removed `evaluation/requirements.txt`; the evaluation docs now install from
+  the repo root.
+- Added repo-root environment setup to the README.

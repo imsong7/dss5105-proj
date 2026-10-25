@@ -40,3 +40,5 @@ ML/*.joblib
 
 # OS
 Thumbs.db
+
+CHANGES.md

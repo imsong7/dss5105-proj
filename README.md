@@ -81,14 +81,14 @@ See `bert/README.md` for full BERT training docs.
 **Evaluate models** (quality + operational metrics):
 ```bash
 # 5-fold out-of-fold predictions + 95% bootstrap CIs (deployed configuration)
-python evaluation/offline_f1.py
+python evaluation/offline_quality.py
 
 # Real-only baseline
-python evaluation/offline_f1.py --no-synthetic
+python evaluation/offline_quality.py --no-synthetic
 
 # Operational benchmark: latency, memory, tokens, energy, consistency
 # (needs Ollama for the Llama backend)
-python evaluation/operational_benchmark.py
+python evaluation/operational_performance.py
 
 # Unit tests for the evaluators and the BERT input path
 python -m unittest evaluation.test_evaluation -v
@@ -168,19 +168,19 @@ bert/
 ### `evaluation/` — offline and operational evaluation
 ```
 evaluation/
-  offline_f1.py             # OOF predictions + stratified bootstrap CIs
-  operational_benchmark.py  # latency, memory, tokens, energy, consistency
+  offline_quality.py         # OOF predictions + stratified bootstrap CIs
+  operational_performance.py # latency, memory, tokens, energy, consistency
   test_evaluation.py        # unit tests for both evaluators + BERT input
   README.md                 # methodology and current results
   results/
-    offline_f1_summary.csv
-    offline_f1_oof_predictions.csv
-    offline_f1_manifest.json
-    offline_f1_report.txt
-    operational_benchmark_summary.csv
-    operational_benchmark_runs.csv
-    operational_benchmark_manifest.json
-    operational_benchmark_report.txt
+    offline_quality_summary.csv
+    offline_quality_oof_predictions.csv
+    offline_quality_manifest.json
+    offline_quality_report.txt
+    operational_performance_summary.csv
+    operational_performance_runs.csv
+    operational_performance_manifest.json
+    operational_performance_report.txt
 ```
 
 Large `model.safetensors` files stay on disk but are ignored by Git.
@@ -197,7 +197,7 @@ Choose the backend in the UI. BERT loads
 | Category | `bert/models/category_head` (bge-small-en) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end | Best accuracy, tiny file |
 | Action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] real+synthetic; 0.697 real-only | Synthetic helps the head; tiny file |
 
-These are 5-fold out-of-fold estimates from `evaluation/offline_f1.py`, which
+These are 5-fold out-of-fold estimates from `evaluation/offline_quality.py`, which
 uses all labelled emails instead of the old 27-row test split. The app feeds BERT
 the email body (falling back to the 200-character preview) and truncates at 256
 tokens. The historical split results remain in `bert/README.md`.

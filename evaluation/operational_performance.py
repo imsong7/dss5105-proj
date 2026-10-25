@@ -1,4 +1,4 @@
-"""Operational benchmark for the email-sorter backends.
+"""Operational performance benchmark for the email-sorter backends.
 
 This is separate from the offline quality evaluation: it measures how the
 backends behave when they are actually called.
@@ -24,10 +24,10 @@ the first ``--short-chars`` characters (default 200).
 
 Usage (repo root, root .venv activated)::
 
-    python evaluation/operational_benchmark.py
-    python evaluation/operational_benchmark.py --backend llama --limit 20
-    python evaluation/operational_benchmark.py --no-energy --no-memory
-    python evaluation/operational_benchmark.py --limit 0 --runs 5
+    python evaluation/operational_performance.py
+    python evaluation/operational_performance.py --backend llama --limit 20
+    python evaluation/operational_performance.py --no-energy --no-memory
+    python evaluation/operational_performance.py --limit 0 --runs 5
 
 The default is a 30-email stratified sample, 5 runs per email. Use
 ``--limit 0`` for all 134 action-usable unique emails. Llama calls are slow; a
@@ -868,7 +868,7 @@ def render_report(summary: pd.DataFrame, manifest: dict[str, Any]) -> str:
         return str(value)
 
     lines = [
-        "Operational benchmark — email-sorter backends",
+        "Operational performance — email-sorter backends",
         f"Sample: {manifest['sample_n']} of {manifest['total_rows']} action-usable emails "
         f"| runs/email: {manifest['runs']} | seed: {manifest['seed']}",
         f"Input: full = body/Preview (Llama cap {manifest['body_char_limit']} chars); "
@@ -956,8 +956,16 @@ def main() -> None:
     summary = pd.DataFrame(summary_rows)
     runs = pd.DataFrame([r.__dict__ for r in all_records])
 
-    summary.to_csv(out_dir / "operational_benchmark_summary.csv", index=False, encoding="utf-8-sig")
-    runs.to_csv(out_dir / "operational_benchmark_runs.csv", index=False, encoding="utf-8-sig")
+    summary.to_csv(
+        out_dir / "operational_performance_summary.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+    runs.to_csv(
+        out_dir / "operational_performance_runs.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -996,11 +1004,15 @@ def main() -> None:
             )
         },
     }
-    with open(out_dir / "operational_benchmark_manifest.json", "w", encoding="utf-8") as f:
+    with open(
+        out_dir / "operational_performance_manifest.json", "w", encoding="utf-8"
+    ) as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     report = render_report(summary, manifest)
-    (out_dir / "operational_benchmark_report.txt").write_text(report, encoding="utf-8")
+    (out_dir / "operational_performance_report.txt").write_text(
+        report, encoding="utf-8"
+    )
     print("\n" + "=" * 100)
     print(report)
     print("=" * 100)

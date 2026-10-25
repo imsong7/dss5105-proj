@@ -1,4 +1,4 @@
-Operational benchmark — email-sorter backends
+Operational performance — email-sorter backends
 Sample: 30 of 134 action-usable emails | runs/email: 5 | seed: 42
 Input: full = body/Preview (Llama cap 3000 chars); short = first 200 chars
 

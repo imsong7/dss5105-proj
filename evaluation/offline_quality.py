@@ -1,11 +1,11 @@
-"""Offline macro-F1 evaluation with out-of-fold predictions and bootstrap CIs.
+"""Offline quality evaluation with out-of-fold predictions and bootstrap CIs.
 
 Each email is predicted once by a model trained on the other folds, so no row is
 scored by its own training data. CIs use a stratified bootstrap over emails.
 
 Usage:
-    python evaluation/offline_f1.py
-    python evaluation/offline_f1.py --task action --no-synthetic
+    python evaluation/offline_quality.py
+    python evaluation/offline_quality.py --task action --no-synthetic
 """
 
 import argparse
@@ -345,13 +345,19 @@ def write_artifacts(out_dir, summary_rows, oof_frames, manifest):
     oof["fold"] = oof["fold"].astype("Int64")
     oof = oof.sort_values(["task", "dataset", "review_id"]).reset_index(drop=True)
 
-    summary.to_csv(out_dir / "offline_f1_summary.csv", index=False, encoding="utf-8-sig")
-    oof.to_csv(out_dir / "offline_f1_oof_predictions.csv", index=False, encoding="utf-8-sig")
-    (out_dir / "offline_f1_manifest.json").write_text(
+    summary.to_csv(
+        out_dir / "offline_quality_summary.csv", index=False, encoding="utf-8-sig"
+    )
+    oof.to_csv(
+        out_dir / "offline_quality_oof_predictions.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+    (out_dir / "offline_quality_manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     report = render_report(summary, manifest)
-    (out_dir / "offline_f1_report.txt").write_text(report, encoding="utf-8")
+    (out_dir / "offline_quality_report.txt").write_text(report, encoding="utf-8")
     print("\n" + "=" * 78)
     print(report)
     print("=" * 78)
@@ -360,7 +366,7 @@ def write_artifacts(out_dir, summary_rows, oof_frames, manifest):
 
 def render_report(summary, manifest):
     lines = [
-        "Offline macro-F1 — out-of-fold predictions",
+        "Offline quality — out-of-fold predictions",
         f"Review CSV: {manifest['review_csv']}",
         f"Folds: {manifest['folds']} (stratified) | Bootstrap: {manifest['bootstrap']} "
         f"({manifest['bootstrap_method']}) | Seed: {manifest['seed']}",

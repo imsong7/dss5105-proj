@@ -24,6 +24,7 @@ from .classifier_base import (
 from .config import ROOT, settings
 from .models import Email
 from .providers import AuthError, ProviderError, build_provider
+from .rules import category_by_rule
 from .taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
 
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +73,7 @@ def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bo
     return True if loaded else None
 
 
-def create_app(backend: str | None = None) -> Flask:
+def create_app(backend: str | None = None, version: int = 1) -> Flask:
     app = Flask(
         __name__,
         template_folder=str(ROOT / "templates"),
@@ -89,11 +90,16 @@ def create_app(backend: str | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        template = "dashboard_v2.html" if version == 2 else "index.html"
+        return render_template(template)
 
     @app.get("/compare")
     def compare():
         return render_template("compare.html")
+
+    @app.get("/dashboard-v2")
+    def dashboard_v2():
+        return render_template("dashboard_v2.html")
 
     @app.get("/api/backends")
     def backends():
@@ -171,6 +177,15 @@ def create_app(backend: str | None = None) -> Flask:
             backend_name = data.get("backend") or backend or settings.model_backend
             t0 = time.perf_counter()
             result = classifier(backend_name).classify(email)
+            rule_category = category_by_rule(email.sender)
+            if rule_category:
+                rule_reason = f"Sender rule matched and set category to {rule_category}."
+                result = result.model_copy(
+                    update={
+                        "content_category": rule_category,
+                        "reason": rule_reason,
+                    }
+                )
             duration_ms = int((time.perf_counter() - t0) * 1000)
             out = result.model_dump()
             out["duration_ms"] = duration_ms

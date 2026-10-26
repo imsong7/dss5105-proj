@@ -1,5 +1,5 @@
-"""Deterministic pre-filter run before the model (architecture: "Canvas sender?").
-Keep this in sync with SENDER_RULES in bert/src/data.py."""
+"""Sender-based category overrides."""
+
 from email.utils import parseaddr
 
 SENDER_RULES = {
@@ -11,6 +11,6 @@ def sender_address(sender: str) -> str:
     return parseaddr(sender or "")[1].strip().lower()
 
 
-def category_by_rule(sender: str):
-    """Return the app category key if a sender rule matches, else None."""
+def category_by_rule(sender: str) -> str | None:
+    """Return the matching category, if any."""
     return SENDER_RULES["category"].get(sender_address(sender))

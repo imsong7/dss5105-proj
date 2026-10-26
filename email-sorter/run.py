@@ -3,6 +3,7 @@
 Usage::
 
     python run.py                           # uses MODEL_BACKEND env or default (llama)
+    python run.py -version 2                # use the dashboard v2 as the home page
     python run.py --backend bert            # force BERT backend
     python run.py --backend llama --port 8080
 """
@@ -23,12 +24,21 @@ if __name__ == "__main__":
         help="Model backend to use (overrides MODEL_BACKEND env var / config). "
              "Choices: llama, bert",
     )
+    parser.add_argument(
+        "-version",
+        "--version",
+        dest="app_version",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="Dashboard version to show at the home page (default: 1).",
+    )
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", type=int, default=None, help="Port to bind to")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
-    app = create_app(backend=args.backend)
+    app = create_app(backend=args.backend, version=args.app_version)
     port = args.port if args.port is not None else settings.port
     # Bound to localhost only: your emails never leave this machine.
     app.run(host=args.host, port=port, debug=args.debug)

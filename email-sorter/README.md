@@ -1,53 +1,43 @@
 # Inbox sorter
 
-Fetches recent emails and classifies each into (1) content type and
-(2) reply/action type. The Flask app has two pages:
+Fetches recent emails and classifies their content and reply/action type.
 
 | Page | Purpose |
 |------|---------|
-| `/` | Shows the selected dashboard version. Version 1 is the default; version 2 is the triage dashboard. |
-| `/compare` | Run the same batch through several backends, compare labels and latency, export CSV. |
+| `/` | Sorter or triage dashboard, selected at launch. |
+| `/compare` | Compare backends on the same email batch and export results. |
 
-## Setup (Windows, VS Code terminal)
+## Setup
 ```bash
 python -m venv .venv
-.venv\Scripts\Activate.ps1   # or: source .venv/bin/activate  (Mac/Linux)
+source .venv/bin/activate     # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env
+cp .env.example .env          # Windows: copy .env.example .env
 python run.py
-# Open http://127.0.0.1:5000
 ```
 
-Choose which sorter opens at `/` with the `-version` option:
+Open <http://127.0.0.1:5000>. Choose the home dashboard with:
 
 ```bash
 python run.py -version 1  # original sorter (default)
 python run.py -version 2  # dashboard v2
 ```
 
-The long form `--version` is also accepted. Dashboard v2 is also available
-directly at `/dashboard-v2`.
-
-`requirements.txt` covers both backends (Flask + HTTP providers, LangChain/Ollama,
-and torch/transformers for BERT).
+`--version` is also accepted. Version 2 is available at `/dashboard-v2`.
 
 ## How the comparison page works
 
-- Fetches the mailbox batch once.
-- Runs one backend at a time, so models are not reloaded for every email and
-  the two runs do not compete for CPU.
-- Optionally warms up each backend first; the warm-up request is excluded from
-  the per-email averages.
-- Shows per-backend total/average/median/p95 latency, a pairwise label-agreement
-  matrix, and a per-email table. Results can be exported as CSV.
+Fetches one batch, then runs backends sequentially. Optional warm-up requests
+are excluded from latency averages. Results include latency, label agreement,
+and per-email comparisons; export them as CSV.
 
 ## Choosing a backend
 
 Pick **Llama** or **BERT** in the sidebar. The choice is saved in your browser
 and does not require a server restart.
 
-`MODEL_BACKEND` in `.env` (or `--backend` on the command line) only sets the
-**initial default** for a browser with no saved choice:
+`MODEL_BACKEND` in `.env` or `--backend` sets the initial default for browsers
+without a saved choice:
 
 ```bash
 # Optional: change the server default
@@ -64,18 +54,15 @@ backend still classifies reply nature, deadline, and reason.
 | `llama` | Llama via Ollama | `ollama pull llama3.1:8b`, Ollama running |
 | `bert` | Frozen BERT encoder + logistic head (tiny, fast) | `bert/models/{category,action}_head/` trained via `bert/train.py` |
 
-The list of backends comes from `/api/backends`, which reads the registry in
-`app/classifier_base.py`. To add a model later:
+Backends are registered in `app/classifier_base.py`. To add one:
 
 1. Implement `BaseClassifier` (see `app/llama_classifier.py` or `app/bert_classifier.py`).
 2. Add metadata to `BACKEND_INFO` in `app/classifier_base.py`.
 3. Add a branch in `create_classifier()`.
 
-The Sorter and Compare pages render it automatically.
-
 ## Train BERT models
 
-From the repo root, with the root `.venv` activated:
+From the project root:
 
 ```bash
 .venv/bin/python bert/train.py --task category
@@ -89,16 +76,16 @@ variants by default. Large `model.safetensors` files are ignored by Git.
 
 | Route | Purpose |
 |-------|---------|
-| `GET /` | Sorter page |
-| `GET /dashboard-v2` | Alternative inbox dashboard |
-| `GET /compare` | Compare page |
+| `GET /` | Selected dashboard |
+| `GET /dashboard-v2` | Dashboard v2 |
+| `GET /compare` | Backend comparison |
 | `GET /api/backends` | Registered backends, labels, readiness |
 | `GET /api/taxonomy` | Category/action labels and max email count |
 | `GET /api/health?backend=` | Readiness for one backend |
 | `POST /api/emails` | Fetch recent emails |
 | `POST /api/classify` | Classify one email (optional `backend`) |
 
-## Where to change things
+## Key files
 - Categories and wording: `app/taxonomy.py`
 - Prompt and model call (Llama): `app/llama_classifier.py`
 - BERT wrapper: `app/bert_classifier.py`

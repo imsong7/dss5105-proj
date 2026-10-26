@@ -25,12 +25,13 @@ git push -u origin feature/your-name
 ---
 
 
-Two parts live in this repo:
+Three parts live in this repo:
 
 | Folder | Purpose |
 |--------|---------|
 | `email-sorter/` | The running Flask app (Sprint 1 prototype). Fetches emails, classifies them with a local Llama model via Ollama, and shows results on a web page. |
 | `bert/` | BERT experiment/training code. Trains and compares DistilBERT fine-tunes and frozen-encoder heads on labeled email data. |
+| `ML/` | Classical ML baselines (TF-IDF + LinearSVC / ComplementNB). Compares 8 models, tunes hyperparameters, and ablates synthetic data. |
 
 ---
 
@@ -60,6 +61,24 @@ python bert/train.py --review bert/data/labels.csv --encoder e5-small-multi --ta
 ```
 
 See `bert/README.md` for full BERT training docs.
+
+**Train classical ML baselines** (from repo root):
+```bash
+cd ML
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements-ml.txt
+
+# labels.xlsx is not committed (real email data). Get it from the team first.
+cp "/path/to/labels.xlsx" ./labels.xlsx
+
+python train_email_ml.py       # main training + metrics
+python compare_models.py       # 8-model comparison
+python tune_models.py          # hyperparameter search
+python ablation_synthetic.py   # synthetic vs real-only
+```
+
+See `ML/README.md` for data format, results, and evaluation caveats.
 
 ---
 
@@ -115,6 +134,28 @@ bert/
     compare_full_runs.csv
 ```
 
+### `ML/` — classical ML baselines
+```
+ML/
+  train_email_ml.py                # main trainer (repeated CV, metrics, models)
+  compare_models.py                # 8-model comparison + majority baseline
+  tune_models.py                   # TF-IDF / classifier hyperparameter grid
+  ablation_synthetic.py            # synthetic vs real-only for required_action
+  generate_synthetic_action_data.py
+  requirements-ml.txt
+  README.md                        # ML docs, results, caveats
+  synthetic_required_action.csv    # committed synthetic action rows
+  model_comparison.md/.csv
+  hyperparameter_tuning.md/.csv
+  ablation_synthetic.md/.csv
+  ml_outputs/                      # local only (ignored): metrics, plots, joblib models
+```
+
+Selected baselines: `linear_svm` for `email_category` (CV macro-F1 0.906) and
+`complement_nb_balanced` + synthetic for `required_action` (CV macro-F1 0.688).
+`ML/labels.xlsx` and `ml_outputs/` are intentionally not committed because they
+contain real email content.
+
 ---
 
 ## Which model to use in the app
@@ -125,6 +166,7 @@ bert/
 | Action | `bert/models/action_head` (e5-small-multi + synthetic) | Best accuracy (0.511 macro-F1), tiny file |
 
 The app loads models via `EmbedPredictor("bert/models/<task>_head")`. See `bert/README.md`.
+The `ML/` classical baselines are experiments and are not yet wired into the Flask app.
 
 ---
 

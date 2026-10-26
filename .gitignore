@@ -26,6 +26,14 @@ bert/models/*/scheduler.pt
 bert/models/*/rng_state.pth
 bert/models/*/checkpoints/
 
+# Classical ML local data (real emails, PII) and generated outputs
+ML/labels.xlsx
+ML/DSS5105 Email Data.xlsx
+ML/received_mails.json
+ML/token_access.json
+ML/ml_outputs/
+ML/*.joblib
+
 # IDE
 .idea/
 .vscode/

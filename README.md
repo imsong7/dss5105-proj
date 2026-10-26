@@ -1,71 +1,88 @@
 # Email Classification Project
 
-Flask email sorter with Llama (Ollama) and BERT backends.
+This project compares a Flask email sorter, frozen-encoder and fine-tuned
+neural models, and classical TF-IDF classifiers.
 
 | Folder | Purpose |
 |--------|---------|
-| `email-sorter/` | Flask app for fetching, classifying, and comparing email backends. |
-| `bert/` | BERT training and model artifacts. |
-| `evaluation/` | Model quality and operational benchmarks. |
+| `email-sorter/` | Flask app, email providers, model backends, and dashboards. |
+| `bert/` | Frozen BGE/E5/DistilBERT heads and optional DistilBERT fine-tuning. |
+| `ML/` | Classical TF-IDF model training, tuning, and synthetic-data experiments. |
+| `evaluation/` | Quality and operational evaluation scripts. |
 
-## Quick start
+The ML models are research baselines and are not currently wired into the app.
 
-### Run the app
+## Run the app
+
 ```bash
 cd email-sorter
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env             # Windows: copy .env.example .env
+ollama pull llama3.1:8b
 python run.py
 ```
 
-Open <http://127.0.0.1:5000>. Choose **Llama** or **BERT** in the sidebar; `MODEL_BACKEND` only sets the initial default.
+Open <http://127.0.0.1:5000>. Llama requires Ollama running. BERT requires
+trained heads; choose a backend in the sidebar or set `MODEL_BACKEND`.
 
-Llama requires `ollama pull llama3.1:8b` and Ollama running. Train BERT before selecting it.
+## Train neural models
 
-### BERT training and evaluation
-From the project root:
+Run from the repository root:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
 python bert/train.py --check-only
 python bert/train.py --task category
 python bert/train.py --task action --synthetic bert/data/synthetic.csv
-python bert/train.py --mode full --task both   # optional DistilBERT fine-tune
 ```
 
-See `bert/README.md` for details.
+Optional DistilBERT fine-tuning:
 
-### Evaluation
+```bash
+python bert/train.py --mode full --task both
+```
+
+See [bert/README.md](bert/README.md) for model and training details.
+
+## Train classical ML models
+
+The real-label workbook is private and is not committed. Obtain `labels.xlsx`
+from the team, place it in `ML/`, then run from that directory:
+
+```bash
+cd ML
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements-ml.txt
+python train_email_ml.py
+python compare_models.py
+python tune_models.py
+python ablation_synthetic.py
+```
+
+See [ML/README.md](ML/README.md) for the workbook format and result caveats.
+
+## Evaluation
+
 ```bash
 python evaluation/offline_quality.py
-python evaluation/offline_quality.py --no-synthetic
 python evaluation/operational_performance.py
-python -m unittest evaluation.test_evaluation -v
+python -m unittest evaluation.test_evaluation evaluation.test_compare_models -v
 ```
 
-See `evaluation/README.md` for model comparison, metrics, and methodology.
-
-## Model recommendation
-
-| Task | Model | OOF macro-F1 (95% CI) |
-|------|-------|-----------------------|
-| Category | `bert/models/category_head` (bge-small-en) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end |
-| Action | `bert/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] real+synthetic; 0.697 real-only |
-
-Scores are 5-fold out-of-fold estimates. BERT uses the email body, falling back to the 200-character preview, with a 256-token limit.
-
-Operational benchmark (30 emails, 5 runs, seed 42): BERT warm p50/p95 is 32.9/40.8 ms (921 MB peak); Llama is 3,298/5,334 ms (5.7 GB peak). See `evaluation/README.md` for details.
+See [evaluation/README.md](evaluation/README.md) for metrics and model
+comparison guidance. The ML reports use a separate workbook and label scheme;
+their scores should not be directly compared with the neural-model scores
+until both pipelines use the same reviewed examples, labels, inputs, and
+held-out split.
 
 ## Project layout
 
-- `email-sorter/app/` — Flask routes, backends, taxonomy, sender rules, email providers.
-- `email-sorter/static/` and `templates/` — app UI.
-- `bert/train.py` — unified trainer (`--mode head|full`).
-- `bert/src/` — data loading, synthetic generation, model training.
-- `bert/data/` — labeled and synthetic training data.
-- `evaluation/` — evaluators and tests.
+- `email-sorter/app/`: app routes, classifier backends, taxonomy, rules, and providers.
+- `bert/train.py` and `bert/src/`: neural-model training and data preparation.
+- `ML/`: classical-model experiments and local-only trained artifacts.
+- `evaluation/`: shared and model-specific evaluation scripts and tests.

@@ -254,7 +254,7 @@ def train_full_task(task, df, info, labels_all, tax_digest, args, syn=None, syn_
         x.set_format("torch", columns=["input_ids", "attention_mask", "label"])
         return x
 
-    train_ds, val_ds, test_ds = ds(train_df), ds(val_df), ds(test_ds)
+    train_ds, val_ds, test_ds = ds(train_df), ds(val_df), ds(test_df)
     model = AutoModelForSequenceClassification.from_pretrained(
         FULL_MODEL, num_labels=len(labels), id2label=id2label, label2id=label2id)
 

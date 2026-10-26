@@ -1,5 +1,3 @@
-import logging
-
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
@@ -7,8 +5,6 @@ from .classifier_base import BaseClassifier
 from .config import settings
 from .models import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
-
-log = logging.getLogger(__name__)
 
 SYSTEM = """You sort emails for a university student. Read the email and fill in the fields.
 
@@ -48,10 +44,10 @@ def build_chain(include_raw: bool = False):
         content_defs=_defs(CONTENT_CATEGORIES),
         reply_defs=_defs(REPLY_NATURE),
     )
-    output = llm.with_structured_output(Classification, include_raw=True) if include_raw else (
-        llm.with_structured_output(Classification)
+    return prompt | llm.with_structured_output(
+        Classification,
+        include_raw=include_raw,
     )
-    return prompt | output
 
 
 class EmailClassifier(BaseClassifier):

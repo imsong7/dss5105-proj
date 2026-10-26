@@ -5,7 +5,7 @@ Fetches recent emails and classifies each into (1) content type and
 
 | Page | Purpose |
 |------|---------|
-| `/` | Sort one batch with a chosen backend, filter by category/action, retry failures. |
+| `/` | Shows the selected dashboard version. Version 1 is the default; version 2 is the triage dashboard. |
 | `/compare` | Run the same batch through several backends, compare labels and latency, export CSV. |
 
 ## Setup (Windows, VS Code terminal)
@@ -17,6 +17,16 @@ copy .env.example .env
 python run.py
 # Open http://127.0.0.1:5000
 ```
+
+Choose which sorter opens at `/` with the `-version` option:
+
+```bash
+python run.py -version 1  # original sorter (default)
+python run.py -version 2  # dashboard v2
+```
+
+The long form `--version` is also accepted. Dashboard v2 is also available
+directly at `/dashboard-v2`.
 
 `requirements.txt` covers both backends (Flask + HTTP providers, LangChain/Ollama,
 and torch/transformers for BERT).
@@ -45,6 +55,10 @@ python run.py --backend bert
 MODEL_BACKEND=llama python run.py
 ```
 
+Sender category rules in `app/rules.py` are applied to results from every
+backend. A matching rule overrides only the content category; the selected
+backend still classifies reply nature, deadline, and reason.
+
 | Backend | Description | Requirements |
 |---------|-------------|--------------|
 | `llama` | Llama via Ollama | `ollama pull llama3.1:8b`, Ollama running |
@@ -53,7 +67,7 @@ MODEL_BACKEND=llama python run.py
 The list of backends comes from `/api/backends`, which reads the registry in
 `app/classifier_base.py`. To add a model later:
 
-1. Implement `BaseClassifier` (see `app/classifier.py` or `app/bert_classifier.py`).
+1. Implement `BaseClassifier` (see `app/llama_classifier.py` or `app/bert_classifier.py`).
 2. Add metadata to `BACKEND_INFO` in `app/classifier_base.py`.
 3. Add a branch in `create_classifier()`.
 
@@ -76,6 +90,7 @@ variants by default. Large `model.safetensors` files are ignored by Git.
 | Route | Purpose |
 |-------|---------|
 | `GET /` | Sorter page |
+| `GET /dashboard-v2` | Alternative inbox dashboard |
 | `GET /compare` | Compare page |
 | `GET /api/backends` | Registered backends, labels, readiness |
 | `GET /api/taxonomy` | Category/action labels and max email count |
@@ -85,11 +100,12 @@ variants by default. Large `model.safetensors` files are ignored by Git.
 
 ## Where to change things
 - Categories and wording: `app/taxonomy.py`
-- Prompt and model call (Llama): `app/classifier.py`
+- Prompt and model call (Llama): `app/llama_classifier.py`
 - BERT wrapper: `app/bert_classifier.py`
 - Backend registry and factory: `app/classifier_base.py`
 - Shared frontend helpers: `static/common.js`
 - Sorter page: `templates/index.html`, `static/sorter.js`
+- Dashboard v2: `templates/dashboard_v2.html`, `static/dashboard_v2.js`
 - Compare page: `templates/compare.html`, `static/compare.js`
 - Shared styles: `static/style.css`
 - New mail source: add a file in `app/providers/` and one line in `app/providers/__init__.py`

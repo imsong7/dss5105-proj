@@ -40,7 +40,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertIn(b"Inbox dashboard", response.data)
         self.assertIn(b'id="mailbox-settings" open', response.data)
         self.assertIn(b'<dialog class="email-detail-dialog"', response.data)
-        self.assertIn(b"dashboard_v2.js?v=6", response.data)
+        self.assertIn(b"dashboard_v2.js?v=7", response.data)
 
     def test_root_selects_dashboard_by_version(self):
         v1 = create_app(backend="llama", version=1).test_client().get("/")

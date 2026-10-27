@@ -198,6 +198,15 @@
       }
     }
     const body = email.body || email.preview || "(No email body available.)";
+    if (email.text_source && email.text_source !== "body") {
+      const confidence = email.ocr_confidence == null
+        ? ""
+        : ` (${email.ocr_confidence}% OCR confidence)`;
+      box.append(el("p", { class: "sub" }, `Text source: ${email.text_source}${confidence}`));
+    }
+    for (const note of email.ocr_notes || []) {
+      box.append(el("p", { class: "sub" }, note));
+    }
     box.append(el("h3", {}, "Message"), el("pre", { class: "detail-body" }, body));
   }
 
@@ -207,11 +216,12 @@
       const health = await api(`/api/health?backend=${encodeURIComponent(backend)}`, undefined, { timeoutMs: 10000 });
       const isReady = health.backend_ready;
       $("#dot").className = `dot ${isReady === true ? "ok" : isReady === false ? "bad" : ""}`;
-      $("#health").textContent = isReady === true
+      const backendStatus = isReady === true
         ? `${backendLabel(backend)} ready.`
         : isReady === false && backend === "ml"
           ? "Classical ML models not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml"
           : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";
+      $("#health").textContent = `${backendStatus} ${ocrStatusLabel(health.ocr)}.`;
     } catch (error) {
       $("#dot").className = "dot bad";
       $("#health").textContent = error.message || "Could not check backend status.";

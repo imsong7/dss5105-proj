@@ -92,7 +92,7 @@
       text = "Backend readiness unknown.";
     }
     dot.className = "dot " + (ok ? "ok" : unknown ? "" : "bad");
-    $("#health").textContent = text;
+    $("#health").textContent = `${text} ${ocrStatusLabel(h.ocr)}.`;
   }
 
   async function refreshHealth() {
@@ -185,6 +185,15 @@
     if (r.deadline) row._tags.append(el("span", { class: "deadline" }, "Deadline: " + r.deadline));
     if (r.model_name) {
       row._more.append(el("p", {}, `Model: ${r.model_name}`));
+    }
+    if (m.text_source && m.text_source !== "body") {
+      const confidence = m.ocr_confidence == null
+        ? ""
+        : ` (${m.ocr_confidence}% OCR confidence)`;
+      row._more.append(el("p", {}, `Text source: ${m.text_source}${confidence}`));
+    }
+    for (const note of m.ocr_notes || []) {
+      row._more.append(el("p", { class: "sub" }, note));
     }
     if (r.reason) {
       const p = el("p");

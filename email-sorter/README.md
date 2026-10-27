@@ -25,6 +25,26 @@ python run.py -version 2  # dashboard v2
 
 `--version` is also accepted. Version 2 is available at `/dashboard-v2`.
 
+## OCR for inline images
+
+The fetch step runs local Tesseract OCR on inline image attachments when an
+email body has fewer than 100 characters. Install Tesseract separately:
+
+```bash
+brew install tesseract          # macOS
+```
+
+On other platforms, install Tesseract and make its executable available on
+`PATH`. Pillow is installed with the Python requirements. Optional `.env`
+settings are `OCR_ENGINE=off` to disable OCR, `OCR_LANG=eng` to choose the
+Tesseract language, and `TESSERACT_CMD=/path/to/tesseract` when it is not on
+`PATH`.
+
+Only inline image attachments are read. Ordinary file attachments and images
+that are only linked from an external website are not fetched. The UI shows
+the OCR text source, confidence, and any warnings. OCR output can be inaccurate,
+so verify extracted text before relying on its classification.
+
 ## How the comparison page works
 
 Fetches one batch, then runs backends sequentially. Optional warm-up requests

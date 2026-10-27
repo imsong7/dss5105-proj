@@ -92,6 +92,11 @@ function backendLabel(id) {
   return BACKEND_LABELS[id] || id || "Model";
 }
 
+function ocrStatusLabel(ocr) {
+  if (!ocr || ocr.mode === "off") return "OCR disabled";
+  return ocr.ready ? "OCR ready" : "OCR unavailable: install Tesseract";
+}
+
 function readyClass(ready) {
   return ready === true ? "ok" : ready === false ? "bad" : "";
 }

@@ -24,6 +24,7 @@ from .classifier_base import (
 from .config import ROOT, settings
 from .ml_classifier import models_ready as _ml_ready
 from .models import Classification, Email
+from .ocr_pipeline import ocr_status, prepare_text
 from .providers import AuthError, ProviderError, build_provider
 from .rules import category_by_rule
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
@@ -158,6 +159,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
                 "model_ready": ollama_ready,
                 "bert_ready": bert_ready,
                 "ml_ready": ml_ready,
+                "ocr": ocr_status(),
             }
         )
 
@@ -168,6 +170,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
         try:
             provider = build_provider(data.get("provider", "outlook"), data.get("credentials", {}))
             items = provider.fetch_emails(limit)
+            items = [prepare_text(email, provider) for email in items]
         except AuthError as exc:
             return jsonify({"error": str(exc)}), 401
         except ProviderError as exc:
@@ -201,6 +204,9 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
             out["duration_ms"] = duration_ms
             out["backend"] = backend_name
             out["model_name"] = model_name
+            out["text_source"] = email.text_source
+            out["ocr_confidence"] = email.ocr_confidence
+            out["ocr_notes"] = email.ocr_notes
             return jsonify(out)
         except Exception as exc:  # most often: Ollama not running or model not pulled
             logging.exception("classification failed")

@@ -21,7 +21,7 @@ from io import BytesIO
 from PIL import Image, ImageOps
 
 from .models import Email
-from .providers.base import EmailProvider
+from .providers.base import EmailProvider, ProviderError
 from .textutil import clean
 
 log = logging.getLogger(__name__)
@@ -141,7 +141,14 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
             email.ocr_notes.append("This email has no readable text and Tesseract is not installed, so its images were not read.")
         return email
 
-    images = provider.fetch_images(email, max_images=MAX_IMAGES * 2, max_bytes=MAX_IMAGE_BYTES)
+    try:
+        images = provider.fetch_images(
+            email, max_images=MAX_IMAGES * 2, max_bytes=MAX_IMAGE_BYTES
+        )
+    except ProviderError as exc:
+        log.warning("Could not fetch inline images for email %s: %s", email.id, exc)
+        email.ocr_notes.append(f"Could not fetch inline images: {exc}")
+        return email
     if not images:
         if not text:
             email.ocr_notes.append(
@@ -196,5 +203,4 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
     elif not text:
         email.ocr_notes.append("Nothing readable was found, so this was sorted from sender and subject only.")
 
-    email.images = []  # free the image bytes
     return email

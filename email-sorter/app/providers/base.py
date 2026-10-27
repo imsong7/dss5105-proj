@@ -1,6 +1,13 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from ..models import Email
+
+
+@dataclass(frozen=True)
+class InlineImage:
+    name: str
+    data: bytes
 
 
 class ProviderError(Exception):
@@ -19,3 +26,9 @@ class EmailProvider(ABC):
     @abstractmethod
     def fetch_emails(self, limit: int = 15) -> list[Email]:
         """Return the newest `limit` emails, newest first."""
+
+    def fetch_images(
+        self, email: Email, max_images: int, max_bytes: int
+    ) -> list[InlineImage]:
+        """Return inline images only; file attachments are not processed."""
+        return []

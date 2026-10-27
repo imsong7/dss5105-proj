@@ -11,9 +11,11 @@ sys.path.insert(0, os.path.join(SCRIPT_DIR, "src"))
 
 from src.data import (
     DEFAULT_ENCODERS,
+    DEFAULT_REVIEW,
     DataError,
     ENCODERS,
     SEED,
+    load_review,
     load_taxonomy,
     split_dataset,
     synthetic_dataset,
@@ -27,14 +29,16 @@ from src.model import (
     train_head_final,
 )
 
-DEFAULT_REVIEW = os.path.join(SCRIPT_DIR, "data", "labels.csv")
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mode", choices=["head", "full"], default="head", help="training mode (default: head)")
     ap.add_argument("--task", choices=["category", "action", "both"], default="both", help="task to train (default: both)")
-    ap.add_argument("--review", default=DEFAULT_REVIEW, metavar="CSV", help="review CSV (default: bert/data/labels.csv)")
+    ap.add_argument(
+        "--review",
+        default=DEFAULT_REVIEW,
+        metavar="FILE",
+        help="shared labels CSV (default: data/labels.csv)",
+    )
     ap.add_argument("--encoder", choices=list(ENCODERS), help="head-mode encoder (default: task-specific)")
     ap.add_argument("--synthetic", metavar="CSV", help="synthetic CSV added to TRAIN only")
     ap.add_argument("--synthetic-tasks", choices=["category", "action", "both"], default="action", help="tasks using synthetic data (default: action)")
@@ -43,7 +47,7 @@ def main():
     args = ap.parse_args()
 
     labels, digest = load_taxonomy()
-    review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
+    review = load_review(args.review)
     args.provisional = bool((review.get("label_source", pd.Series(dtype=str)) == "provisional").any())
     tasks = ["category", "action"] if args.task == "both" else [args.task]
     data, syn_data = {}, {}

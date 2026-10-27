@@ -1,14 +1,11 @@
-"""Tune TF-IDF and classifier hyperparameters with repeated real-email CV.
+"""Run ML comparison, tuning, and synthetic-data experiments.
 
-Model selection uses only the training split.  The holdout is evaluated once
-for the best configuration per task and is reported only as a sanity check.
-
-Run:
-    python tune_models.py
+Use one command with one mode: compare, tune, or ablation.
 """
 
 from __future__ import annotations
 
+import argparse
 import math
 
 import pandas as pd
@@ -19,15 +16,14 @@ from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 
-from compare_models import CV_REPEATS, evaluate_cv, filtered_synthetic
+from comparison import CV_REPEATS, evaluate_cv, filtered_synthetic
 from train_email_ml import (
     BASE_DIR,
-    OUTPUT_DIR,
     RANDOM_STATE,
     TEST_SIZE,
     BalancedComplementNB,
     load_synthetic_action_data,
-    read_workbook,
+    read_labeled_data,
     remove_duplicates_and_check_conflicts,
 )
 
@@ -97,10 +93,10 @@ def split_like_training(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]
     )
 
 
-def main() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+def run_tuning() -> None:
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
 
-    category_data, action_data, _ = read_workbook()
+    category_data, action_data, _ = read_labeled_data()
     category_data = remove_duplicates_and_check_conflicts(
         category_data, "email_category"
     )
@@ -169,11 +165,6 @@ def main() -> None:
 
     results = pd.DataFrame(all_rows)
     results.to_csv(
-        OUTPUT_DIR / "hyperparameter_tuning.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-    results.to_csv(
         BASE_DIR / "hyperparameter_tuning.csv",
         index=False,
         encoding="utf-8-sig",
@@ -218,11 +209,6 @@ def main() -> None:
         best_rows.append(row)
 
     best_frame = pd.DataFrame(best_rows)
-    best_frame.to_csv(
-        OUTPUT_DIR / "hyperparameter_tuning_best.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
     best_frame.to_csv(
         BASE_DIR / "hyperparameter_tuning_best.csv",
         index=False,
@@ -296,9 +282,6 @@ def main() -> None:
         )
 
     markdown = "\n".join(markdown_lines) + "\n"
-    (OUTPUT_DIR / "hyperparameter_tuning.md").write_text(
-        markdown, encoding="utf-8"
-    )
     (BASE_DIR / "hyperparameter_tuning.md").write_text(
         markdown, encoding="utf-8"
     )
@@ -328,6 +311,102 @@ def main() -> None:
         f"  {BASE_DIR / 'hyperparameter_tuning.csv'}\n"
         f"  {BASE_DIR / 'hyperparameter_tuning_best.csv'}"
     )
+
+
+def run_ablation() -> None:
+    from comparison import (
+        CV_REPEATS,
+        build_models,
+        evaluate_cv,
+        filtered_synthetic,
+    )
+    from train_email_ml import (
+        BASE_DIR,
+        load_synthetic_action_data,
+        read_labeled_data,
+        remove_duplicates_and_check_conflicts,
+    )
+
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
+    _, action_data, _ = read_labeled_data()
+    action_data = remove_duplicates_and_check_conflicts(
+        action_data, "required_action"
+    )
+    synthetic = filtered_synthetic(load_synthetic_action_data(), action_data)
+    available_models = build_models("required_action")
+    model_names = ["linear_svm", "complement_nb", "complement_nb_balanced"]
+    models = {name: available_models[name] for name in model_names}
+
+    real = evaluate_cv(
+        action_data, None, models, n_splits=5, n_repeats=CV_REPEATS
+    ).add_prefix("real_")
+    augmented = evaluate_cv(
+        action_data, synthetic, models, n_splits=5, n_repeats=CV_REPEATS
+    ).add_prefix("with_synthetic_")
+    result = augmented.merge(real, left_on="with_synthetic_model", right_on="real_model")
+    result = result.rename(
+        columns={
+            "with_synthetic_model": "model",
+            "real_cv_macro_f1_mean": "real_only_macro_f1_mean",
+            "real_cv_macro_f1_std": "real_only_macro_f1_std",
+            "real_cv_accuracy_mean": "real_only_accuracy_mean",
+            "real_cv_accuracy_std": "real_only_accuracy_std",
+            "with_synthetic_cv_macro_f1_mean": "with_synthetic_macro_f1_mean",
+            "with_synthetic_cv_macro_f1_std": "with_synthetic_macro_f1_std",
+            "with_synthetic_cv_accuracy_mean": "with_synthetic_accuracy_mean",
+            "with_synthetic_cv_accuracy_std": "with_synthetic_accuracy_std",
+        }
+    )
+    result["delta_macro_f1"] = (
+        result["with_synthetic_macro_f1_mean"] - result["real_only_macro_f1_mean"]
+    )
+    result["delta_accuracy"] = (
+        result["with_synthetic_accuracy_mean"] - result["real_only_accuracy_mean"]
+    )
+    result = result.sort_values("delta_macro_f1", ascending=False)
+    result.to_csv(BASE_DIR / "ablation_synthetic.csv", index=False)
+
+    lines = [
+        "# Synthetic data ablation (required_action)",
+        "",
+        f"Real emails: {len(action_data)}; synthetic rows: {len(synthetic)}; "
+        f"CV: {CV_REPEATS}x5 repeated stratified.",
+        "",
+        "| Model | Real-only Macro-F1 | + Synthetic Macro-F1 | Delta | "
+        "Real-only Acc | + Synthetic Acc |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for _, row in result.iterrows():
+        lines.append(
+            f"| {row['model']} | {row['real_only_macro_f1_mean']:.3f} "
+            f"± {row['real_only_macro_f1_std']:.3f} | "
+            f"{row['with_synthetic_macro_f1_mean']:.3f} "
+            f"± {row['with_synthetic_macro_f1_std']:.3f} | "
+            f"{row['delta_macro_f1']:+.3f} | "
+            f"{row['real_only_accuracy_mean']:.3f} | "
+            f"{row['with_synthetic_accuracy_mean']:.3f} |"
+        )
+    report = "\n".join(lines) + "\n"
+    (BASE_DIR / "ablation_synthetic.md").write_text(report, encoding="utf-8")
+    print(report)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "mode",
+        choices=("compare", "tune", "ablation"),
+        help="experiment to run",
+    )
+    mode = parser.parse_args().mode
+    if mode == "compare":
+        from comparison import run_comparison
+
+        run_comparison()
+    elif mode == "tune":
+        run_tuning()
+    else:
+        run_ablation()
 
 
 if __name__ == "__main__":

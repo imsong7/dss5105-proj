@@ -9,9 +9,14 @@ from app.server import create_app
 class StubClassifier(BaseClassifier):
     name = "llama"
 
+    def __init__(self, category="general"):
+        self.category = category
+        self.calls = 0
+
     def classify(self, email: Email) -> Classification:
+        self.calls += 1
         return Classification(
-            content_category="general",
+            content_category=self.category,
             reply_nature="reminder",
             deadline=None,
             reason="Model classification.",
@@ -20,7 +25,10 @@ class StubClassifier(BaseClassifier):
 
 class SenderRuleIntegrationTests(unittest.TestCase):
     def setUp(self):
-        self.patcher = patch("app.server.create_classifier", return_value=StubClassifier())
+        self.stub_classifier = StubClassifier()
+        self.patcher = patch(
+            "app.server.create_classifier", return_value=self.stub_classifier
+        )
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
         self.client = create_app(backend="llama").test_client()
@@ -32,7 +40,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertIn(b"Inbox dashboard", response.data)
         self.assertIn(b'id="mailbox-settings" open', response.data)
         self.assertIn(b'<dialog class="email-detail-dialog"', response.data)
-        self.assertIn(b"dashboard_v2.js?v=4", response.data)
+        self.assertIn(b"dashboard_v2.js?v=6", response.data)
 
     def test_root_selects_dashboard_by_version(self):
         v1 = create_app(backend="llama", version=1).test_client().get("/")
@@ -44,13 +52,17 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertNotIn(b'href="/dashboard-v2"', v2.data)
 
     def test_sender_rule_overrides_category_for_selected_backend(self):
+        self.stub_classifier.category = "others"
         response = self.client.post(
             "/api/classify",
             json={
                 "backend": "llama",
                 "email": {
                     "id": "1",
-                    "sender": "Canvas Notifications <notifications@instructure.com>",
+                    "sender": (
+                        "CloseDSS5202 Sustainable Systems Analysis [2610] "
+                        "<notifications@instructure.com>"
+                    ),
                 },
             },
         )
@@ -58,10 +70,20 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         result = response.get_json()
         self.assertEqual(result["content_category"], "canva")
-        self.assertEqual(result["reply_nature"], "reminder")
+        self.assertEqual(result["reply_nature"], "no_immediate_action")
         self.assertEqual(
             result["reason"],
             "Sender rule matched and set category to canva.",
+        )
+        self.assertEqual(self.stub_classifier.calls, 0)
+
+    def test_taxonomy_displays_rule_category_as_canva(self):
+        response = self.client.get("/api/taxonomy")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json()["content"]["canva"]["label"],
+            "Canva",
         )
 
     def test_unmatched_sender_keeps_backend_category(self):
@@ -77,6 +99,8 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         result = response.get_json()
         self.assertEqual(result["content_category"], "general")
         self.assertEqual(result["reason"], "Model classification.")
+        self.assertEqual(result["model_name"], "llama")
+        self.assertEqual(self.stub_classifier.calls, 1)
 
 
 if __name__ == "__main__":

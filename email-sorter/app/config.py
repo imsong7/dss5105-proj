@@ -15,7 +15,7 @@ class Settings:
     max_emails: int = int(os.getenv("MAX_EMAILS", "50"))
     port: int = int(os.getenv("PORT", "5000"))
     body_char_limit: int = 3000  # how much of each email the model reads
-    model_backend: str = os.getenv("MODEL_BACKEND", "llama")  # llama | bert | future
+    model_backend: str = os.getenv("MODEL_BACKEND", "llama")  # llama | bert | ml
 
 
 settings = Settings()

@@ -8,8 +8,7 @@ Evaluation protocol
 * A separate 80/20 real-only holdout is also reported as a sanity check.  Model
   selection should be based on the CV columns, not on the 27-email holdout.
 
-Run:
-    python compare_models.py
+Run the comparison with `python -m experiments compare`.
 """
 
 from __future__ import annotations
@@ -62,7 +61,7 @@ from train_email_ml import (
     BalancedComplementNB,
     load_synthetic_action_data,
     normalise,
-    read_workbook,
+    read_labeled_data,
     remove_duplicates_and_check_conflicts,
 )
 
@@ -392,10 +391,10 @@ def format_table(frame: pd.DataFrame, task_name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
+def run_comparison() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    category_data, action_data, _ = read_workbook()
+    category_data, action_data, _ = read_labeled_data()
     category_data = remove_duplicates_and_check_conflicts(
         category_data, "email_category"
     )
@@ -471,7 +470,3 @@ def main() -> None:
         f"  {BASE_DIR / 'model_comparison.csv'}\n"
         f"  {OUTPUT_DIR / 'model_comparison.md'}"
     )
-
-
-if __name__ == "__main__":
-    main()

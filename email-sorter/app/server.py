@@ -4,7 +4,7 @@ Usage::
 
     from app.server import create_app
 
-    app = create_app(backend="bert")   # or "llama", or None to use env/default
+    app = create_app(backend="bert")   # encoder backend; or "llama", or None
 """
 
 import logging
@@ -22,10 +22,11 @@ from .classifier_base import (
     list_backends,
 )
 from .config import ROOT, settings
-from .models import Email
+from .ml_classifier import models_ready as _ml_ready
+from .models import Classification, Email
 from .providers import AuthError, ProviderError, build_provider
 from .rules import category_by_rule
-from .taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
+from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
 
 logging.basicConfig(level=logging.INFO)
 
@@ -55,8 +56,8 @@ def _ollama_status() -> tuple[bool, bool]:
 
 
 def _bert_ready() -> bool:
-    """BERT heads are usable when both head files and manifests exist."""
-    models_dir = ROOT.parent / "bert" / "models"
+    """Encoder heads are usable when both head files and manifests exist."""
+    models_dir = ROOT.parent / "text-encoders" / "models"
     return all(
         (models_dir / name / filename).is_file()
         for name in ("category_head", "action_head")
@@ -70,6 +71,8 @@ def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bo
         return ollama_ready
     if name == "bert":
         return _bert_ready()
+    if name == "ml":
+        return _ml_ready()
     return True if loaded else None
 
 
@@ -136,6 +139,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
         requested = request.args.get("backend") or backend or settings.model_backend
         ollama_up, ollama_ready = _ollama_status()
         bert_ready = _bert_ready()
+        ml_ready = _ml_ready()
         backend_ready = _backend_ready(
             requested,
             ollama_ready,
@@ -153,6 +157,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
                 "model": settings.ollama_model,
                 "model_ready": ollama_ready,
                 "bert_ready": bert_ready,
+                "ml_ready": ml_ready,
             }
         )
 
@@ -176,20 +181,26 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
             email = Email(**data["email"])
             backend_name = data.get("backend") or backend or settings.model_backend
             t0 = time.perf_counter()
-            result = classifier(backend_name).classify(email)
             rule_category = category_by_rule(email.sender)
             if rule_category:
-                rule_reason = f"Sender rule matched and set category to {rule_category}."
-                result = result.model_copy(
-                    update={
-                        "content_category": rule_category,
-                        "reason": rule_reason,
-                    }
+                model_name = "Sender rule (model skipped)"
+                result = Classification(
+                    content_category=rule_category,
+                    reply_nature=DEFAULT_REPLY,
+                    deadline=None,
+                    reason=f"Sender rule matched and set category to {rule_category}.",
+                )
+            else:
+                selected_classifier = classifier(backend_name)
+                result = selected_classifier.classify(email)
+                model_name = getattr(
+                    selected_classifier, "model_name", backend_name
                 )
             duration_ms = int((time.perf_counter() - t0) * 1000)
             out = result.model_dump()
             out["duration_ms"] = duration_ms
             out["backend"] = backend_name
+            out["model_name"] = model_name
             return jsonify(out)
         except Exception as exc:  # most often: Ollama not running or model not pulled
             logging.exception("classification failed")

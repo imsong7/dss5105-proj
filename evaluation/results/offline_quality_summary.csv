@@ -1,5 +1,0 @@
-﻿dataset,task,n,label_count,accuracy,accuracy_ci_low,accuracy_ci_high,macro_f1,macro_f1_ci_low,macro_f1_ci_high,bootstrap,seed,notes
-category_model,category,132,5,0.8636363636363636,0.8106060606060606,0.9166666666666666,0.8439568672066166,0.780214379612595,0.9045836527792935,2000,42,head only; Canvas sender-rule rows excluded
-category_end_to_end,category,200,6,0.91,0.875,0.945,0.8699640560055139,0.8129011947509164,0.9194663036110404,2000,42,sender rule + head; all category rows
-action,action,134,4,0.8432835820895522,0.7833955223880598,0.9029850746268657,0.7946426638377103,0.7072929566896965,0.8709928068887334,2000,42,real+synthetic training folds
-both_labels,both,133,,0.7368421052631579,0.6616541353383458,0.8120300751879699,,,,2000,42,exact match of category and action labels

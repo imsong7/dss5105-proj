@@ -1,1383 +1,1383 @@
-﻿message_id,subject,body,sender,source_sheet,action,source
-SYN-REQ-0001,Would you like to join the campus clean-up?,"Hi Shreya,
+﻿review_id,Subject,From,Preview,category,action
+SYN-REQ-0001,Would you like to join the campus clean-up?,the Student Support Team,"Hi Shreya,
 
 We are organising the campus clean-up for the DSS5105 cohort. Would you like to join us? Please reply by 20 November 2026 so that we can reserve a place.
 
 Cheers,
 the Student Support Team
 
-Please let me know if you need any clarification.",the Student Support Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0002,Are you available to help with the coding workshop?,"Hi Arjun,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0002,Are you available to help with the coding workshop?,the Student Services Team,"Hi Arjun,
 
 We are looking for volunteers for the coding workshop on 3 December 2026. Are you available to help? Please reply by 20 November 2026 so that we can finalise the list.
 
 Thanks,
-the Student Services Team",the Student Services Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0003,RSVP: the orientation briefing,"Dear Aisyah,
+the Student Services Team",,needs_reply
+SYN-REQ-0003,RSVP: the orientation briefing,the Student Support Team,"Dear Aisyah,
 
 You are invited to the orientation briefing on 9 December 2026 at 4:00 pm. Please let us know if you will attend and whether you have any dietary requirements. We need your reply by 2 December 2026.
 
 Best,
-the Student Support Team",the Student Support Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0004,Student query about EC1301,"Dear Professor,
+the Student Support Team",,needs_reply
+SYN-REQ-0004,Student query about EC1301,Dr Tan,"Dear Professor,
 
 I am a student in EC1301. I am unsure about campus safety. Could you clarify whether the deadline has been extended? I would appreciate your guidance.
 
 Thank you,
 Grace
 
-I am happy to discuss this further if that would help.",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0005,Are you the right contact for academic integrity?,"Hello,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0005,Are you the right contact for academic integrity?,the Operations Team,"Hello,
 
 I was referred to you regarding academic integrity. Could you confirm whether you are the right person to speak to? If not, could you point me to the correct contact?
 
 Thanks,
-the Operations Team",the Operations Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0006,Query on your module preference form submission,"Hi Chloe,
+the Operations Team",,needs_reply
+SYN-REQ-0006,Query on your module preference form submission,the Student Affairs Office,"Hi Chloe,
 
 We received your module preference form, but the emergency contact field is blank. Could you confirm the correct value so that we can process it? Please reply at your earliest convenience.
 
 Regards,
 the Student Affairs Office
 
-Please let me know if you need any clarification.",the Student Affairs Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0007,Vendor confirmation for the lab equipment order,"Dear Grace,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0007,Vendor confirmation for the lab equipment order,the Department Office,"Dear Grace,
 
 We are ready to process the lab equipment order. Can you confirm the delivery address and preferred date? Please reply by 6 January 2027.
 
 Regards,
-the Department Office",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0008,Confirmation needed: the UHC wellness talk on 15 December 2026,"Dear Jun Hao,
+the Department Office",,needs_reply
+SYN-REQ-0008,Confirmation needed: the UHC wellness talk on 15 December 2026,the Module Coordinator,"Dear Jun Hao,
 
 We are finalising arrangements for the UHC wellness talk on 15 December 2026. Could you confirm whether you will be able to attend? Please reply by 6 January 2027 so that we can reserve your place.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0009,Please confirm receipt of student declaration form,"Dear Grace,
+the Module Coordinator",,needs_reply
+SYN-REQ-0009,Please confirm receipt of student declaration form,Prof Lim,"Dear Grace,
 
 Could you confirm that you have received the student declaration form we sent on 7 January 2027? Please reply by 18 January 2027 so that we can close the request.
 
 Regards,
 Prof Lim
 
-I am happy to discuss this further if that would help.",Prof Lim,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0010,Re: ACC1701 group allocation,"Hi Jun Hao,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0010,Re: ACC1701 group allocation,Ms Wong,"Hi Jun Hao,
 
 I am putting together the group list for ACC1701. Are you available for a short meeting on 7 January 2027 at 4:00 pm? Let me know which time works for you and I will send the meeting link.
 
 Thanks,
-Ms Wong",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0011,Follow-up: academic integrity,"Dear Wei Ming,
+Ms Wong",,needs_reply
+SYN-REQ-0011,Follow-up: academic integrity,Ms Wong,"Dear Wei Ming,
 
 I am following up on my previous message about academic integrity. Have you had a chance to consider it? I would appreciate your response by 20 November 2026.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0012,Availability for peer mentor interview,"Dear Arjun,
+Ms Wong",,needs_reply
+SYN-REQ-0012,Availability for peer mentor interview,Dr Tan,"Dear Arjun,
 
 We would like to invite you for a short interview for the peer mentor position. Are you available on 7 January 2027 at 2:00 pm? Kindly reply with your preferred slot.
 
 Regards,
 Dr Tan
 
-Your prompt response would be appreciated.",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0013,Missing information for exchange application,"Dear Nadia,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0013,Missing information for exchange application,the Administrative Team,"Dear Nadia,
 
 Your exchange application is incomplete because we still need pre-visit questionnaire. Can you send it to us or confirm when you can provide it? Please respond by 6 January 2027.
 
 Thank you,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0014,Can you review this before 18 January 2027?,"Hi Mei Ling,
+the Administrative Team",,needs_reply
+SYN-REQ-0014,Can you review this before 18 January 2027?,Prof Lim,"Hi Mei Ling,
 
 I have attached the draft proof of payment for ST2334. Could you take a look and let me know if the section on library collections is accurate? I need your comments by 18 January 2027.
 
 Thanks,
 Prof Lim
 
-I am happy to discuss this further if that would help.",Prof Lim,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0015,Confirm your lab slot details,"Dear Jun Hao,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0015,Confirm your lab slot details,the Administrative Team,"Dear Jun Hao,
 
 Please confirm that your lab slot details are correct: 18 November 2026 at 2:00 pm. If anything needs to be changed, reply to this email by 10 November 2026.
 
 Best,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0016,Clarification needed on exam preparation,"Dear Nadia,
+the Administrative Team",,needs_reply
+SYN-REQ-0016,Clarification needed on exam preparation,the Department Office,"Dear Nadia,
 
 We need clarification on exam preparation. Could you explain how the requirements apply in this case? Please reply by 5 November 2026.
 
 Thank you,
 the Department Office
 
-Please let me know if you need any clarification.",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0017,Checking in on complete the module preference survey,"Hi Daniel,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0017,Checking in on complete the module preference survey,the Academic Office,"Hi Daniel,
 
 I wanted to check whether you have any updates on complete the module preference survey. Could you let me know the current status? I need to update the team by 18 January 2027.
 
 Thanks,
-the Academic Office",the Academic Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0018,Question about your hostel application,"Dear Jun Hao,
+the Academic Office",,needs_reply
+SYN-REQ-0018,Question about your hostel application,the Department Office,"Dear Jun Hao,
 
 We are reviewing your hostel application. Could you clarify whether you have completed the internship requirement? Please reply to this email with the details so that we can update your record.
 
 Best,
-the Department Office",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0019,Request for data set,"Hi Grace,
+the Department Office",,needs_reply
+SYN-REQ-0019,Request for data set,the Student Support Team,"Hi Grace,
 
 Could you send me the latest version of data set? I need it for course improvement. Please reply with the file or let me know when it will be ready.
 
 Thanks,
 the Student Support Team
 
-Please let me know if you need any clarification.",the Student Support Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0020,Invitation to speak at the student leadership workshop,"Dear Jun Hao,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0020,Invitation to speak at the student leadership workshop,the Programme Office,"Dear Jun Hao,
 
 We would like to invite you to speak at the student leadership workshop on 3 December 2026. Are you available and interested? Please reply by 10 November 2026 so that we can confirm the programme.
 
 Regards,
-the Programme Office",the Programme Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0021,Permission to use the dataset,"Dear Arjun,
+the Programme Office",,needs_reply
+SYN-REQ-0021,Permission to use the dataset,the Teaching Team,"Dear Arjun,
 
 May I have your permission to use the dataset in the online course? Please let me know if this is acceptable and whether you would like any changes.
 
 Regards,
 the Teaching Team
 
-I am happy to discuss this further if that would help.",the Teaching Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0022,Feedback requested on the revised module outline,"Dear Bryan,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0022,Feedback requested on the revised module outline,the Teaching Team,"Dear Bryan,
 
 We would appreciate your feedback on the revised module outline. Do you support the proposed the venue? Kindly reply with your comments by 18 January 2027.
 
 Thank you,
 the Teaching Team
 
-Your prompt response would be appreciated.",the Teaching Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0023,Which the project topic do you prefer?,"Hi Jun Hao,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0023,Which the project topic do you prefer?,the Operations Team,"Hi Jun Hao,
 
 We have two options for the project topic: a weekday slot or an on-campus briefing. Which one would you prefer? Please reply by 11 December 2026 so that we can finalise the arrangements.
 
 Thanks,
 the Operations Team
 
-Your prompt response would be appreciated.",the Operations Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0024,Re: ST2334 group allocation,"Hi Nadia,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0024,Re: ST2334 group allocation,Dr Tan,"Hi Nadia,
 
 I am putting together the group list for ST2334. Are you available for a short meeting on 7 January 2027 at 10:30 am? Let me know which time works for you and I will send the meeting link.
 
 Thanks,
-Dr Tan",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0025,Follow-up: student wellbeing,"Dear Jun Hao,
+Dr Tan",,needs_reply
+SYN-REQ-0025,Follow-up: student wellbeing,Dr Tan,"Dear Jun Hao,
 
 I am following up on my previous message about student wellbeing. Have you had a chance to consider it? I would appreciate your response by 11 December 2026.
 
 Best,
 Dr Tan
 
-I am happy to discuss this further if that would help.",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0026,Please confirm receipt of questionnaire,"Dear Marcus,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0026,Please confirm receipt of questionnaire,the Module Coordinator,"Dear Marcus,
 
 Could you confirm that you have received the questionnaire we sent on 15 December 2026? Please reply by 2 December 2026 so that we can close the request.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0027,Which the meeting format do you prefer?,"Hi Chloe,
+the Module Coordinator",,needs_reply
+SYN-REQ-0027,Which the meeting format do you prefer?,the Operations Team,"Hi Chloe,
 
 We have two options for the meeting format: an online briefing or Option B. Which one would you prefer? Please reply by 2 December 2026 so that we can finalise the arrangements.
 
 Thanks,
 the Operations Team
 
-Please let me know if you need any clarification.",the Operations Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0028,Are you the right contact for sustainable commuting?,"Hello,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0028,Are you the right contact for sustainable commuting?,the Academic Office,"Hello,
 
 I was referred to you regarding sustainable commuting. Could you confirm whether you are the right person to speak to? If not, could you point me to the correct contact?
 
 Thanks,
-the Academic Office",the Academic Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0029,Clarification needed on research funding,"Dear Chloe,
+the Academic Office",,needs_reply
+SYN-REQ-0029,Clarification needed on research funding,the Academic Office,"Dear Chloe,
 
 We need clarification on research funding. Could you explain how the requirements apply in this case? Please reply by 2 December 2026.
 
 Thank you,
-the Academic Office",the Academic Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0030,Which the meeting format do you prefer?,"Hi Mei Ling,
+the Academic Office",,needs_reply
+SYN-REQ-0030,Which the meeting format do you prefer?,Dr Tan,"Hi Mei Ling,
 
 We have two options for the meeting format: Option A or Option B. Which one would you prefer? Please reply by 5 November 2026 so that we can finalise the arrangements.
 
 Thanks,
-Dr Tan",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0031,Feedback requested on the budget proposal,"Dear Siti,
+Dr Tan",,needs_reply
+SYN-REQ-0031,Feedback requested on the budget proposal,Dr Tan,"Dear Siti,
 
 We would appreciate your feedback on the budget proposal. Do you support the proposed the project timeline? Kindly reply with your comments by 18 January 2027.
 
 Thank you,
-Dr Tan",Dr Tan,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0032,Re: ST2334 group allocation,"Hi Nadia,
+Dr Tan",,needs_reply
+SYN-REQ-0032,Re: ST2334 group allocation,Ms Wong,"Hi Nadia,
 
 I am putting together the group list for ST2334. Are you available for a short meeting on 14 January 2027 at 9:00 am? Let me know which time works for you and I will send the meeting link.
 
 Thanks,
 Ms Wong
 
-Please let me know if you need any clarification.",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0033,Question about your internship placement,"Dear Grace,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0033,Question about your internship placement,the Programme Office,"Dear Grace,
 
 We are reviewing your internship placement. Could you clarify whether you have completed the prerequisite module? Please reply to this email with the details so that we can update your record.
 
 Best,
-the Programme Office",the Programme Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0034,Missing information for internship placement,"Dear Bryan,
+the Programme Office",,needs_reply
+SYN-REQ-0034,Missing information for internship placement,the Student Support Team,"Dear Bryan,
 
 Your internship placement is incomplete because we still need pre-visit questionnaire. Can you send it to us or confirm when you can provide it? Please respond by 20 November 2026.
 
 Thank you,
-the Student Support Team",the Student Support Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0035,Re: DSS5105 group allocation,"Hi Shreya,
+the Student Support Team",,needs_reply
+SYN-REQ-0035,Re: DSS5105 group allocation,the Teaching Team,"Hi Shreya,
 
 I am putting together the group list for DSS5105. Are you available for a short meeting on 9 December 2026 at 3:30 pm? Let me know which time works for you and I will send the meeting link.
 
 Thanks,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0036,Clarification needed on research funding,"Dear Arjun,
+the Teaching Team",,needs_reply
+SYN-REQ-0036,Clarification needed on research funding,the Administrative Team,"Dear Arjun,
 
 We need clarification on research funding. Could you explain how the requirements apply in this case? Please reply by 11 December 2026.
 
 Thank you,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0037,Are you available to help with the coding workshop?,"Hi Kai Wen,
+the Administrative Team",,needs_reply
+SYN-REQ-0037,Are you available to help with the coding workshop?,the Operations Team,"Hi Kai Wen,
 
 We are looking for volunteers for the coding workshop on 3 December 2026. Are you available to help? Please reply by 11 December 2026 so that we can finalise the list.
 
 Thanks,
 the Operations Team
 
-I am happy to discuss this further if that would help.",the Operations Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0038,Feedback requested on the new assessment plan,"Dear Shreya,
+I am happy to discuss this further if that would help.",,needs_reply
+SYN-REQ-0038,Feedback requested on the new assessment plan,Prof Lim,"Dear Shreya,
 
 We would appreciate your feedback on the new assessment plan. Do you support the proposed the venue? Kindly reply with your comments by 10 November 2026.
 
 Thank you,
 Prof Lim
 
-Please let me know if you need any clarification.",Prof Lim,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0039,Confirm your lab slot details,"Dear Chloe,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0039,Confirm your lab slot details,the Course Administrator,"Dear Chloe,
 
 Please confirm that your lab slot details are correct: 3 December 2026 at 3:30 pm. If anything needs to be changed, reply to this email by 5 November 2026.
 
 Best,
-the Course Administrator",the Course Administrator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0040,Follow-up: library collections,"Dear Hafiz,
+the Course Administrator",,needs_reply
+SYN-REQ-0040,Follow-up: library collections,the Student Services Team,"Dear Hafiz,
 
 I am following up on my previous message about library collections. Have you had a chance to consider it? I would appreciate your response by 5 November 2026.
 
 Best,
 the Student Services Team
 
-Please let me know if you need any clarification.",the Student Services Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0041,Are you available to help with the alumni dinner?,"Hi Shreya,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0041,Are you available to help with the alumni dinner?,the Student Affairs Office,"Hi Shreya,
 
 We are looking for volunteers for the alumni dinner on 9 December 2026. Are you available to help? Please reply by 20 November 2026 so that we can finalise the list.
 
 Thanks,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0042,Follow-up: student wellbeing,"Dear Daniel,
+the Student Affairs Office",,needs_reply
+SYN-REQ-0042,Follow-up: student wellbeing,the Administrative Team,"Dear Daniel,
 
 I am following up on my previous message about student wellbeing. Have you had a chance to consider it? I would appreciate your response by 5 November 2026.
 
 Best,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0043,Student query about MA1505,"Dear Professor,
+the Administrative Team",,needs_reply
+SYN-REQ-0043,Student query about MA1505,the Course Administrator,"Dear Professor,
 
 I am a student in MA1505. I am unsure about sustainable commuting. Could you clarify whether the submission format is flexible? I would appreciate your guidance.
 
 Thank you,
 Shreya
 
-Please let me know if you need any clarification.",the Course Administrator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0044,Would you like to join the wellness walk?,"Hi Marcus,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0044,Would you like to join the wellness walk?,the Student Affairs Office,"Hi Marcus,
 
 We are organising the wellness walk for the student committee. Would you like to join us? Please reply by 2 December 2026 so that we can reserve a place.
 
 Cheers,
 the Student Affairs Office
 
-Your prompt response would be appreciated.",the Student Affairs Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0045,Are you available to help with the campus clean-up?,"Hi Daniel,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0045,Are you available to help with the campus clean-up?,the Student Affairs Office,"Hi Daniel,
 
 We are looking for volunteers for the campus clean-up on 15 December 2026. Are you available to help? Please reply by 18 January 2027 so that we can finalise the list.
 
 Thanks,
 the Student Affairs Office
 
-Please let me know if you need any clarification.",the Student Affairs Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0046,Re: CS1010 group allocation,"Hi Arjun,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0046,Re: CS1010 group allocation,the Department Office,"Hi Arjun,
 
 I am putting together the group list for CS1010. Are you available for a short meeting on 7 January 2027 at 2:00 pm? Let me know which time works for you and I will send the meeting link.
 
 Thanks,
-the Department Office",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0047,Please confirm receipt of questionnaire,"Dear Amelia,
+the Department Office",,needs_reply
+SYN-REQ-0047,Please confirm receipt of questionnaire,the Student Affairs Office,"Dear Amelia,
 
 Could you confirm that you have received the questionnaire we sent on 21 January 2027? Please reply by 20 November 2026 so that we can close the request.
 
 Regards,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0048,Student query about CS1010,"Dear Professor,
+the Student Affairs Office",,needs_reply
+SYN-REQ-0048,Student query about CS1010,Ms Wong,"Dear Professor,
 
 I am a student in CS1010. I am unsure about library collections. Could you clarify whether the venue has changed? I would appreciate your guidance.
 
 Thank you,
-Grace",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0049,Confirmation needed: the campus sustainability forum on 15 December 2026,"Dear Grace,
+Grace",,needs_reply
+SYN-REQ-0049,Confirmation needed: the campus sustainability forum on 15 December 2026,Ms Wong,"Dear Grace,
 
 We are finalising arrangements for the campus sustainability forum on 15 December 2026. Could you confirm whether you will be able to attend? Please reply by 10 November 2026 so that we can reserve your place.
 
 Regards,
-Ms Wong",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0050,Confirm your UHC appointment details,"Dear Kai Wen,
+Ms Wong",,needs_reply
+SYN-REQ-0050,Confirm your UHC appointment details,Ms Wong,"Dear Kai Wen,
 
 Please confirm that your UHC appointment details are correct: 25 November 2026 at 9:00 am. If anything needs to be changed, reply to this email by 6 January 2027.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0051,Which the meeting format do you prefer?,"Hi Wei Ming,
+Ms Wong",,needs_reply
+SYN-REQ-0051,Which the meeting format do you prefer?,the Operations Team,"Hi Wei Ming,
 
 We have two options for the meeting format: Option A or an afternoon session. Which one would you prefer? Please reply by 2 December 2026 so that we can finalise the arrangements.
 
 Thanks,
 the Operations Team
 
-Please let me know if you need any clarification.",the Operations Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0052,Student query about IS1108,"Dear Professor,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0052,Student query about IS1108,the Academic Office,"Dear Professor,
 
 I am a student in IS1108. I am unsure about sustainable commuting. Could you clarify whether the deadline has been extended? I would appreciate your guidance.
 
 Thank you,
 Mei Ling
 
-Your prompt response would be appreciated.",the Academic Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0053,Are you available to help with the wellness walk?,"Hi Hafiz,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0053,Are you available to help with the wellness walk?,the Administrative Team,"Hi Hafiz,
 
 We are looking for volunteers for the wellness walk on 12 November 2026. Are you available to help? Please reply by 10 November 2026 so that we can finalise the list.
 
 Thanks,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0054,Can you review this before 20 November 2026?,"Hi Bryan,
+the Administrative Team",,needs_reply
+SYN-REQ-0054,Can you review this before 20 November 2026?,the Student Services Team,"Hi Bryan,
 
 I have attached the draft updated CV for DSS5201. Could you take a look and let me know if the section on research funding is accurate? I need your comments by 20 November 2026.
 
 Thanks,
-the Student Services Team",the Student Services Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0055,Checking in on return the lab equipment,"Hi Wei Ming,
+the Student Services Team",,needs_reply
+SYN-REQ-0055,Checking in on return the lab equipment,the Department Office,"Hi Wei Ming,
 
 I wanted to check whether you have any updates on return the lab equipment. Could you let me know the current status? I need to update the team by 6 January 2027.
 
 Thanks,
-the Department Office",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0056,Confirmation needed: the research seminar on 15 December 2026,"Dear Nadia,
+the Department Office",,needs_reply
+SYN-REQ-0056,Confirmation needed: the research seminar on 15 December 2026,the Module Coordinator,"Dear Nadia,
 
 We are finalising arrangements for the research seminar on 15 December 2026. Could you confirm whether you will be able to attend? Please reply by 18 January 2027 so that we can reserve your place.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0057,Feedback requested on the revised module outline,"Dear Hafiz,
+the Module Coordinator",,needs_reply
+SYN-REQ-0057,Feedback requested on the revised module outline,the Module Coordinator,"Dear Hafiz,
 
 We would appreciate your feedback on the revised module outline. Do you support the proposed the venue? Kindly reply with your comments by 28 November 2026.
 
 Thank you,
 the Module Coordinator
 
-Please let me know if you need any clarification.",the Module Coordinator,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0058,Request for consent form,"Hi Jun Hao,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0058,Request for consent form,the Student Services Team,"Hi Jun Hao,
 
 Could you send me the latest version of consent form? I need it for course improvement. Please reply with the file or let me know when it will be ready.
 
 Thanks,
 the Student Services Team
 
-Please let me know if you need any clarification.",the Student Services Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0059,Which the meeting format do you prefer?,"Hi Bryan,
+Please let me know if you need any clarification.",,needs_reply
+SYN-REQ-0059,Which the meeting format do you prefer?,the Teaching Team,"Hi Bryan,
 
 We have two options for the meeting format: a morning session or Option B. Which one would you prefer? Please reply by 11 December 2026 so that we can finalise the arrangements.
 
 Thanks,
 the Teaching Team
 
-Your prompt response would be appreciated.",the Teaching Team,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0060,Availability for peer mentor interview,"Dear Nadia,
+Your prompt response would be appreciated.",,needs_reply
+SYN-REQ-0060,Availability for peer mentor interview,the Department Office,"Dear Nadia,
 
 We would like to invite you for a short interview for the peer mentor position. Are you available on 7 January 2027 at 9:00 am? Kindly reply with your preferred slot.
 
 Regards,
-the Department Office",the Department Office,synthetic_required_action,Needs a reply,synthetic
-SYN-REQ-0061,Invoice for student card,"Dear Daniel,
+the Department Office",,needs_reply
+SYN-REQ-0061,Invoice for student card,the Department Office,"Dear Daniel,
 
 Please settle the attached invoice of $48.50 for student card by 12 November 2026. Payment can be made through https://example.com/forms/student-update.
 
 Regards,
-the Department Office",the Department Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0062,Book your UHC appointment,"Dear Priya,
+the Department Office",,needs_action
+SYN-REQ-0062,Book your UHC appointment,the Course Administrator,"Dear Priya,
 
 Please book your UHC appointment at https://example.com/form/registration before 3 December 2026. Slots are available from 2 December 2026 onwards. Bring your lab equipment to the appointment.
 
 Regards,
 the Course Administrator
 
-Please keep a copy of your submission for your records.",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0063,Action required: complete student update form,"Dear Arjun,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0063,Action required: complete student update form,the Programme Office,"Dear Arjun,
 
 Please complete the student update form at https://example.com/survey/feedback by 25 November 2026. You will need your application number to submit it. Your application cannot be processed until the form is received.
 
 Regards,
 the Programme Office
 
-Late submissions may not be accepted.",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0064,Submit your conference expense claim,"Dear Bryan,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0064,Submit your conference expense claim,the Module Coordinator,"Dear Bryan,
 
 Please submit your conference expense claim with receipts through https://example.com/forms/student-update by 12 November 2026. Late submissions may not be processed.
 
 Best,
 the Module Coordinator
 
-Contact us if you have any difficulty completing this step.",the Module Coordinator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0065,Apply for the summer internship programme,"Dear Jun Hao,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0065,Apply for the summer internship programme,the Module Coordinator,"Dear Jun Hao,
 
 Applications for the summer internship programme close on 12 November 2026. Please apply through https://example.com/survey/feedback and upload your academic transcript. Late applications will not be considered.
 
 Best,
 the Module Coordinator
 
-Please keep a copy of your submission for your records.",the Module Coordinator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0066,Payment required for laptop loan,"Dear Amelia,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0066,Payment required for laptop loan,the Academic Office,"Dear Amelia,
 
 Please make payment of $210 for laptop loan by 15 December 2026. You can pay through https://example.com/survey/feedback. Your place will be confirmed after payment is received.
 
 Regards,
-the Academic Office",the Academic Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0067,Verify your student profile,"Dear Kai Wen,
+the Academic Office",,needs_action
+SYN-REQ-0067,Verify your student profile,the Course Administrator,"Dear Kai Wen,
 
 Please verify your student profile at https://example.com/form/registration by 7 January 2027. Check that all details are accurate and update anything that has changed.
 
 Thank you,
 the Course Administrator
 
-Please keep a copy of your submission for your records.",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0068,Upload supporting documents,"Dear Nadia,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0068,Upload supporting documents,Prof Lim,"Dear Nadia,
 
 Please upload your placement documents to https://example.com/forms/student-update by 3 December 2026. We cannot process your module registration until the documents are received.
 
 Regards,
-Prof Lim",Prof Lim,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0069,Register for the student leadership workshop,"Dear Shreya,
+Prof Lim",,needs_action
+SYN-REQ-0069,Register for the student leadership workshop,the Academic Office,"Dear Shreya,
 
 Registration for the student leadership workshop is now open. Please register at https://example.com/survey/feedback by 12 November 2026. Places are limited and will be allocated on a first-come basis.
 
 Best,
-the Academic Office",the Academic Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0070,Complete the safety declaration,"Dear Amelia,
+the Academic Office",,needs_action
+SYN-REQ-0070,Complete the safety declaration,the Student Affairs Office,"Dear Amelia,
 
 Please complete the safety declaration at https://example.com/forms/student-update before attending the coding workshop on 7 January 2027. Entry will not be permitted without a completed declaration.
 
 Regards,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0071,Update your hostel profile,"Dear Arjun,
+the Student Affairs Office",,needs_action
+SYN-REQ-0071,Update your hostel profile,the Teaching Team,"Dear Arjun,
 
 Please update your hostel profile at https://example.com/portal/submission by 21 January 2027. Make sure that your contact number and emergency contact are current.
 
 Thank you,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0072,Submit your BT1101 lab report,"Hi Nadia,
+the Teaching Team",,needs_action
+SYN-REQ-0072,Submit your BT1101 lab report,the Operations Team,"Hi Nadia,
 
 Your BT1101 lab report is due on 15 December 2026 at 11:15 am. Upload your file to NUS email by the deadline. Please submit the file in PDF format.
 
 Regards,
 the Operations Team
 
-Late submissions may not be accepted.",the Operations Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0073,Prepare the survey template for the sustainability masterclass,"Dear Amelia,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0073,Prepare the survey template for the sustainability masterclass,Ms Wong,"Dear Amelia,
 
 Please prepare the survey template for the sustainability masterclass on 7 January 2027. Send the final version to course.admin@example.com by 11 December 2026 so that it can be included in the programme.
 
 Regards,
 Ms Wong
 
-Contact us if you have any difficulty completing this step.",Ms Wong,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0074,Complete the teaching assistant training module,"Dear Aisyah,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0074,Complete the teaching assistant training module,Prof Lim,"Dear Aisyah,
 
 Please complete the teaching assistant training module at https://example.com/booking/appointment by 3 December 2026. It takes about 90 minutes. A completion record will be added to your profile.
 
 Regards,
 Prof Lim
 
-Contact us if you have any difficulty completing this step.",Prof Lim,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0075,Renew your library membership,"Dear Siti,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0075,Renew your library membership,Prof Lim,"Dear Siti,
 
 Your library membership expires on 21 January 2027. Please renew it at https://example.com/forms/student-update to avoid any interruption to your access.
 
 Regards,
 Prof Lim
 
-Please keep a copy of your submission for your records.",Prof Lim,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0076,Activate your VPN account,"Dear Kai Wen,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0076,Activate your VPN account,the Teaching Team,"Dear Kai Wen,
 
 Please activate your VPN account at https://example.com/booking/appointment by 18 November 2026. You will need your matriculation number to complete the process.
 
 Regards,
 the Teaching Team
 
-Contact us if you have any difficulty completing this step.",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0077,Sign and return travel declaration form,"Dear Aisyah,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0077,Sign and return travel declaration form,the Programme Office,"Dear Aisyah,
 
 Please sign the attached travel declaration form and return it to career.services@example.com by 15 December 2026. You may use an electronic signature.
 
 Best,
 the Programme Office
 
-Late submissions may not be accepted.",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0078,Download and install the VPN client,"Dear Jun Hao,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0078,Download and install the VPN client,the Course Administrator,"Dear Jun Hao,
 
 Please download and install the VPN client from https://example.com/form/registration before 18 November 2026. Contact finance.help@example.com if you encounter any issues during installation.
 
 Best,
-the Course Administrator",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0079,Submit your medical certificate,"Dear Arjun,
+the Course Administrator",,needs_action
+SYN-REQ-0079,Submit your medical certificate,the Programme Office,"Dear Arjun,
 
 Please submit your medical certificate through https://example.com/survey/feedback by 7 January 2027. We cannot process your fee appeal without it.
 
 Regards,
-the Programme Office",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0080,Submit your room preference,"Dear Mei Ling,
+the Programme Office",,needs_action
+SYN-REQ-0080,Submit your room preference,the Student Services Team,"Dear Mei Ling,
 
 Please submit your room preference through https://example.com/form/registration by 7 January 2027. This information will be used to allocate lab benches.
 
 Thank you,
 the Student Services Team
 
-Please keep a copy of your submission for your records.",the Student Services Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0081,Attend the mandatory exchange briefing,"Dear Kai Wen,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0081,Attend the mandatory exchange briefing,the Academic Office,"Dear Kai Wen,
 
 You are required to attend the exchange briefing on 15 December 2026 at 11:15 am in LT27. Please bring your lab fees and arrive 10 minutes early.
 
 Regards,
 the Academic Office
 
-Contact us if you have any difficulty completing this step.",the Academic Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0082,Complete the library services survey,"Dear Amelia,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0082,Complete the library services survey,the Department Office,"Dear Amelia,
 
 Please complete the library services survey at https://example.com/portal/submission by 18 November 2026. Your feedback will be used for course improvement. The survey takes about 90 minutes.
 
 Thank you,
 the Department Office
 
-Please keep a copy of your submission for your records.",the Department Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0083,Return the borrowed lab equipment,"Dear Shreya,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0083,Return the borrowed lab equipment,the Course Administrator,"Dear Shreya,
 
 Please return the borrowed lab equipment to Block AS8 by 7 January 2027. A late fee applies after the due date.
 
 Thank you,
-the Course Administrator",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0084,Attend the mandatory lab induction,"Dear Amelia,
+the Course Administrator",,needs_action
+SYN-REQ-0084,Attend the mandatory lab induction,the Programme Office,"Dear Amelia,
 
 You are required to attend the lab induction on 14 January 2027 at 2:00 pm in COM3 Multi-purpose Room. Please bring your library book and arrive 10 minutes early.
 
 Regards,
 the Programme Office
 
-Please keep a copy of your submission for your records.",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0085,Complete the safety declaration,"Dear Rui En,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0085,Complete the safety declaration,Dr Tan,"Dear Rui En,
 
 Please complete the safety declaration at https://example.com/booking/appointment before attending the student welcome tea on 25 November 2026. Entry will not be permitted without a completed declaration.
 
 Regards,
 Dr Tan
 
-Please keep a copy of your submission for your records.",Dr Tan,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0086,Action required: complete safety declaration form,"Dear Hafiz,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0086,Action required: complete safety declaration form,the Teaching Team,"Dear Hafiz,
 
 Please complete the safety declaration form at https://example.com/portal/submission by 3 December 2026. You will need your application number to submit it. Your application cannot be processed until the form is received.
 
 Regards,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0087,Complete the student experience survey,"Dear Chloe,
+the Teaching Team",,needs_action
+SYN-REQ-0087,Complete the student experience survey,the Administrative Team,"Dear Chloe,
 
 Please complete the student experience survey at https://example.com/survey/feedback by 7 January 2027. Your feedback will be used for accreditation review. The survey takes about 90 minutes.
 
 Thank you,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0088,Prepare the lecture slides for the student leadership workshop,"Dear Aisyah,
+the Administrative Team",,needs_action
+SYN-REQ-0088,Prepare the lecture slides for the student leadership workshop,the Administrative Team,"Dear Aisyah,
 
 Please prepare the lecture slides for the student leadership workshop on 7 January 2027. Send the final version to uhc.appointments@example.com by 11 December 2026 so that it can be included in the programme.
 
 Regards,
-the Administrative Team",the Administrative Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0089,Attend the mandatory orientation briefing,"Dear Bryan,
+the Administrative Team",,needs_action
+SYN-REQ-0089,Attend the mandatory orientation briefing,the Teaching Team,"Dear Bryan,
 
 You are required to attend the orientation briefing on 3 December 2026 at 9:00 am in Central Library Theatrette. Please bring your lab equipment and arrive 10 minutes early.
 
 Regards,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0090,Submit your project topic preference,"Dear Daniel,
+the Teaching Team",,needs_action
+SYN-REQ-0090,Submit your project topic preference,Ms Wong,"Dear Daniel,
 
 Please submit your project topic preference through https://example.com/portal/submission by 14 January 2027. This information will be used to allocate lab benches.
 
 Thank you,
-Ms Wong",Ms Wong,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0091,Return the borrowed camera kit,"Dear Mei Ling,
+Ms Wong",,needs_action
+SYN-REQ-0091,Return the borrowed camera kit,the Student Support Team,"Dear Mei Ling,
 
 Please return the borrowed camera kit to the Central Library by 12 November 2026. A late fee applies after the due date.
 
 Thank you,
 the Student Support Team
 
-Contact us if you have any difficulty completing this step.",the Student Support Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0092,Prepare the dataset for the career booster workshop,"Dear Kai Wen,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0092,Prepare the dataset for the career booster workshop,the Programme Office,"Dear Kai Wen,
 
 Please prepare the dataset for the career booster workshop on 25 November 2026. Send the final version to career.services@example.com by 10 November 2026 so that it can be included in the programme.
 
 Regards,
-the Programme Office",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0093,Submit your consent form,"Dear Hafiz,
+the Programme Office",,needs_action
+SYN-REQ-0093,Submit your consent form,the Student Services Team,"Dear Hafiz,
 
 Please submit your consent form through https://example.com/forms/student-update by 18 November 2026. We cannot process your fee appeal without it.
 
 Regards,
 the Student Services Team
 
-Please keep a copy of your submission for your records.",the Student Services Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0094,Submit your meal allowance claim,"Dear Kai Wen,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0094,Submit your meal allowance claim,the Academic Office,"Dear Kai Wen,
 
 Please submit your meal allowance claim with receipts through https://example.com/forms/student-update by 21 January 2027. Late submissions may not be processed.
 
 Best,
-the Academic Office",the Academic Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0095,Complete the safety declaration,"Dear Siti,
+the Academic Office",,needs_action
+SYN-REQ-0095,Complete the safety declaration,the Module Coordinator,"Dear Siti,
 
 Please complete the safety declaration at https://example.com/portal/submission before attending the wellness walk on 3 December 2026. Entry will not be permitted without a completed declaration.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0096,Verify your graduation record,"Dear Bryan,
+the Module Coordinator",,needs_action
+SYN-REQ-0096,Verify your graduation record,the Student Affairs Office,"Dear Bryan,
 
 Please verify your graduation record at https://example.com/booking/appointment by 14 January 2027. Check that all details are accurate and update anything that has changed.
 
 Thank you,
 the Student Affairs Office
 
-Please keep a copy of your submission for your records.",the Student Affairs Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0097,Verify your hostel profile,"Dear Amelia,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0097,Verify your hostel profile,the Course Administrator,"Dear Amelia,
 
 Please verify your hostel profile at https://example.com/form/registration by 7 January 2027. Check that all details are accurate and update anything that has changed.
 
 Thank you,
 the Course Administrator
 
-Please keep a copy of your submission for your records.",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0098,Upload supporting documents,"Dear Chloe,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0098,Upload supporting documents,the Teaching Team,"Dear Chloe,
 
 Please upload your supporting documents to https://example.com/form/registration by 25 November 2026. We cannot process your exchange application until the documents are received.
 
 Regards,
 the Teaching Team
 
-Late submissions may not be accepted.",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0099,Sign and return internship registration form,"Dear Kai Wen,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0099,Sign and return internship registration form,the Course Administrator,"Dear Kai Wen,
 
 Please sign the attached internship registration form and return it to uhc.appointments@example.com by 14 January 2027. You may use an electronic signature.
 
 Best,
-the Course Administrator",the Course Administrator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0100,Invoice for clinic visit invoice,"Dear Siti,
+the Course Administrator",,needs_action
+SYN-REQ-0100,Invoice for clinic visit invoice,the Module Coordinator,"Dear Siti,
 
 Please settle the attached invoice of $360 for clinic visit invoice by 12 November 2026. Payment can be made through https://example.com/form/registration.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0101,Upload supporting documents,"Dear Rui En,
+the Module Coordinator",,needs_action
+SYN-REQ-0101,Upload supporting documents,the Academic Office,"Dear Rui En,
 
 Please upload your supporting documents to https://example.com/booking/appointment by 9 December 2026. We cannot process your hostel application until the documents are received.
 
 Regards,
-the Academic Office",the Academic Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0102,Apply for the peer mentoring programme,"Dear Daniel,
+the Academic Office",,needs_action
+SYN-REQ-0102,Apply for the peer mentoring programme,the Teaching Team,"Dear Daniel,
 
 Applications for the peer mentoring programme close on 12 November 2026. Please apply through https://example.com/portal/submission and upload your medical certificate. Late applications will not be considered.
 
 Best,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0103,Submit your CS1010 practical,"Hi Siti,
+the Teaching Team",,needs_action
+SYN-REQ-0103,Submit your CS1010 practical,the Department Office,"Hi Siti,
 
 Your CS1010 practical is due on 14 January 2027 at 10:30 am. Upload your file to EduRec by the deadline. Please submit the file in PDF format.
 
 Regards,
 the Department Office
 
-Late submissions may not be accepted.",the Department Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0104,Download and install the VPN client,"Dear Daniel,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0104,Download and install the VPN client,the Operations Team,"Dear Daniel,
 
 Please download and install the VPN client from https://example.com/forms/student-update before 25 November 2026. Contact finance.help@example.com if you encounter any issues during installation.
 
 Best,
-the Operations Team",the Operations Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0105,Invoice for lab equipment,"Dear Priya,
+the Operations Team",,needs_action
+SYN-REQ-0105,Invoice for lab equipment,the Student Support Team,"Dear Priya,
 
 Please settle the attached invoice of $48.50 for lab equipment by 7 January 2027. Payment can be made through https://example.com/form/registration.
 
 Regards,
 the Student Support Team
 
-Contact us if you have any difficulty completing this step.",the Student Support Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0106,Upload supporting documents,"Dear Nadia,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0106,Upload supporting documents,the Teaching Team,"Dear Nadia,
 
 Please upload your placement documents to https://example.com/portal/submission by 7 January 2027. We cannot process your internship placement until the documents are received.
 
 Regards,
-the Teaching Team",the Teaching Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0107,Submit your DSS5101 problem set 3,"Hi Wei Ming,
+the Teaching Team",,needs_action
+SYN-REQ-0107,Submit your DSS5101 problem set 3,the Operations Team,"Hi Wei Ming,
 
 Your DSS5101 problem set 3 is due on 25 November 2026 at 10:30 am. Upload your file to NUS email by the deadline. Please submit the file in PDF format.
 
 Regards,
-the Operations Team",the Operations Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0108,Action required: complete internship registration form,"Dear Rui En,
+the Operations Team",,needs_action
+SYN-REQ-0108,Action required: complete internship registration form,the Programme Office,"Dear Rui En,
 
 Please complete the internship registration form at https://example.com/form/registration by 7 January 2027. You will need your booking reference to submit it. Your application cannot be processed until the form is received.
 
 Regards,
-the Programme Office",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0109,Complete the module questionnaire,"Dear Kai Wen,
+the Programme Office",,needs_action
+SYN-REQ-0109,Complete the module questionnaire,the Student Services Team,"Dear Kai Wen,
 
 Please complete the module questionnaire at https://example.com/form/registration by 15 December 2026. Your feedback will be used for programme evaluation. The survey takes about 45 minutes.
 
 Thank you,
-the Student Services Team",the Student Services Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0110,Submit your pre-visit questionnaire,"Dear Bryan,
+the Student Services Team",,needs_action
+SYN-REQ-0110,Submit your pre-visit questionnaire,Prof Lim,"Dear Bryan,
 
 Please submit your pre-visit questionnaire through https://example.com/form/registration by 21 January 2027. We cannot process your fee appeal without it.
 
 Regards,
-Prof Lim",Prof Lim,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0111,Invoice for hostel fees,"Dear Daniel,
+Prof Lim",,needs_action
+SYN-REQ-0111,Invoice for hostel fees,the Programme Office,"Dear Daniel,
 
 Please settle the attached invoice of $210 for hostel fees by 18 November 2026. Payment can be made through https://example.com/survey/feedback.
 
 Regards,
-the Programme Office",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0112,Register for the DSS5105 industry panel,"Dear Wei Ming,
+the Programme Office",,needs_action
+SYN-REQ-0112,Register for the DSS5105 industry panel,the Operations Team,"Dear Wei Ming,
 
 Registration for the DSS5105 industry panel is now open. Please register at https://example.com/survey/feedback by 14 January 2027. Places are limited and will be allocated on a first-come basis.
 
 Best,
 the Operations Team
 
-Please keep a copy of your submission for your records.",the Operations Team,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0113,Complete the teaching assistant training module,"Dear Bryan,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0113,Complete the teaching assistant training module,the Programme Office,"Dear Bryan,
 
 Please complete the teaching assistant training module at https://example.com/survey/feedback by 21 January 2027. It takes about 90 minutes. A completion record will be added to your profile.
 
 Regards,
 the Programme Office
 
-Contact us if you have any difficulty completing this step.",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0114,Upload supporting documents,"Dear Wei Ming,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0114,Upload supporting documents,Dr Tan,"Dear Wei Ming,
 
 Please upload your financial documents to https://example.com/survey/feedback by 21 January 2027. We cannot process your graduation audit until the documents are received.
 
 Regards,
-Dr Tan",Dr Tan,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0115,Register for the alumni networking session,"Dear Priya,
+Dr Tan",,needs_action
+SYN-REQ-0115,Register for the alumni networking session,the Programme Office,"Dear Priya,
 
 Registration for the alumni networking session is now open. Please register at https://example.com/survey/feedback by 15 December 2026. Places are limited and will be allocated on a first-come basis.
 
 Best,
 the Programme Office
 
-Late submissions may not be accepted.",the Programme Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0116,Activate your NUS email account,"Dear Kai Wen,
+Late submissions may not be accepted.",,needs_action
+SYN-REQ-0116,Activate your NUS email account,the Student Affairs Office,"Dear Kai Wen,
 
 Please activate your NUS email account at https://example.com/form/registration by 3 December 2026. You will need your matriculation number to complete the process.
 
 Regards,
 the Student Affairs Office
 
-Contact us if you have any difficulty completing this step.",the Student Affairs Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0117,Verify your emergency contact details,"Dear Wei Ming,
+Contact us if you have any difficulty completing this step.",,needs_action
+SYN-REQ-0117,Verify your emergency contact details,Prof Lim,"Dear Wei Ming,
 
 Please verify your emergency contact details at https://example.com/form/registration by 21 January 2027. Check that all details are accurate and update anything that has changed.
 
 Thank you,
-Prof Lim",Prof Lim,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0118,Submit your project topic preference,"Dear Mei Ling,
+Prof Lim",,needs_action
+SYN-REQ-0118,Submit your project topic preference,the Department Office,"Dear Mei Ling,
 
 Please submit your project topic preference through https://example.com/portal/submission by 7 January 2027. This information will be used to allocate project supervisors.
 
 Thank you,
-the Department Office",the Department Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0119,Download and install the data visualisation tool,"Dear Chloe,
+the Department Office",,needs_action
+SYN-REQ-0119,Download and install the data visualisation tool,Ms Wong,"Dear Chloe,
 
 Please download and install the data visualisation tool from https://example.com/forms/student-update before 9 December 2026. Contact finance.help@example.com if you encounter any issues during installation.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0120,Apply for the undergraduate research programme,"Dear Nadia,
+Ms Wong",,needs_action
+SYN-REQ-0120,Apply for the undergraduate research programme,the Department Office,"Dear Nadia,
 
 Applications for the undergraduate research programme close on 18 November 2026. Please apply through https://example.com/portal/submission and upload your proof of payment. Late applications will not be considered.
 
 Best,
 the Department Office
 
-Please keep a copy of your submission for your records.",the Department Office,synthetic_required_action,Needs an action,synthetic
-SYN-REQ-0121,Reminder: safety declaration form not received,"Dear Daniel,
+Please keep a copy of your submission for your records.",,needs_action
+SYN-REQ-0121,Reminder: safety declaration form not received,the Programme Office,"Dear Daniel,
 
 We have not received your completed safety declaration form. Please submit it by 14 January 2027 so that we can finalise your graduation audit.
 
 Best,
 the Programme Office
 
-If you have already completed this, please disregard this message.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0122,Final reminder: the DSS5105 industry panel,"Dear Marcus,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0122,Final reminder: the DSS5105 industry panel,Dr Tan,"Dear Marcus,
 
 This is a final reminder to register for the DSS5105 industry panel by 25 November 2026. Registration will close at 9:00 am.
 
 Regards,
-Dr Tan",Dr Tan,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0123,Reminder: the research showcase is tomorrow,"Dear Bryan,
+Dr Tan",,reminder
+SYN-REQ-0123,Reminder: the research showcase is tomorrow,Ms Wong,"Dear Bryan,
 
 Just a reminder that the research showcase is tomorrow, 25 November 2026, at 10:30 am in Block AS8 Level 4. We look forward to seeing you there.
 
 Best,
 Ms Wong
 
-Thank you for your prompt attention to this matter.",Ms Wong,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0124,Last call for proof of payment submission,"Dear Daniel,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0124,Last call for proof of payment submission,the Programme Office,"Dear Daniel,
 
 The deadline for proof of payment submission is 12 November 2026. This is a last call to submit your proof of payment. Late entries may not be accepted.
 
 Best,
-the Programme Office",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0125,Overdue: student card,"Dear Grace,
+the Programme Office",,reminder
+SYN-REQ-0125,Overdue: student card,the Student Affairs Office,"Dear Grace,
 
 Our records show that your student card is now overdue. Please settle it by 21 January 2027 to avoid any disruption to your access.
 
 Regards,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0126,Reminder: return course materials fee,"Dear Chloe,
+the Student Affairs Office",,reminder
+SYN-REQ-0126,Reminder: return course materials fee,Prof Lim,"Dear Chloe,
 
 This is a reminder to return course materials fee by 7 January 2027. Please bring it to the sports centre.
 
 Thank you,
 Prof Lim
 
-If you have already completed this, please disregard this message.",Prof Lim,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0127,Still pending: confirm your graduation details,"Dear Bryan,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0127,Still pending: confirm your graduation details,the Course Administrator,"Dear Bryan,
 
 We are still waiting for your confirm your graduation details. Please complete it as soon as possible, or by 9 December 2026 at the latest.
 
 Regards,
-the Course Administrator",the Course Administrator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0128,Reminder: complete teaching assistant training,"Dear Priya,
+the Course Administrator",,reminder
+SYN-REQ-0128,Reminder: complete teaching assistant training,the Programme Office,"Dear Priya,
 
 You have not yet completed the teaching assistant training module. Please complete it by 3 December 2026.
 
 Regards,
 the Programme Office
 
-If you have already completed this, please disregard this message.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0129,Reminder: safety declaration form due 9 December 2026,"Dear Aisyah,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0129,Reminder: safety declaration form due 9 December 2026,Dr Tan,"Dear Aisyah,
 
 This is a reminder that the safety declaration form is due on 9 December 2026. Please complete it at https://example.com/form/registration if you have not done so.
 
 Regards,
-Dr Tan",Dr Tan,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0130,Don't forget: renew your hostel agreement,"Hi Kai Wen,
+Dr Tan",,reminder
+SYN-REQ-0130,Don't forget: renew your hostel agreement,the Programme Office,"Hi Kai Wen,
 
 Don't forget to renew your hostel agreement before 21 January 2027. Let us know if you need any help with the process.
 
 Best,
 the Programme Office
 
-If you have already completed this, please disregard this message.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0131,Reminder: payment for safety goggles is overdue,"Dear Aisyah,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0131,Reminder: payment for safety goggles is overdue,the Operations Team,"Dear Aisyah,
 
 Our records show that payment for safety goggles is overdue. Please pay $75 by 3 December 2026 to avoid any disruption.
 
 Regards,
-the Operations Team",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0132,Reminder: the research seminar starts 12 November 2026,"Dear Rui En,
+the Operations Team",,reminder
+SYN-REQ-0132,Reminder: the research seminar starts 12 November 2026,the Teaching Team,"Dear Rui En,
 
 This is a reminder that the research seminar starts on 12 November 2026 at 9:00 am. Please complete the pre-event checklist at https://example.com/form/registration.
 
 Best,
-the Teaching Team",the Teaching Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0133,Reminder: questionnaire still missing,"Dear Daniel,
+the Teaching Team",,reminder
+SYN-REQ-0133,Reminder: questionnaire still missing,the Module Coordinator,"Dear Daniel,
 
 We noticed that your questionnaire is still missing from our records. Please submit it by 3 December 2026.
 
 Regards,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0134,Reminder: library consultation tomorrow,"Dear Rui En,
+the Module Coordinator",,reminder
+SYN-REQ-0134,Reminder: library consultation tomorrow,the Teaching Team,"Dear Rui En,
 
 This is a reminder that your library consultation is scheduled for 14 January 2027 at 3:30 pm. Please arrive 10 minutes early and bring your laptop loan.
 
 Regards,
-the Teaching Team",the Teaching Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0135,Reminder: payment for laptop loan,"Dear Siti,
+the Teaching Team",,reminder
+SYN-REQ-0135,Reminder: payment for laptop loan,the Student Support Team,"Dear Siti,
 
 This is a reminder that payment for laptop loan is due on 3 December 2026. Please pay through https://example.com/survey/feedback to confirm your place.
 
 Best,
-the Student Support Team",the Student Support Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0136,Friendly reminder about sustainable commuting,"Hi Marcus,
+the Student Support Team",,reminder
+SYN-REQ-0136,Friendly reminder about sustainable commuting,the Student Services Team,"Hi Marcus,
 
 Just a friendly reminder that the deadline for sustainable commuting is approaching on 7 January 2027. Please make sure that you have completed the necessary steps.
 
 Thanks,
-the Student Services Team",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0137,Pending action: complete the module preference survey,"Dear Nadia,
+the Student Services Team",,reminder
+SYN-REQ-0137,Pending action: complete the module preference survey,the Academic Office,"Dear Nadia,
 
 Your complete the module preference survey is still pending. Kindly complete it by 15 December 2026. If you believe this is an error, contact course.admin@example.com.
 
 Thank you,
-the Academic Office",the Academic Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0138,Second notice: library collections,"Dear Kai Wen,
+the Academic Office",,reminder
+SYN-REQ-0138,Second notice: library collections,the Module Coordinator,"Dear Kai Wen,
 
 This is a second notice regarding library collections. Please take the necessary action by 3 December 2026.
 
 Thank you,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0139,See you at the mid-autumn celebration tomorrow,"Dear Jun Hao,
+the Module Coordinator",,reminder
+SYN-REQ-0139,See you at the mid-autumn celebration tomorrow,Prof Lim,"Dear Jun Hao,
 
 We look forward to seeing you at the mid-autumn celebration tomorrow at 9:00 am. Please arrive 10 minutes early.
 
 Best,
-Prof Lim",Prof Lim,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0140,Outstanding $35 for camera kit,"Dear Wei Ming,
+Prof Lim",,reminder
+SYN-REQ-0140,Outstanding $35 for camera kit,Prof Lim,"Dear Wei Ming,
 
 Our records show an outstanding amount of $35 for camera kit. Please make payment by 9 December 2026. Contact finance.help@example.com if you have already paid.
 
 Thank you,
-Prof Lim",Prof Lim,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0141,Second reminder: consent form,"Dear Amelia,
+Prof Lim",,reminder
+SYN-REQ-0141,Second reminder: consent form,the Operations Team,"Dear Amelia,
 
 We have not yet received your consent form. This is a second reminder to submit it by 21 January 2027. If you have already done so, please disregard this email.
 
 Best,
 the Operations Team
 
-Please contact us if you believe this notice was sent in error.",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0142,Reminder: the alumni dinner on 14 January 2027,"Dear Arjun,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0142,Reminder: the alumni dinner on 14 January 2027,the Student Services Team,"Dear Arjun,
 
 This is a reminder that the alumni dinner will take place on 14 January 2027 at 2:00 pm. Please remember to bring your lab equipment.
 
 Regards,
-the Student Services Team",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0143,Reminder to submit safety waiver,"Dear Siti,
+the Student Services Team",,reminder
+SYN-REQ-0143,Reminder to submit safety waiver,the Student Affairs Office,"Dear Siti,
 
 Please be reminded to submit your safety waiver by 18 November 2026. We still have not received it.
 
 Regards,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0144,Reminder: module preference form not received,"Dear Arjun,
+the Student Affairs Office",,reminder
+SYN-REQ-0144,Reminder: module preference form not received,the Module Coordinator,"Dear Arjun,
 
 We have not received your completed module preference form. Please submit it by 9 December 2026 so that we can finalise your fee appeal.
 
 Best,
-the Module Coordinator",the Module Coordinator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0145,Reminder: the sustainability masterclass is tomorrow,"Dear Siti,
+the Module Coordinator",,reminder
+SYN-REQ-0145,Reminder: the sustainability masterclass is tomorrow,the Department Office,"Dear Siti,
 
 Just a reminder that the sustainability masterclass is tomorrow, 18 November 2026, at 11:15 am in LT27. We look forward to seeing you there.
 
 Best,
 the Department Office
 
-If you have already completed this, please disregard this message.",the Department Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0146,Reminder: library consultation tomorrow,"Dear Grace,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0146,Reminder: library consultation tomorrow,Dr Tan,"Dear Grace,
 
 This is a reminder that your library consultation is scheduled for 7 January 2027 at 11:15 am. Please arrive 10 minutes early and bring your course materials fee.
 
 Regards,
-Dr Tan",Dr Tan,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0147,See you at the sustainability masterclass tomorrow,"Dear Bryan,
+Dr Tan",,reminder
+SYN-REQ-0147,See you at the sustainability masterclass tomorrow,the Administrative Team,"Dear Bryan,
 
 We look forward to seeing you at the sustainability masterclass tomorrow at 9:00 am. Please arrive 10 minutes early.
 
 Best,
-the Administrative Team",the Administrative Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0148,Reminder: payment for access card,"Dear Hafiz,
+the Administrative Team",,reminder
+SYN-REQ-0148,Reminder: payment for access card,Ms Wong,"Dear Hafiz,
 
 This is a reminder that payment for access card is due on 25 November 2026. Please pay through https://example.com/survey/feedback to confirm your place.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0149,Final reminder: the sustainability masterclass,"Dear Marcus,
+Ms Wong",,reminder
+SYN-REQ-0149,Final reminder: the sustainability masterclass,the Student Affairs Office,"Dear Marcus,
 
 This is a final reminder to register for the sustainability masterclass by 25 November 2026. Registration will close at 4:00 pm.
 
 Regards,
 the Student Affairs Office
 
-Please contact us if you believe this notice was sent in error.",the Student Affairs Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0150,Reminder to submit academic transcript,"Dear Amelia,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0150,Reminder to submit academic transcript,Dr Tan,"Dear Amelia,
 
 Please be reminded to submit your academic transcript by 12 November 2026. We still have not received it.
 
 Regards,
 Dr Tan
 
-Please contact us if you believe this notice was sent in error.",Dr Tan,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0151,Outstanding $120 for access card,"Dear Nadia,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0151,Outstanding $120 for access card,the Course Administrator,"Dear Nadia,
 
 Our records show an outstanding amount of $120 for access card. Please make payment by 3 December 2026. Contact finance.help@example.com if you have already paid.
 
 Thank you,
-the Course Administrator",the Course Administrator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0152,Reminder: library consultation tomorrow,"Dear Rui En,
+the Course Administrator",,reminder
+SYN-REQ-0152,Reminder: library consultation tomorrow,the Operations Team,"Dear Rui En,
 
 This is a reminder that your library consultation is scheduled for 14 January 2027 at 2:00 pm. Please arrive 10 minutes early and bring your lab equipment.
 
 Regards,
 the Operations Team
 
-If you have already completed this, please disregard this message.",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0153,Friendly reminder about internship opportunities,"Hi Arjun,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0153,Friendly reminder about internship opportunities,the Course Administrator,"Hi Arjun,
 
 Just a friendly reminder that the deadline for internship opportunities is approaching on 7 January 2027. Please make sure that you have completed the necessary steps.
 
 Thanks,
 the Course Administrator
 
-Please contact us if you believe this notice was sent in error.",the Course Administrator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0154,Reminder: the mid-autumn celebration is tomorrow,"Dear Mei Ling,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0154,Reminder: the mid-autumn celebration is tomorrow,the Administrative Team,"Dear Mei Ling,
 
 Just a reminder that the mid-autumn celebration is tomorrow, 7 January 2027, at 9:00 am in Seminar Room 3. We look forward to seeing you there.
 
 Best,
 the Administrative Team
 
-Please contact us if you believe this notice was sent in error.",the Administrative Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0155,Friendly reminder about research funding,"Hi Grace,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0155,Friendly reminder about research funding,the Student Services Team,"Hi Grace,
 
 Just a friendly reminder that the deadline for research funding is approaching on 3 December 2026. Please make sure that you have completed the necessary steps.
 
 Thanks,
-the Student Services Team",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0156,Second reminder: safety waiver,"Dear Wei Ming,
+the Student Services Team",,reminder
+SYN-REQ-0156,Second reminder: safety waiver,the Operations Team,"Dear Wei Ming,
 
 We have not yet received your safety waiver. This is a second reminder to submit it by 18 November 2026. If you have already done so, please disregard this email.
 
 Best,
-the Operations Team",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0157,Reminder: the student leadership workshop is tomorrow,"Dear Daniel,
+the Operations Team",,reminder
+SYN-REQ-0157,Reminder: the student leadership workshop is tomorrow,Ms Wong,"Dear Daniel,
 
 Just a reminder that the student leadership workshop is tomorrow, 9 December 2026, at 4:00 pm in University Hall Auditorium. We look forward to seeing you there.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0158,Don't forget: complete the module preference survey,"Hi Amelia,
+Ms Wong",,reminder
+SYN-REQ-0158,Don't forget: complete the module preference survey,the Student Support Team,"Hi Amelia,
 
 Don't forget to complete the module preference survey before 14 January 2027. Let us know if you need any help with the process.
 
 Best,
 the Student Support Team
 
-If you have already completed this, please disregard this message.",the Student Support Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0159,Reminder: complete lab safety training,"Dear Jun Hao,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0159,Reminder: complete lab safety training,the Programme Office,"Dear Jun Hao,
 
 You have not yet completed the lab safety training module. Please complete it by 3 December 2026.
 
 Regards,
 the Programme Office
 
-If you have already completed this, please disregard this message.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0160,Pending action: complete the library survey,"Dear Arjun,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0160,Pending action: complete the library survey,the Programme Office,"Dear Arjun,
 
 Your complete the library survey is still pending. Kindly complete it by 15 December 2026. If you believe this is an error, contact course.admin@example.com.
 
 Thank you,
-the Programme Office",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0161,Reminder: safety declaration form due 3 December 2026,"Dear Rui En,
+the Programme Office",,reminder
+SYN-REQ-0161,Reminder: safety declaration form due 3 December 2026,Prof Lim,"Dear Rui En,
 
 This is a reminder that the safety declaration form is due on 3 December 2026. Please complete it at https://example.com/forms/student-update if you have not done so.
 
 Regards,
 Prof Lim
 
-Thank you for your prompt attention to this matter.",Prof Lim,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0162,Second notice: campus safety,"Dear Bryan,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0162,Second notice: campus safety,the Student Services Team,"Dear Bryan,
 
 This is a second notice regarding campus safety. Please take the necessary action by 7 January 2027.
 
 Thank you,
 the Student Services Team
 
-Thank you for your prompt attention to this matter.",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0163,Reminder: module preference form not received,"Dear Amelia,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0163,Reminder: module preference form not received,the Operations Team,"Dear Amelia,
 
 We have not received your completed module preference form. Please submit it by 15 December 2026 so that we can finalise your fee appeal.
 
 Best,
 the Operations Team
 
-Thank you for your prompt attention to this matter.",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0164,Still pending: return the lab equipment,"Dear Amelia,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0164,Still pending: return the lab equipment,the Operations Team,"Dear Amelia,
 
 We are still waiting for your return the lab equipment. Please complete it as soon as possible, or by 21 January 2027 at the latest.
 
 Regards,
-the Operations Team",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0165,Reminder: career coaching session tomorrow,"Dear Jun Hao,
+the Operations Team",,reminder
+SYN-REQ-0165,Reminder: career coaching session tomorrow,the Academic Office,"Dear Jun Hao,
 
 This is a reminder that your career coaching session is scheduled for 14 January 2027 at 10:30 am. Please arrive 10 minutes early and bring your hostel key.
 
 Regards,
-the Academic Office",the Academic Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0166,Second notice: digital learning tools,"Dear Daniel,
+the Academic Office",,reminder
+SYN-REQ-0166,Second notice: digital learning tools,the Department Office,"Dear Daniel,
 
 This is a second notice regarding digital learning tools. Please take the necessary action by 14 January 2027.
 
 Thank you,
-the Department Office",the Department Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0167,Final reminder: the alumni networking session,"Dear Arjun,
+the Department Office",,reminder
+SYN-REQ-0167,Final reminder: the alumni networking session,the Academic Office,"Dear Arjun,
 
 This is a final reminder to register for the alumni networking session by 7 January 2027. Registration will close at 9:00 am.
 
 Regards,
 the Academic Office
 
-Thank you for your prompt attention to this matter.",the Academic Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0168,Outstanding $360 for lab equipment,"Dear Hafiz,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0168,Outstanding $360 for lab equipment,Ms Wong,"Dear Hafiz,
 
 Our records show an outstanding amount of $360 for lab equipment. Please make payment by 21 January 2027. Contact uhc.appointments@example.com if you have already paid.
 
 Thank you,
-Ms Wong",Ms Wong,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0169,Reminder: the sustainability masterclass starts 7 January 2027,"Dear Siti,
+Ms Wong",,reminder
+SYN-REQ-0169,Reminder: the sustainability masterclass starts 7 January 2027,the Module Coordinator,"Dear Siti,
 
 This is a reminder that the sustainability masterclass starts on 7 January 2027 at 4:00 pm. Please complete the pre-event checklist at https://example.com/form/registration.
 
 Best,
 the Module Coordinator
 
-Please contact us if you believe this notice was sent in error.",the Module Coordinator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0170,Reminder: return hostel fees,"Dear Rui En,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0170,Reminder: return hostel fees,Dr Tan,"Dear Rui En,
 
 This is a reminder to return hostel fees by 25 November 2026. Please bring it to the UHC lobby.
 
 Thank you,
 Dr Tan
 
-Please contact us if you believe this notice was sent in error.",Dr Tan,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0171,Outstanding $120 for lab equipment,"Dear Bryan,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0171,Outstanding $120 for lab equipment,the Module Coordinator,"Dear Bryan,
 
 Our records show an outstanding amount of $120 for lab equipment. Please make payment by 12 November 2026. Contact career.services@example.com if you have already paid.
 
 Thank you,
 the Module Coordinator
 
-If you have already completed this, please disregard this message.",the Module Coordinator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0172,Reminder: complete lab safety training,"Dear Kai Wen,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0172,Reminder: complete lab safety training,Ms Wong,"Dear Kai Wen,
 
 You have not yet completed the lab safety training module. Please complete it by 3 December 2026.
 
 Regards,
-Ms Wong",Ms Wong,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0173,Pending action: complete the library survey,"Dear Wei Ming,
+Ms Wong",,reminder
+SYN-REQ-0173,Pending action: complete the library survey,the Department Office,"Dear Wei Ming,
 
 Your complete the library survey is still pending. Kindly complete it by 25 November 2026. If you believe this is an error, contact finance.help@example.com.
 
 Thank you,
 the Department Office
 
-Please contact us if you believe this notice was sent in error.",the Department Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0174,Pending action: complete the module preference survey,"Dear Bryan,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0174,Pending action: complete the module preference survey,the Programme Office,"Dear Bryan,
 
 Your complete the module preference survey is still pending. Kindly complete it by 7 January 2027. If you believe this is an error, contact course.admin@example.com.
 
 Thank you,
 the Programme Office
 
-If you have already completed this, please disregard this message.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0175,Reminder: the NUS career fair starts 21 January 2027,"Dear Daniel,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0175,Reminder: the NUS career fair starts 21 January 2027,the Student Services Team,"Dear Daniel,
 
 This is a reminder that the NUS career fair starts on 21 January 2027 at 2:00 pm. Please complete the pre-event checklist at https://example.com/booking/appointment.
 
 Best,
-the Student Services Team",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0176,Overdue: access card,"Dear Grace,
+the Student Services Team",,reminder
+SYN-REQ-0176,Overdue: access card,the Student Services Team,"Dear Grace,
 
 Our records show that your access card is now overdue. Please settle it by 18 November 2026 to avoid any disruption to your access.
 
 Regards,
 the Student Services Team
 
-If you have already completed this, please disregard this message.",the Student Services Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0177,Don't forget: return the lab equipment,"Hi Wei Ming,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0177,Don't forget: return the lab equipment,the Programme Office,"Hi Wei Ming,
 
 Don't forget to return the lab equipment before 14 January 2027. Let us know if you need any help with the process.
 
 Best,
 the Programme Office
 
-Thank you for your prompt attention to this matter.",the Programme Office,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0178,Reminder: the student leadership workshop starts 12 November 2026,"Dear Grace,
+Thank you for your prompt attention to this matter.",,reminder
+SYN-REQ-0178,Reminder: the student leadership workshop starts 12 November 2026,the Operations Team,"Dear Grace,
 
 This is a reminder that the student leadership workshop starts on 12 November 2026 at 4:00 pm. Please complete the pre-event checklist at https://example.com/forms/student-update.
 
 Best,
 the Operations Team
 
-Please contact us if you believe this notice was sent in error.",the Operations Team,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0179,Reminder: the wellness walk on 18 November 2026,"Dear Daniel,
+Please contact us if you believe this notice was sent in error.",,reminder
+SYN-REQ-0179,Reminder: the wellness walk on 18 November 2026,the Course Administrator,"Dear Daniel,
 
 This is a reminder that the wellness walk will take place on 18 November 2026 at 2:00 pm. Please remember to bring your hostel fees.
 
 Regards,
 the Course Administrator
 
-If you have already completed this, please disregard this message.",the Course Administrator,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0180,Final reminder: the DSS5105 industry panel,"Dear Kai Wen,
+If you have already completed this, please disregard this message.",,reminder
+SYN-REQ-0180,Final reminder: the DSS5105 industry panel,Prof Lim,"Dear Kai Wen,
 
 This is a final reminder to register for the DSS5105 industry panel by 14 January 2027. Registration will close at 2:00 pm.
 
 Regards,
-Prof Lim",Prof Lim,synthetic_required_action,Reminder,synthetic
-SYN-REQ-0181,Holiday closure notice,"Dear Shreya,
+Prof Lim",,reminder
+SYN-REQ-0181,Holiday closure notice,the Department Office,"Dear Shreya,
 
 Please note that the Registrar's Office will be closed on 3 December 2026 for the public holiday. Normal operations will resume on 28 November 2026.
 
 Regards,
 the Department Office
 
-This message is for information only.",the Department Office,synthetic_required_action,Further review,synthetic
-SYN-REQ-0182,System maintenance notice,"Dear Rui En,
+This message is for information only.",,no_immediate_action
+SYN-REQ-0182,System maintenance notice,the Student Affairs Office,"Dear Rui En,
 
 NUS email will undergo scheduled maintenance on 21 January 2027 from 11:15 am to 8:00 pm. Services may be unavailable during this period.
 
 Regards,
 the Student Affairs Office
 
-No action is required.",the Student Affairs Office,synthetic_required_action,Further review,synthetic
-SYN-REQ-0183,the NUS Research Digest - November issue,"Dear Mei Ling,
+No action is required.",,no_immediate_action
+SYN-REQ-0183,the NUS Research Digest - November issue,Ms Wong,"Dear Mei Ling,
 
 The latest issue of the NUS Research Digest is now available. It includes updates on curriculum updates, community projects, and teaching innovations. You can read it at https://example.com/portal/submission.
 
 Best,
-Ms Wong",Ms Wong,synthetic_required_action,Further review,synthetic
-SYN-REQ-0184,the research showcase recap,"Dear Nadia,
+Ms Wong",,no_immediate_action
+SYN-REQ-0184,the research showcase recap,the Operations Team,"Dear Nadia,
 
 Thank you for being part of the research showcase. Photos and slides are now available at https://example.com/survey/feedback. We hope you found the session useful.
 
 Best,
 the Operations Team
 
-This message is for information only.",the Operations Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0185,Campus update: internship opportunities,"Dear Wei Ming,
+This message is for information only.",,no_immediate_action
+SYN-REQ-0185,Campus update: internship opportunities,the Administrative Team,"Dear Wei Ming,
 
 We are writing to share an update on internship opportunities. The relevant information has been posted at https://example.com/form/registration. This message is for your information only.
 
 Regards,
 the Administrative Team
 
-No action is required.",the Administrative Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0186,Research update: library collections,"Dear Wei Ming,
+No action is required.",,no_immediate_action
+SYN-REQ-0186,Research update: library collections,the Course Administrator,"Dear Wei Ming,
 
 Our research team has published a new report on library collections. The report is available at https://example.com/portal/submission.
 
 Best regards,
 the Course Administrator
 
-This message is for information only.",the Course Administrator,synthetic_required_action,Further review,synthetic
-SYN-REQ-0187,IT service update,"Dear Marcus,
+This message is for information only.",,no_immediate_action
+SYN-REQ-0187,IT service update,the Administrative Team,"Dear Marcus,
 
 Canvas has been upgraded. You can now access the new features at https://example.com/forms/student-update. No action is needed on your part.
 
 Regards,
-the Administrative Team",the Administrative Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0188,News from the Career Services Office,"Dear Amelia,
+the Administrative Team",,no_immediate_action
+SYN-REQ-0188,News from the Career Services Office,the Student Services Team,"Dear Amelia,
 
 Read the latest news from the Career Services Office, including new research grants and wellness programmes. The full stories are available at https://example.com/booking/appointment.
 
 Regards,
 the Student Services Team
 
-We hope you find this update useful.",the Student Services Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0189,Seminar announcement: internship opportunities,"Dear Arjun,
+We hope you find this update useful.",,no_immediate_action
+SYN-REQ-0189,Seminar announcement: internship opportunities,the Student Support Team,"Dear Arjun,
 
 Dr Samuel Lee from the Singapore Management University will present a seminar on internship opportunities on 21 January 2027 at 11:15 am in UHC Level 2. All are welcome.
 
 Regards,
 the Student Support Team
 
-We hope you find this update useful.",the Student Support Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0190,New policy: data protection policy,"Dear Chloe,
+We hope you find this update useful.",,no_immediate_action
+SYN-REQ-0190,New policy: data protection policy,the Student Support Team,"Dear Chloe,
 
 The university has published the updated data protection policy, effective 3 December 2026. The full document is available at https://example.com/form/registration. You may review it at your convenience.
 
 Regards,
-the Student Support Team",the Student Support Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0191,Grade release notice,"Dear Arjun,
+the Student Support Team",,no_immediate_action
+SYN-REQ-0191,Grade release notice,the Course Administrator,"Dear Arjun,
 
 Results for MA1505 are now available in NUS email. You can view your grade at https://example.com/form/registration.
 
 Regards,
 the Course Administrator
 
-This message is for information only.",the Course Administrator,synthetic_required_action,Further review,synthetic
-SYN-REQ-0192,Community announcement: internship opportunities,"Dear Hafiz,
+This message is for information only.",,no_immediate_action
+SYN-REQ-0192,Community announcement: internship opportunities,Prof Lim,"Dear Hafiz,
 
 the Alumni Office would like to share an update on internship opportunities. More details are available at https://example.com/form/registration.
 
 Best,
-Prof Lim",Prof Lim,synthetic_required_action,Further review,synthetic
-SYN-REQ-0193,Confirmation: the research showcase registration,"Dear Arjun,
+Prof Lim",,no_immediate_action
+SYN-REQ-0193,Confirmation: the research showcase registration,the Academic Office,"Dear Arjun,
 
 Your registration for the research showcase has been received. No further action is required. We look forward to seeing you on 9 December 2026.
 
 Best,
-the Academic Office",the Academic Office,synthetic_required_action,Further review,synthetic
-SYN-REQ-0194,Library resources update,"Dear Siti,
+the Academic Office",,no_immediate_action
+SYN-REQ-0194,Library resources update,the Student Services Team,"Dear Siti,
 
 The library has added new resources on digital learning tools. You can browse the collection at https://example.com/survey/feedback. We hope you find them useful.
 
 Best,
-the Student Services Team",the Student Services Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0195,Campus facilities notice,"Dear Wei Ming,
+the Student Services Team",,no_immediate_action
+SYN-REQ-0195,Campus facilities notice,the Student Support Team,"Dear Wei Ming,
 
 the central library will be unavailable on 3 December 2026 due to scheduled works. Alternative arrangements are available at Block AS8.
 
 Regards,
-the Student Support Team",the Student Support Team,synthetic_required_action,Further review,synthetic
-SYN-REQ-0196,Event photos available,"Dear Priya,
+the Student Support Team",,no_immediate_action
+SYN-REQ-0196,Event photos available,the Student Affairs Office,"Dear Priya,
 
 Thank you for being part of the research seminar. Photos from the day are now available at https://example.com/booking/appointment. We hope you enjoy them.
 
 Best,
 the Student Affairs Office
 
-No action is required.",the Student Affairs Office,synthetic_required_action,Further review,synthetic
-SYN-REQ-0197,Publication alert: module registration,"Dear Shreya,
+No action is required.",,no_immediate_action
+SYN-REQ-0197,Publication alert: module registration,the Student Affairs Office,"Dear Shreya,
 
 A new article on module registration has been published in the Singapore Economic Review. You can access it at https://example.com/survey/feedback.
 
 Best,
-the Student Affairs Office",the Student Affairs Office,synthetic_required_action,Further review,synthetic
-SYN-REQ-0198,Updated opening hours,"Dear Hafiz,
+the Student Affairs Office",,no_immediate_action
+SYN-REQ-0198,Updated opening hours,the Course Administrator,"Dear Hafiz,
 
 the Registrar's Office will operate on revised hours from 7 January 2027. The new hours are 11:15 am to 12:00 noon on weekdays.
 
 Regards,
-the Course Administrator",the Course Administrator,synthetic_required_action,Further review,synthetic
-SYN-REQ-0199,New staff announcement,"Dear Siti,
+the Course Administrator",,no_immediate_action
+SYN-REQ-0199,New staff announcement,the Course Administrator,"Dear Siti,
 
 We are pleased to announce that Mr Jonathan Koh will join the Office of Student Affairs as research assistant from 15 December 2026. Please join us in welcoming them.
 
 Best,
 the Course Administrator
 
-We hope you find this update useful.",the Course Administrator,synthetic_required_action,Further review,synthetic
-SYN-REQ-0200,Welcome to the exchange programme,"Dear Mei Ling,
+We hope you find this update useful.",,no_immediate_action
+SYN-REQ-0200,Welcome to the exchange programme,Ms Wong,"Dear Mei Ling,
 
 Welcome to the exchange programme. We have included some information about academic integrity below. We look forward to seeing you on campus.
 
 Best,
 Ms Wong
 
-We hope you find this update useful.",Ms Wong,synthetic_required_action,Further review,synthetic
+We hope you find this update useful.",,no_immediate_action

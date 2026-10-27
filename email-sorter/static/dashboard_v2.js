@@ -191,6 +191,7 @@
         tagFor(state.taxonomy, "reply", result.reply_nature),
       );
       box.append(labels);
+      if (result.model_name) box.append(el("p", {}, `Model: ${result.model_name}`));
       if (result.deadline) box.append(el("p", {}, `Deadline: ${result.deadline}`));
       if (result.reason) {
         box.append(el("p", {}, result.reason));
@@ -208,7 +209,9 @@
       $("#dot").className = `dot ${isReady === true ? "ok" : isReady === false ? "bad" : ""}`;
       $("#health").textContent = isReady === true
         ? `${backendLabel(backend)} ready.`
-        : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";
+        : isReady === false && backend === "ml"
+          ? "Classical ML models not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml"
+          : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";
     } catch (error) {
       $("#dot").className = "dot bad";
       $("#health").textContent = error.message || "Could not check backend status.";

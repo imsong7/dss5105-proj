@@ -25,9 +25,14 @@ BACKEND_INFO: dict[str, dict[str, str]] = {
         "description": "Local LLM served through Ollama.",
     },
     "bert": {
-        "label": "BERT",
+        "label": "Text encoders",
         "kind": "encoder",
-        "description": "Frozen sentence encoder with logistic-regression heads.",
+        "description": "Frozen BGE, E5, or DistilBERT encoders with classification heads.",
+    },
+    "ml": {
+        "label": "Classical ML",
+        "kind": "ml",
+        "description": "TF-IDF category and action pipelines.",
     },
 }
 
@@ -46,6 +51,9 @@ def create_classifier(backend: str | None = None) -> BaseClassifier:
     if name == "bert":
         from .bert_classifier import BertClassifier  # noqa: PLC0415
         return BertClassifier()
+    if name == "ml":
+        from .ml_classifier import MLClassifier  # noqa: PLC0415
+        return MLClassifier()
 
     available = ", ".join(list_backends())
     raise ValueError(f"Unknown model backend '{name}'. Available: {available}")

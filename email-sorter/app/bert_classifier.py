@@ -1,4 +1,4 @@
-"""BERT classifier wrapper for the heads trained by ``bert/train.py``."""
+"""Text-encoder classifier wrapper for the trained encoder heads."""
 
 from __future__ import annotations
 
@@ -8,19 +8,19 @@ import sys
 REPO_ROOT = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-BERT_DIR = os.path.join(REPO_ROOT, "bert")
-if BERT_DIR not in sys.path:
-    sys.path.insert(0, BERT_DIR)
+ENCODERS_DIR = os.path.join(REPO_ROOT, "text-encoders")
+if ENCODERS_DIR not in sys.path:
+    sys.path.insert(0, ENCODERS_DIR)
 
 from .classifier_base import BaseClassifier
 from .models import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_CONTENT, DEFAULT_REPLY, REPLY_NATURE
 
-BERT_MODELS_DIR = os.path.join(REPO_ROOT, "bert", "models")
+ENCODER_MODELS_DIR = os.path.join(ENCODERS_DIR, "models")
 
 MODEL_DIRS = {
-    "category": os.path.join(BERT_MODELS_DIR, "category_head"),
-    "action": os.path.join(BERT_MODELS_DIR, "action_head"),
+    "category": os.path.join(ENCODER_MODELS_DIR, "category_head"),
+    "action": os.path.join(ENCODER_MODELS_DIR, "action_head"),
 }
 
 
@@ -37,7 +37,7 @@ class BertClassifier(BaseClassifier):
     name = "bert"
 
     def __init__(self, models_dir: str | None = None):
-        self.models_dir = models_dir or BERT_MODELS_DIR
+        self.models_dir = models_dir or ENCODER_MODELS_DIR
         self._action_clf = None
         self._category_clf = None
         self._load_errors: dict[str, str] = {}
@@ -86,6 +86,16 @@ class BertClassifier(BaseClassifier):
     def load_error(self) -> str | None:
         """Return the load error message, if any."""
         return self._load_error
+
+    @property
+    def model_name(self) -> str:
+        encoders = []
+        for predictor in (self._category_clf, self._action_clf):
+            if predictor is not None:
+                encoder = predictor.manifest.get("encoder")
+                if encoder and encoder not in encoders:
+                    encoders.append(encoder)
+        return " + ".join(encoders) or "Text encoders"
 
     def classify(self, email: Email) -> Classification:
         """Predict category and reply nature for one email."""

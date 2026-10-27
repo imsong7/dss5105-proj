@@ -5,6 +5,7 @@ Run from the repo root:
 """
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -21,16 +22,25 @@ for _path in (REPO_ROOT, EMAIL_DIR):
 from app.bert_classifier import BertClassifier, _model_text  # noqa: E402
 from app.models import Email  # noqa: E402
 from evaluation import bootstrap_proportion  # noqa: E402
-from evaluation.offline_quality import (  # noqa: E402
+from evaluation.quality import (  # noqa: E402
     bootstrap_metrics,
-    category_end_to_end,
+    both_summary,
     evaluate_frame,
+    llm_predictions,
+    plot_offline_quality,
+    selected_model_families,
 )
-from evaluation.operational_performance import (  # noqa: E402
+from evaluation.performance import (  # noqa: E402
     CallRecord,
     _agreement,
     _llama_raw_status,
+    plot_operational_performance,
     render_report,
+    selected_models,
+)
+from evaluation.label_audit import (  # noqa: E402
+    audit_frame,
+    cross_validated_probabilities,
 )
 
 
@@ -57,58 +67,91 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual((point, lo, hi), (0.0, 0.0, 0.0))
 
 
-class EndToEndTests(unittest.TestCase):
-    def test_rule_and_model_rows(self):
-        review = pd.DataFrame(
+class BothLabelsTests(unittest.TestCase):
+    def test_exact_match_uses_classifier_only_category_rows(self):
+        category = pd.DataFrame(
             [
-                {
-                    "review_id": "rule1",
-                    "Subject": "Canvas invite",
-                    "From": "Notifications <notifications@instructure.com>",
-                    "Preview": "A shared design",
-                    "category": "canva",
-                },
-                {
-                    "review_id": "model1",
-                    "Subject": "Clinic appointment",
-                    "From": "clinic@example.com",
-                    "Preview": "Your appointment is tomorrow",
-                    "category": "medical",
-                },
+                {"review_id": "a", "true_label": "general", "pred_label": "general"},
+                {"review_id": "b", "true_label": "career", "pred_label": "general"},
             ]
         )
-        oof = pd.DataFrame(
+        action = pd.DataFrame(
             [
-                {
-                    "review_id": "model1",
-                    "pred_label": "medical",
-                    "confidence": 0.9,
-                    "fold": 1,
-                }
+                {"review_id": "a", "true_label": "reminder", "pred_label": "reminder"},
+                {"review_id": "b", "true_label": "needs_reply", "pred_label": "needs_reply"},
+                {"review_id": "canvas", "true_label": "reminder", "pred_label": "reminder"},
             ]
         )
-        out = category_end_to_end(review, oof, ["medical", "canva"])
-        self.assertEqual(len(out), 2)
-        rule = out.loc[out["review_id"] == "rule1"].iloc[0]
-        model = out.loc[out["review_id"] == "model1"].iloc[0]
-        self.assertEqual((rule["pred_label"], rule["source"]), ("canva", "rule"))
-        self.assertEqual((model["pred_label"], model["source"]), ("medical", "model"))
+        args = SimpleNamespace(bootstrap=100, seed=3)
 
-    def test_missing_oof_prediction_fails(self):
-        review = pd.DataFrame(
+        rows = both_summary(
+            {
+                "encoder:category": category,
+                "encoder:action": action,
+            },
+            args,
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["dataset"], "both")
+        self.assertEqual(rows[0]["n"], 2)
+        self.assertAlmostEqual(rows[0]["accuracy"], 0.5)
+
+
+class LlmPredictionTests(unittest.TestCase):
+    def test_one_inference_per_unique_email_and_task_specific_labels(self):
+        shared = {
+            "review_id": "a",
+            "Subject": "Clinic",
+            "From": "clinic@example.com",
+            "Preview": "Appointment notice",
+            "Received DateTime": "2026-01-01",
+        }
+        category = pd.DataFrame(
+            [{**shared, "label_key": "medical"}]
+        )
+        action = pd.DataFrame(
             [
+                {**shared, "label_key": "reminder"},
                 {
-                    "review_id": "model1",
-                    "Subject": "Clinic appointment",
-                    "From": "clinic@example.com",
-                    "Preview": "Your appointment is tomorrow",
-                    "category": "medical",
-                }
+                    **{**shared, "review_id": "b", "Subject": "Course update"},
+                    "label_key": "no_immediate_action",
+                },
             ]
         )
-        oof = pd.DataFrame(columns=["review_id", "pred_label", "confidence", "fold"])
-        with self.assertRaises(SystemExit):
-            category_end_to_end(review, oof, ["medical"])
+
+        class Predictor:
+            def __init__(self):
+                self.emails = []
+
+            def classify(self, email):
+                self.emails.append(email)
+                return SimpleNamespace(
+                    content_category="medical",
+                    reply_nature="reminder",
+                )
+
+        predictor = Predictor()
+        frames = llm_predictions(
+            {"category": category, "action": action},
+            predictor,
+        )
+
+        self.assertEqual([email.id for email in predictor.emails], ["a", "b"])
+        self.assertEqual(frames["category"]["pred_label"].tolist(), ["medical"])
+        self.assertEqual(
+            frames["action"]["pred_label"].tolist(),
+            ["reminder", "reminder"],
+        )
+        self.assertTrue(frames["action"]["fold"].isna().all())
+        self.assertTrue((frames["action"]["model_family"] == "llm").all())
+
+
+class ModelFamilySelectionTests(unittest.TestCase):
+    def test_model_families(self):
+        self.assertEqual(selected_model_families("both"), ["encoder", "ml"])
+        self.assertEqual(selected_model_families("all"), ["encoder", "ml", "llm"])
+        self.assertEqual(selected_model_families("llm"), ["llm"])
 
 
 class EvaluateFrameTests(unittest.TestCase):
@@ -124,6 +167,147 @@ class EvaluateFrameTests(unittest.TestCase):
         self.assertEqual(summary["accuracy"], 0.75)
         self.assertAlmostEqual(summary["macro_f1"], 0.7333333333333334)
         self.assertEqual(summary["dataset"], "toy")
+
+
+class LabelAuditTests(unittest.TestCase):
+    def test_oof_probabilities_are_valid_and_cover_every_row(self):
+        frame = pd.DataFrame(
+            {
+                "text": [f"example {label} {i}" for label in ("a", "b") for i in range(6)],
+                "label_key": ["a"] * 6 + ["b"] * 6,
+            }
+        )
+
+        class Encoder:
+            def __init__(self, _name):
+                pass
+
+            def encode(self, texts):
+                return np.array(
+                    [[float("a" in text), float("b" in text)] for text in texts]
+                )
+
+        labels, probabilities = cross_validated_probabilities(
+            frame, "test", 3, 42, encoder_factory=Encoder
+        )
+
+        self.assertEqual(labels, ["a", "b"])
+        self.assertEqual(probabilities.shape, (12, 2))
+        np.testing.assert_allclose(probabilities.sum(axis=1), 1.0)
+
+    def test_audit_marks_and_ranks_rows_without_changing_labels(self):
+        frame = pd.DataFrame(
+            {
+                "review_id": ["a", "b", "c", "d", "e", "f"],
+                "Subject": ["s"] * 6,
+                "From": ["f"] * 6,
+                "Preview": ["p"] * 6,
+                "label_key": ["a", "a", "a", "b", "b", "b"],
+            }
+        )
+        probabilities = np.array(
+            [
+                [0.95, 0.05],
+                [0.95, 0.05],
+                [0.05, 0.95],
+                [0.05, 0.95],
+                [0.05, 0.95],
+                [0.05, 0.95],
+            ]
+        )
+
+        audited = audit_frame("category", frame, ["a", "b"], probabilities)
+
+        self.assertEqual(set(audited["current_label"]), {"a", "b"})
+        self.assertTrue(audited["is_suspected_issue"].any())
+        self.assertTrue(audited.iloc[0]["is_suspected_issue"])
+        self.assertEqual(audited.iloc[0]["cleanlab_rank"], 1)
+        self.assertEqual(
+            audited.loc[audited["review_id"] == "c", "suggested_label"].item(),
+            "b",
+        )
+
+
+class EvaluationPlotTests(unittest.TestCase):
+    def test_offline_quality_plot_includes_metrics_and_confidence_intervals(self):
+        summary = pd.DataFrame(
+            [
+                {
+                    "dataset": "action",
+                    "model_family": family,
+                    "accuracy": accuracy,
+                    "accuracy_ci_low": accuracy - 0.1,
+                    "accuracy_ci_high": accuracy + 0.1,
+                    "macro_f1": f1,
+                    "macro_f1_ci_low": f1 - 0.1,
+                    "macro_f1_ci_high": f1 + 0.1,
+                }
+                for family, accuracy, f1 in (
+                    ("encoder", 0.8, 0.7),
+                    ("ml", 0.75, 0.65),
+                )
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quality.png"
+            plot_offline_quality(summary, path)
+            self.assertGreater(path.stat().st_size, 0)
+
+    def test_operational_plot_handles_failed_models(self):
+        summary = pd.DataFrame(
+            [
+                {
+                    "backend": "bert",
+                    "error": "",
+                    "load_ms": 100.0,
+                    "cold_call_ms": 50.0,
+                    "warm_p50_ms": 20.0,
+                    "warm_p95_ms": 30.0,
+                    "model_size_mb": 500.0,
+                    "peak_total_mb": 900.0,
+                },
+                {
+                    "backend": "llama",
+                    "error": "backend unavailable",
+                    "load_ms": np.nan,
+                    "cold_call_ms": np.nan,
+                    "warm_p50_ms": np.nan,
+                    "warm_p95_ms": np.nan,
+                    "model_size_mb": np.nan,
+                    "peak_total_mb": np.nan,
+                },
+            ]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "operational.png"
+            plot_operational_performance(summary, path)
+            self.assertGreater(path.stat().st_size, 0)
+
+
+class ModelSelectionTests(unittest.TestCase):
+    def test_selected_model_names_map_to_runtime_backends(self):
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=["bert", "ml", "llm"], backend=None)),
+            ["bert", "ml", "llm"],
+        )
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=None, backend="bert-ml")),
+            ["bert", "ml"],
+        )
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=None, backend="llama")),
+            ["llm"],
+        )
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=None, backend=None)),
+            ["llm", "bert"],
+        )
+
+    def test_rejects_conflicting_or_repeated_model_selection(self):
+        with self.assertRaisesRegex(SystemExit, "either --model or"):
+            selected_models(SimpleNamespace(model=["ml"], backend="bert"))
+        with self.assertRaisesRegex(SystemExit, "must not be repeated"):
+            selected_models(SimpleNamespace(model=["ml", "ml"], backend=None))
 
 
 def _raw(content: str):

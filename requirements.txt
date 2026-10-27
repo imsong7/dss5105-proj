@@ -4,3 +4,9 @@
 # Operational benchmark
 psutil>=5.9
 codecarbon>=2.5
+
+# Evaluation plots
+matplotlib>=3.7
+
+# Label auditing
+cleanlab>=2.7

@@ -1,7 +1,11 @@
 {
-  "created_utc": "2026-10-24T23:54:22.308381+00:00",
-  "review_csv": "bert/data/labels.csv",
-  "backend": "both",
+  "created_utc": "2026-10-27T04:40:28.448264+00:00",
+  "review_file": "data/labels.csv",
+  "model": [
+    "bert",
+    "ml",
+    "llm"
+  ],
   "limit": 30,
   "total_rows": 134,
   "sample_n": 30,
@@ -52,8 +56,8 @@
   "ollama_model": "llama3.1:8b",
   "taxonomy_sha256_16": "99e9c2be07f026dd",
   "input_protocol": {
-    "full": "Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
-    "short": "first 200 characters of Preview"
+    "full": "body/Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
+    "short": "first 200 characters of body/Preview"
   },
   "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
   "versions": {
@@ -66,7 +70,5 @@
     "langchain-ollama": "1.1.0",
     "psutil": "7.2.2",
     "codecarbon": "3.3.2"
-  },
-  "bert_rerun_utc": "2026-10-24T23:54:22.308483+00:00",
-  "notes": "Llama metrics are from the 2026-10-23 run. BERT metrics were re-measured on 2026-10-25 after enabling local-cache-only model loading."
+  }
 }

@@ -4,9 +4,10 @@ Measures load/cold/warm latency, peak memory, model size, token use, energy,
 invalid-format rate, 5-run consistency, and short/full agreement.
 
 Usage:
-    python evaluation/operational_performance.py
-    python evaluation/operational_performance.py --backend llama --limit 20
-    python evaluation/operational_performance.py --no-energy --no-memory
+    python evaluation/performance.py
+    python evaluation/performance.py --model bert ml
+    python evaluation/performance.py --model llm --limit 20
+    python evaluation/performance.py --no-energy --no-memory
 """
 
 import argparse
@@ -29,8 +30,9 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EMAIL_DIR = REPO_ROOT / "email-sorter"
-BERT_DIR = REPO_ROOT / "bert"
-for _path in (REPO_ROOT, EMAIL_DIR, BERT_DIR):
+ENCODERS_DIR = REPO_ROOT / "text-encoders"
+CLASSICAL_ML_DIR = REPO_ROOT / "classical-ml"
+for _path in (REPO_ROOT, EMAIL_DIR, ENCODERS_DIR, CLASSICAL_ML_DIR / "src"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
@@ -43,9 +45,9 @@ from evaluation import (  # noqa: E402
     write_csv,
     write_json,
 )
-from src.data import MAX_LEN, build_text, load_taxonomy, task_dataset  # noqa: E402
+from src.data import MAX_LEN, build_text, load_review, load_taxonomy, task_dataset  # noqa: E402
 
-DEFAULT_REVIEW = BERT_DIR / "data" / "labels.csv"
+DEFAULT_REVIEW = REPO_ROOT / "data" / "labels.csv"
 DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
 
 try:
@@ -59,12 +61,17 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--review", default=str(DEFAULT_REVIEW), help="review CSV")
+    ap.add_argument("--review", default=str(DEFAULT_REVIEW), help="shared labels CSV")
+    ap.add_argument(
+        "--model",
+        nargs="+",
+        choices=["bert", "ml", "llm"],
+        help="one or more models to benchmark (default: llm bert)",
+    )
     ap.add_argument(
         "--backend",
-        choices=["both", "llama", "bert"],
-        default="both",
-        help="backend(s)",
+        choices=["both", "bert-ml", "llama", "bert", "ml"],
+        help=argparse.SUPPRESS,
     )
     ap.add_argument(
         "--limit",
@@ -88,9 +95,28 @@ def parse_args() -> argparse.Namespace:
     return ap.parse_args()
 
 
+def selected_models(args: argparse.Namespace) -> list[str]:
+    if args.model and args.backend:
+        raise SystemExit("Use either --model or the legacy --backend option, not both.")
+    if args.model:
+        selected = args.model
+    elif args.backend == "both":
+        selected = ["llm", "bert"]
+    elif args.backend == "bert-ml":
+        selected = ["bert", "ml"]
+    elif args.backend:
+        selected = ["llm" if args.backend == "llama" else args.backend]
+    else:
+        selected = ["llm", "bert"]
+
+    if len(set(selected)) != len(selected):
+        raise SystemExit("--model values must not be repeated.")
+    return selected
+
+
 def load_benchmark_rows(args: argparse.Namespace) -> tuple:
     labels, tax_digest = load_taxonomy()
-    review = pd.read_csv(args.review, dtype=str, keep_default_na=False)
+    review = load_review(args.review)
     df, _ = task_dataset(review, "action", labels["action"], False)
     df = df.copy()
     total = len(df)
@@ -345,7 +371,7 @@ class LlamaBackend:
     name = "llama"
 
     def __init__(self) -> None:
-        from app.classifier import build_chain
+        from app.llama_classifier import build_chain
 
         self.chain = build_chain(include_raw=True)
 
@@ -486,8 +512,8 @@ class BertBackend:
 
     def model_info(self) -> dict:
         head_dirs = [
-            BERT_DIR / "models" / "category_head",
-            BERT_DIR / "models" / "action_head",
+            ENCODERS_DIR / "models" / "category_head",
+            ENCODERS_DIR / "models" / "action_head",
         ]
         head_size = sum(_dir_size_mb(d) for d in head_dirs if d.exists())
         encoder_ids = set()
@@ -534,11 +560,48 @@ class BertBackend:
         }
 
 
-def make_backend(name: str) -> LlamaBackend | BertBackend:
+class MLBackend:
+    name = "ml"
+
+    def __init__(self) -> None:
+        from app.ml_classifier import MLClassifier
+
+        self.clf = MLClassifier()
+
+    def predict(self, email: Email) -> Prediction:
+        result = self.clf.classify(email)
+        return Prediction(
+            category=result.content_category,
+            action=result.reply_nature,
+            raw_valid=None,
+            invalid_reason=None,
+            output_tokens=0,
+        )
+
+    def token_usage(self, email: Email, pred: Prediction) -> tuple:
+        return None, 0
+
+    def model_info(self) -> dict:
+        models = [
+            CLASSICAL_ML_DIR / "artifacts" / "email_category_model.joblib",
+            CLASSICAL_ML_DIR / "artifacts" / "required_action_model.joblib",
+        ]
+        size = sum(path.stat().st_size for path in models if path.is_file())
+        return {
+            "model": "TF-IDF LinearSVC + ComplementNB",
+            "model_size_mb": size / (1024 * 1024) if size else None,
+            "loaded_size_mb": None,
+            "model_detail": "production pipelines",
+        }
+
+
+def make_backend(name: str) -> LlamaBackend | BertBackend | MLBackend:
     if name == "llama":
         return LlamaBackend()
     if name == "bert":
         return BertBackend()
+    if name == "ml":
+        return MLBackend()
     raise ValueError(f"unknown backend: {name}")
 
 
@@ -570,7 +633,9 @@ def unload_ollama() -> None:
 
 
 # Running and stats
-def _timed_predict(backend: LlamaBackend | BertBackend, email: Email) -> tuple:
+def _timed_predict(
+    backend: LlamaBackend | BertBackend | MLBackend, email: Email
+) -> tuple:
     start = time.perf_counter()
     pred = backend.predict(email)
     return pred, (time.perf_counter() - start) * 1000
@@ -753,8 +818,10 @@ def _summarise(
     if name == "llama":
         notes.append("cold call includes Ollama load if model was unloaded")
         notes.append("invalid rate uses raw JSON/labels before Pydantic coercion")
-    else:
+    elif name == "bert":
         notes.append("constructor loads both encoders and heads")
+    else:
+        notes.append("constructor loads both classical ML pipelines")
     if energy.get("error"):
         notes.append(f"energy: {energy['error']}")
     if model_info.get("error"):
@@ -837,8 +904,8 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
             "- Load = classifier construction + Ollama model load (Llama).",
             "- Cold = first call after construction; warm stats exclude cold/warm-up.",
             "- Peak MB is benchmark process + Ollama server RSS (Llama); model MB is on-disk size.",
-            "- Llama tokens include the system prompt; BERT tokens are head input tokens.",
-            "- Invalid = raw JSON/labels not matching the taxonomy before Pydantic coercion.",
+            "- Llama tokens include the system prompt; encoder tokens are head inputs; ML has no tokens.",
+            "- Invalid-format checks apply only to Llama's raw JSON output.",
             f"- Consistency = all runs identical; Short/full = first full run vs first "
             f"{manifest['short_chars']} chars.",
             "- Energy is CodeCarbon machine-wide; it may include the Ollama server.",
@@ -856,13 +923,107 @@ def write_artifacts(
     out_dir.mkdir(parents=True, exist_ok=True)
     write_csv(summary, out_dir / "operational_performance_summary.csv")
     write_csv(runs, out_dir / "operational_performance_runs.csv")
+    plot_operational_performance(
+        summary, out_dir / "operational_performance_comparison.png"
+    )
     write_json(manifest, out_dir / "operational_performance_manifest.json")
     report = render_report(summary, manifest)
-    (out_dir / "operational_performance_report.txt").write_text(report, encoding="utf-8")
     print("\n" + "=" * 100)
     print(report)
     print("=" * 100)
     print(f"Saved artifacts -> {out_dir}")
+
+
+def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
+    """Plot latency, model size, and peak memory for successful model runs."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    successful = summary[
+        summary["error"].fillna("").astype(str).eq("")
+    ].reset_index(drop=True)
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    if successful.empty:
+        for ax in axes:
+            ax.text(0.5, 0.5, "No successful model runs", ha="center", va="center")
+            ax.set_axis_off()
+    else:
+        labels = {
+            "bert": "Text encoder",
+            "ml": "Classical ML",
+            "llama": "Llama",
+        }
+        model_names = [
+            labels.get(str(name), str(name)) for name in successful["backend"]
+        ]
+        positions = np.arange(len(successful), dtype=float)
+        latency_metrics = [
+            ("load_ms", "Load"),
+            ("cold_call_ms", "Cold call"),
+            ("warm_p50_ms", "Warm p50"),
+            ("warm_p95_ms", "Warm p95"),
+        ]
+        width = 0.18
+        plotted_latency = False
+        for index, (column, label) in enumerate(latency_metrics):
+            values = pd.to_numeric(successful[column], errors="coerce").to_numpy()
+            valid = np.isfinite(values)
+            if not valid.any():
+                continue
+            plotted_latency = True
+            axes[0].bar(
+                positions[valid] + (index - 1.5) * width,
+                values[valid],
+                width,
+                label=label,
+            )
+        axes[0].set_title("Latency")
+        axes[0].set_ylabel("Milliseconds")
+        axes[0].set_xticks(positions)
+        axes[0].set_xticklabels(model_names, rotation=15, ha="right")
+        axes[0].grid(axis="y", alpha=0.25)
+        axes[0].set_axisbelow(True)
+        if plotted_latency:
+            axes[0].legend()
+
+        resource_metrics = [
+            ("model_size_mb", "Model size"),
+            ("peak_total_mb", "Peak memory"),
+        ]
+        plotted_resources = False
+        resource_width = 0.34
+        for index, (column, label) in enumerate(resource_metrics):
+            values = pd.to_numeric(successful[column], errors="coerce").to_numpy()
+            valid = np.isfinite(values)
+            if not valid.any():
+                continue
+            plotted_resources = True
+            axes[1].bar(
+                positions[valid] + (index - 0.5) * resource_width,
+                values[valid],
+                resource_width,
+                label=label,
+            )
+        axes[1].set_title("Memory and model size")
+        axes[1].set_ylabel("Megabytes")
+        axes[1].set_xticks(positions)
+        axes[1].set_xticklabels(model_names, rotation=15, ha="right")
+        axes[1].grid(axis="y", alpha=0.25)
+        axes[1].set_axisbelow(True)
+        if plotted_resources:
+            axes[1].legend()
+        else:
+            axes[1].text(
+                0.5, 0.5, "Resource measurements unavailable",
+                ha="center", va="center", transform=axes[1].transAxes,
+            )
+
+    fig.suptitle("Operational performance comparison")
+    fig.tight_layout()
+    fig.savefig(path, dpi=160, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main() -> None:
@@ -875,7 +1036,8 @@ def main() -> None:
         raise SystemExit("--warmup must be >= 0")
 
     rows, meta = load_benchmark_rows(args)
-    backends = ["llama", "bert"] if args.backend == "both" else [args.backend]
+    models = selected_models(args)
+    backends = ["llama" if model == "llm" else model for model in models]
     print(
         f"Benchmarking {len(rows)} emails x {args.runs} runs "
         f"({', '.join(backends)}) | counts={meta['sample_action_counts']}"
@@ -903,8 +1065,8 @@ def main() -> None:
     runs = pd.DataFrame([r.__dict__ for r in all_records])
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "review_csv": display_path(args.review, REPO_ROOT),
-        "backend": args.backend,
+        "review_file": display_path(args.review, REPO_ROOT),
+        "model": models,
         "limit": args.limit,
         "total_rows": meta["total_rows"],
         "sample_n": meta["sample_n"],

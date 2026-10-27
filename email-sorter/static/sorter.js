@@ -74,7 +74,10 @@
     let ok = false, text = "", unknown = false;
     if (h.backend === "bert") {
       ok = !!h.bert_ready;
-      text = ok ? "BERT models ready." : "BERT models not found. Train them with: python bert/train.py";
+      text = ok ? "Text-encoder models ready." : "Text-encoder models not found. Train them with: python text-encoders/train.py";
+    } else if (h.backend === "ml") {
+      ok = !!h.ml_ready;
+      text = ok ? "Classical ML models ready." : "Classical ML model files not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml";
     } else if (h.backend === "llama") {
       if (!h.ollama_up) text = "Ollama is not running. Start it, then reload.";
       else if (!h.ollama_ready) text = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`;
@@ -180,6 +183,9 @@
       tagFor(state.tax, "reply", r.reply_nature),
     );
     if (r.deadline) row._tags.append(el("span", { class: "deadline" }, "Deadline: " + r.deadline));
+    if (r.model_name) {
+      row._more.append(el("p", {}, `Model: ${r.model_name}`));
+    }
     if (r.reason) {
       const p = el("p");
       p.append(el("span", { class: "k" }, "Why: "), document.createTextNode(r.reason));

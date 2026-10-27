@@ -10,6 +10,7 @@ import pandas as pd
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 TAXONOMY_PATH = os.path.join(REPO_DIR, "email-sorter", "app", "taxonomy.py")
+DEFAULT_REVIEW = os.path.join(REPO_DIR, "data", "labels.csv")
 
 SEED = 42
 MAX_LEN = 256
@@ -59,6 +60,24 @@ class DataError(Exception):
     pass
 
 
+def load_review(path=DEFAULT_REVIEW):
+    """Load the shared label CSV or a legacy review file."""
+    extension = os.path.splitext(os.fspath(path))[1].lower()
+    if extension == ".csv":
+        return pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    if extension not in {".xlsx", ".xls"}:
+        raise DataError(f"Unsupported review file type: {extension or '(none)'}")
+
+    with pd.ExcelFile(path) as workbook:
+        sheet = next(
+            (name for name in workbook.sheet_names if _s(name).lower() == "labels"),
+            None,
+        )
+        if sheet is None:
+            raise DataError(f"Review workbook has no 'labels' worksheet: {path}")
+        return pd.read_excel(workbook, sheet_name=sheet, dtype=str).fillna("")
+
+
 def load_taxonomy(path=TAXONOMY_PATH):
     """Load label taxonomy from email-sorter/app/taxonomy.py."""
     spec = importlib.util.spec_from_file_location("app_taxonomy", path)
@@ -71,7 +90,7 @@ def load_taxonomy(path=TAXONOMY_PATH):
 
 
 # --- Review CSV -> validated task datasets ---
-def task_dataset(review, task, labels, allow_missing=False):
+def task_dataset(review, task, labels, allow_missing=False, training=True):
     vals = review[task].fillna("").astype(object).map(_s)
     blank = int((vals == "").sum())
     if blank:
@@ -106,7 +125,7 @@ def task_dataset(review, task, labels, allow_missing=False):
     if missing and not allow_missing:
         raise DataError(f"[{task}] app labels with no training examples: {missing}. "
                         f"Add labelled emails before training.")
-    small = {l: int(c) for l, c in counts.items() if c < 5}
+    small = {l: int(c) for l, c in counts.items() if c < 5} if training else {}
     if small:
         raise DataError(f"[{task}] labels with < 5 unique inputs (cannot split): {small}")
     supported = [l for l in model_labels if l in counts.index]

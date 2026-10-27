@@ -19,10 +19,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the email-sorter Flask app.")
     parser.add_argument(
         "--backend",
-        choices=["llama", "bert"],
+        choices=["llama", "bert", "ml"],
         default=None,
         help="Model backend to use (overrides MODEL_BACKEND env var / config). "
-             "Choices: llama, bert",
+             "Choices: llama, bert, ml",
     )
     parser.add_argument(
         "-version",

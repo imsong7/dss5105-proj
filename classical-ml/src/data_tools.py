@@ -1,22 +1,28 @@
-"""Generate synthetic emails for the required_action classifier.
+"""Convert shared labels and generate synthetic action data.
 
-The output is intentionally a separate file.  `train_email_ml.py` loads it
-only for the training split, so every reported test score is still measured on
-the original, human-labelled emails.
-
-Run:
-    python generate_synthetic_action_data.py
+Both ML and BERT use these rows only in training; evaluation remains on real
+human-labelled emails.
 """
 
 from __future__ import annotations
 
+import argparse
 import random
 from pathlib import Path
 
 import pandas as pd
 
-BASE_DIR = Path(__file__).resolve().parent
-OUTPUT_FILE = BASE_DIR / "synthetic_required_action.csv"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+LABELS_SOURCE = DATA_DIR / "labels.xlsx"
+LABELS_OUTPUT = DATA_DIR / "labels.csv"
+SYNTHETIC_OUTPUT = DATA_DIR / "synthetic.csv"
+REQUIRED_LABEL_COLUMNS = {"review_id", "Subject", "From", "Preview", "category", "action"}
+ACTION_KEYS = {
+    "Needs a reply": "needs_reply",
+    "Needs an action": "needs_action",
+    "Reminder": "reminder",
+    "Further review": "no_immediate_action",
+}
 N_PER_CLASS = {
     "Needs a reply": 60,
     "Needs an action": 60,
@@ -696,17 +702,69 @@ def generate_rows(rng: random.Random) -> list[dict[str, str]]:
     return rows
 
 
-def main() -> None:
+def convert_labels(source: Path, destination: Path) -> int:
+    with pd.ExcelFile(source) as workbook:
+        sheet_name = next(
+            (name for name in workbook.sheet_names if name.strip().lower() == "labels"),
+            None,
+        )
+        if sheet_name is None:
+            raise ValueError(f"Workbook has no 'labels' worksheet: {source}")
+        frame = pd.read_excel(workbook, sheet_name=sheet_name, dtype=str).fillna("")
+
+    missing = sorted(REQUIRED_LABEL_COLUMNS - set(frame.columns))
+    if missing:
+        raise ValueError(f"Labels worksheet is missing columns: {', '.join(missing)}")
+    if frame["review_id"].str.strip().eq("").any():
+        raise ValueError("Labels worksheet contains blank review IDs")
+    if frame["review_id"].duplicated().any():
+        raise ValueError("Labels worksheet contains duplicate review IDs")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(destination, index=False, encoding="utf-8-sig")
+    return len(frame)
+
+
+def generate_synthetic() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     rng = random.Random(RANDOM_SEED)
     rows = generate_rows(rng)
-    frame = pd.DataFrame(rows)
-    frame.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+    frame = pd.DataFrame(rows).rename(
+        columns={
+            "message_id": "review_id",
+            "subject": "Subject",
+            "body": "Preview",
+            "sender": "From",
+        }
+    )
+    frame["action"] = frame["action"].map(ACTION_KEYS)
+    frame["category"] = ""
+    frame = frame[
+        ["review_id", "Subject", "From", "Preview", "category", "action"]
+    ]
+    frame.to_csv(SYNTHETIC_OUTPUT, index=False, encoding="utf-8-sig")
 
-    print(f"Wrote {len(frame)} synthetic rows to {OUTPUT_FILE.name}")
+    print(f"Wrote {len(frame)} synthetic rows to {SYNTHETIC_OUTPUT}")
     print("\nClass counts:")
     print(frame["action"].value_counts().to_string())
     print("\nSample:")
-    print(frame[["subject", "action"]].head(8).to_string(index=False))
+    print(frame[["Subject", "action"]].head(8).to_string(index=False))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    convert = commands.add_parser("convert-labels")
+    convert.add_argument("--source", type=Path, default=LABELS_SOURCE)
+    convert.add_argument("--output", type=Path, default=LABELS_OUTPUT)
+    commands.add_parser("generate-synthetic")
+    args = parser.parse_args()
+
+    if args.command == "convert-labels":
+        rows = convert_labels(args.source, args.output)
+        print(f"Converted {rows} labeled rows to {args.output}")
+    else:
+        generate_synthetic()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """Sender-based category overrides."""
 
+import re
 from email.utils import parseaddr
 
 SENDER_RULES = {
@@ -8,7 +9,12 @@ SENDER_RULES = {
 
 
 def sender_address(sender: str) -> str:
-    return parseaddr(sender or "")[1].strip().lower()
+    value = sender or ""
+    address = parseaddr(value)[1].strip()
+    if not address:
+        match = re.search(r"<\s*([^<>\s]+@[^<>\s]+)\s*>", value)
+        address = match.group(1) if match else ""
+    return address.lower()
 
 
 def category_by_rule(sender: str) -> str | None:

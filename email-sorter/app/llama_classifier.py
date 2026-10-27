@@ -58,6 +58,10 @@ class EmailClassifier(BaseClassifier):
     def __init__(self):
         self.chain = build_chain()
 
+    @property
+    def model_name(self) -> str:
+        return settings.ollama_model
+
     def classify(self, email: Email) -> Classification:
         return self.chain.invoke(
             {

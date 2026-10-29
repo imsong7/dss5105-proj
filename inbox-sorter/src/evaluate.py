@@ -83,8 +83,15 @@ def main():
     clf = ClaudeClassifier(cfg)
     if not clf.enabled:
         raise SystemExit("Set ANTHROPIC_API_KEY in .env first.")
-    # Cache key changes whenever the model or the prompt (definitions, examples) changes.
-    key = hashlib.sha1((clf.model + build_system_prompt(cfg)).encode()).hexdigest()[:12]
+    # Cache key changes whenever the model or the prompt (definitions, examples) changes,
+    # and whenever the token budget or thinking mode changes.
+    key = hashlib.sha1(
+        (
+            clf.model
+            + build_system_prompt(cfg)
+            + f"|max_tokens={clf.max_tokens}|thinking={clf.thinking}"
+        ).encode()
+    ).hexdigest()[:12]
     cache = {} if args.fresh else {(r["id"], r["key"]): r for r in read_jsonl(CACHE)}
 
     preds, sources, guard = [], Counter(), defaultdict(list)

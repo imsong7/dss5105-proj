@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Compare backends{% endblock %}
+
+{% block sidebar %}
+<section>
+  <h2>Connect a mailbox</h2>
+  {{ mailbox_fields() }}
+  <button id="go">Fetch and compare</button>
+  <button id="cancel" class="btn-secondary" hidden>Cancel</button>
+  <button id="export" class="btn-secondary" hidden>Export CSV</button>
+</section>
+
+<section class="status" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking backends...</span></section>
+
+<section>
+  <h2>Backends to compare</h2>
+  <div id="backend-list"></div>
+  <label class="check"><input id="warmup" type="checkbox" checked> Warm up each backend first</label>
+  <p class="sub">Warm-up calls are excluded from averages.</p>
+</section>
+{% endblock %}
+
+{% block main %}
+<div class="bar">
+  <h1 id="title">Compare backends</h1>
+  <span class="sub" id="count-label"></span>
+  <span class="sub" id="latency-label"></span>
+</div>
+<div class="progress" id="progress" hidden><div></div></div>
+<div id="notice"></div>
+<div id="summary"></div>
+<div id="results"><p class="empty">Connect a mailbox and pick at least two backends to compare them on the same emails.</p></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='compare.js') }}"></script>
+{% endblock %}

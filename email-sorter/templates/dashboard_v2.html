@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Inbox dashboard v2{% endblock %}
+
+{% block sidebar %}
+<section>
+  <details class="mailbox-settings" id="mailbox-settings" open>
+    <summary>Mailbox connection</summary>
+    {{ mailbox_fields() }}
+  </details>
+  <button id="go">Fetch and classify</button>
+  <button id="cancel" class="btn-secondary" hidden>Cancel</button>
+</section>
+
+<section class="status" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking backend...</span></section>
+
+<section>
+  <h2>Model backend</h2>
+  <select id="backend"></select>
+</section>
+{% endblock %}
+
+{% block main %}
+<header class="dashboard-header">
+  <div>
+    <h1>Inbox dashboard <span class="version-mark">v2</span></h1>
+    <p class="sub">A quick view of what needs your attention.</p>
+  </div>
+  <span class="sub" id="progress-label" aria-live="polite"></span>
+</header>
+<div class="progress" id="progress" hidden><div></div></div>
+<div id="notice"></div>
+
+<section class="dashboard-summary" aria-label="Classification summary">
+  <button class="summary-card" id="quick-all" type="button" aria-pressed="true"><span>Total emails</span><strong id="count-total">0</strong></button>
+  <button class="summary-card summary-action" id="quick-action" type="button" aria-pressed="false"><span>Needs action</span><strong id="count-action">0</strong></button>
+  <button class="summary-card summary-reply" id="quick-reply" type="button" aria-pressed="false"><span>Needs reply</span><strong id="count-reply">0</strong></button>
+  <button class="summary-card summary-deadline" id="quick-deadline" type="button" aria-pressed="false"><span>Has deadline</span><strong id="count-deadline">0</strong></button>
+</section>
+
+<section class="dashboard-controls" aria-label="Email filters">
+  <label class="search-control">Search
+    <input id="search" type="search" placeholder="Sender or subject">
+  </label>
+  <label>Content category
+    <select id="filter-content"><option value="">All categories</option></select>
+  </label>
+  <label>Reply / action
+    <select id="filter-reply"><option value="">All types</option></select>
+  </label>
+  <label>Sort by
+    <select id="sort">
+      <option value="priority">Priority</option>
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+    </select>
+  </label>
+  <button class="clear-filters" id="clear-filters" type="button">Clear filters</button>
+</section>
+<p class="dashboard-results" id="results-count" aria-live="polite"></p>
+
+<section class="dashboard-grid">
+  <div class="dashboard-table-wrap">
+    <table class="dashboard-table">
+      <thead><tr>
+        <th scope="col">Email</th><th scope="col">Category</th>
+        <th scope="col">Reply / action</th><th scope="col">Deadline</th>
+      </tr></thead>
+      <tbody id="email-rows">
+        <tr><td class="table-empty" colspan="4">Connect a mailbox to load and classify emails.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<dialog class="email-detail-dialog" id="email-detail-dialog" aria-labelledby="email-detail-title">
+  <header class="email-detail-header">
+    <div>
+      <span class="sub">Selected email</span>
+      <h2 id="email-detail-title">Email details</h2>
+    </div>
+    <button class="dialog-close" id="email-detail-close" type="button" aria-label="Close email details">Close</button>
+  </header>
+  <div id="email-detail" aria-live="polite">
+    <p class="empty">Select an email to view its details.</p>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='dashboard_v2.js', v='7') }}"></script>
+{% endblock %}

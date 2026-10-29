@@ -1,0 +1,18 @@
+# Repo-wide dependencies for the app, BERT training, and evaluation.
+-r email-sorter/requirements.txt
+
+# Operational benchmark
+psutil>=5.9
+codecarbon>=2.5
+
+# Evaluation plots
+matplotlib>=3.7
+
+# Label auditing
+cleanlab>=2.7
+
+# inbox-sorter backend (Claude API) used by evaluation/performance.py
+anthropic>=0.40
+pyyaml>=6.0
+python-dotenv>=1.0
+beautifulsoup4>=4.12

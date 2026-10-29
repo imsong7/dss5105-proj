@@ -1,6 +1,22 @@
+# Core app dependencies
 flask>=3.0
 requests>=2.31
 python-dotenv>=1.0
 pydantic>=2.6
+
+# LLM backend (Ollama/Llama)
 langchain-core>=0.3
 langchain-ollama>=0.2
+
+# BERT backend (frozen encoder + logistic regression head)
+torch>=2.0
+transformers>=5.0
+joblib>=1.3
+scikit-learn>=1.3
+pandas>=2.0
+Pillow>=10.0
+
+# Claude backend (inbox-sorter pipeline)
+anthropic>=0.40
+pyyaml>=6.0
+beautifulsoup4>=4.12

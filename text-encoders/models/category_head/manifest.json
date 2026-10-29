@@ -1,0 +1,42 @@
+{
+  "task": "category",
+  "type": "frozen_encoder+logreg",
+  "encoder": "bge-small-en",
+  "encoder_model_id": "BAAI/bge-small-en-v1.5",
+  "text_prefix": "",
+  "pooling": "cls",
+  "normalize": true,
+  "head_C": 10.0,
+  "labels": [
+    "career",
+    "general",
+    "medical",
+    "others",
+    "promotional"
+  ],
+  "app_label_keys": [
+    "medical",
+    "promotional",
+    "career",
+    "canva",
+    "general",
+    "others"
+  ],
+  "rule_labels": [
+    "canva"
+  ],
+  "sender_rules": {
+    "notifications@instructure.com": "canva"
+  },
+  "input": {
+    "format": "Subject: {subject}\\n{preview}",
+    "strip_sender": true,
+    "max_len": 256
+  },
+  "head_trained_on": "train+val",
+  "n_head_rows": 105,
+  "synthetic": null,
+  "taxonomy_sha256_16": "660fa0365a5d3cab",
+  "review_csv": "labels.csv",
+  "seed": 42
+}

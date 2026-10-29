@@ -1,0 +1,9 @@
+﻿dataset,model_family,task,n,accuracy,macro_f1,notes
+category,encoder,category,132,0.8636363636363636,0.8439568672066166,classifier only; Canvas sender-rule rows excluded
+category,ml,category,132,0.8863636363636364,0.8666175355066577,classifier only; Canvas sender-rule rows excluded
+action,encoder,action,134,0.8432835820895522,0.7347094426041794,real+synthetic training folds
+action,ml,action,134,0.8059701492537313,0.6926547894100938,real+synthetic training folds
+category,llm,category,132,0.7196969696969697,0.6481280731280732,app LLM inference; no synthetic training data
+action,llm,action,134,0.7761194029850746,0.6519151138716355,app LLM inference; no synthetic training data
+category,claude,category,132,0.8333333333333334,0.8260992879269422,inbox-sorter pipeline inference (Anthropic API); no synthetic training data
+action,claude,action,134,0.8880597014925373,0.8263829860041747,inbox-sorter pipeline inference (Anthropic API); no synthetic training data

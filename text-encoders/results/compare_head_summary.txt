@@ -1,0 +1,10 @@
+seeds=[1, 2, 3, 4, 5] | frozen encoder + logistic-regression head | test = real emails only
+
+[category] bge-small-en
+  real      macro_f1 0.874 +- 0.039 | acc 0.881 | F1 medical=0.96  promotional=0.85  career=0.87  general=0.93  others=0.76
+
+[category] e5-small-multi
+  real      macro_f1 0.838 +- 0.025 | acc 0.844 | F1 medical=0.96  promotional=0.83  career=0.84  general=0.82  others=0.74
+
+[category] distilbert-mean
+  real      macro_f1 0.765 +- 0.097 | acc 0.785 | F1 medical=0.87  promotional=0.84  career=0.81  general=0.76  others=0.54

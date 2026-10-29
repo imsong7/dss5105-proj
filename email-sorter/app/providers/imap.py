@@ -5,7 +5,7 @@ from email.message import Message
 
 from ..models import Email
 from ..textutil import clean, strip_html
-from .base import AuthError, EmailProvider, ProviderError
+from .base import AuthError, EmailProvider, InlineImage, ProviderError
 
 
 def _decode(value) -> str:
@@ -83,3 +83,52 @@ class ImapProvider(EmailProvider):
             except Exception:
                 pass
         return emails
+
+    def fetch_images(
+        self, email_item: Email, max_images: int, max_bytes: int
+    ) -> list[InlineImage]:
+        try:
+            box = imaplib.IMAP4_SSL(self.host)
+            box.login(self.user, self.password)
+        except imaplib.IMAP4.error as exc:
+            raise AuthError(f"IMAP login failed: {exc}") from exc
+        except OSError as exc:
+            raise ProviderError(f"Could not connect to {self.host}: {exc}") from exc
+
+        images = []
+        try:
+            status, _ = box.select(self.folder, readonly=True)
+            if status != "OK":
+                raise ProviderError(f"Could not open IMAP folder {self.folder!r}.")
+            status, data = box.fetch(email_item.id.encode(), "(BODY.PEEK[])")
+            if status != "OK" or not data or not data[0]:
+                raise ProviderError("Could not refetch the email to read inline images.")
+            message = email.message_from_bytes(data[0][1])
+            for part in message.walk():
+                content_type = part.get_content_type().lower()
+                content_id = part.get("Content-ID")
+                if (
+                    not content_type.startswith("image/")
+                    or (
+                        part.get_content_disposition() != "inline"
+                        and not content_id
+                    )
+                ):
+                    continue
+                payload = part.get_payload(decode=True)
+                if not payload or len(payload) > max_bytes:
+                    continue
+                images.append(
+                    InlineImage(
+                        part.get_filename() or content_id or "inline image",
+                        payload,
+                    )
+                )
+                if len(images) >= max_images:
+                    break
+        finally:
+            try:
+                box.logout()
+            except Exception:
+                pass
+        return images

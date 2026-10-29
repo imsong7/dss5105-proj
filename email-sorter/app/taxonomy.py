@@ -15,7 +15,7 @@ CONTENT_CATEGORIES = {
         "desc": "Jobs, internships, recruiters, career fairs, CV or interview help, networking, professional development.",
     },
     "canva": {
-        "label": "Canva (uni app)",
+        "label": "Canva",
         "desc": "Anything sent by or about Canva: design invites, shared designs, comments, team or licence notices.",
     },
     "general": {

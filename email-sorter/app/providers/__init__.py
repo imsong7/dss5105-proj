@@ -1,4 +1,4 @@
-from .base import AuthError, EmailProvider, ProviderError
+from .base import AuthError, EmailProvider, InlineImage, ProviderError
 from .graph import GraphProvider
 from .imap import ImapProvider
 
@@ -14,4 +14,4 @@ def build_provider(kind: str, creds: dict) -> EmailProvider:
     raise ProviderError(f"Unknown provider: {kind}")
 
 
-__all__ = ["build_provider", "AuthError", "ProviderError", "EmailProvider"]
+__all__ = ["build_provider", "AuthError", "InlineImage", "ProviderError", "EmailProvider"]

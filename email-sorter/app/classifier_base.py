@@ -1,8 +1,4 @@
-"""Abstract base class for all email classifiers.
-
-Every classifier backend (Llama/Ollama, BERT, future ML models) implements
-this interface so the app can swap them at runtime via configuration.
-"""
+"""Shared interface and factory for classifier backends."""
 
 from __future__ import annotations
 
@@ -12,42 +8,60 @@ from .models import Classification, Email
 
 
 class BaseClassifier(ABC):
-    """Contract: classify an Email and return a Classification."""
-
     @abstractmethod
     def classify(self, email: Email) -> Classification:
-        """Return a Classification for the given email."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Human-readable backend name (e.g. 'llama', 'bert')."""
         raise NotImplementedError
 
 
-# --------------------------------------------------------------------------- #
-# Factory
-# --------------------------------------------------------------------------- #
+BACKEND_INFO: dict[str, dict[str, str]] = {
+    "llama": {
+        "label": "Llama (Ollama)",
+        "kind": "llm",
+        "description": "Local LLM served through Ollama.",
+    },
+    "bert": {
+        "label": "Text encoders",
+        "kind": "encoder",
+        "description": "Frozen BGE, E5, or DistilBERT encoders with classification heads.",
+    },
+    "ml": {
+        "label": "Classical ML",
+        "kind": "ml",
+        "description": "TF-IDF category and action pipelines.",
+    },
+    "claude": {
+        "label": "Claude",
+        "kind": "llm",
+        "description": "Anthropic Claude through the inbox-sorter pipeline (rules, guardrails).",
+    },
+}
+
+
 def list_backends() -> list[str]:
-    """Return available backend names."""
-    return ["bert", "llama"]
+    return list(BACKEND_INFO)
 
 
 def create_classifier(backend: str | None = None) -> BaseClassifier:
-    """Create a classifier instance by backend name.
-
-    Falls back to the first registered backend if ``backend`` is None or
-    unknown.
-    """
-    name = (backend or "llama").lower()
+    """Create a classifier by backend name."""
+    name = (backend or next(iter(BACKEND_INFO))).lower()
 
     if name == "llama":
-        from .classifier import EmailClassifier  # noqa: PLC0415
+        from .llama_classifier import EmailClassifier  # noqa: PLC0415
         return EmailClassifier()
     if name == "bert":
         from .bert_classifier import BertClassifier  # noqa: PLC0415
         return BertClassifier()
+    if name == "ml":
+        from .ml_classifier import MLClassifier  # noqa: PLC0415
+        return MLClassifier()
+    if name == "claude":
+        from .claude_classifier import ClaudeClassifier  # noqa: PLC0415
+        return ClaudeClassifier()
 
     available = ", ".join(list_backends())
     raise ValueError(f"Unknown model backend '{name}'. Available: {available}")

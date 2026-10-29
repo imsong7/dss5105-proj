@@ -15,6 +15,9 @@ class Email(BaseModel):
     received: str = ""
     preview: str = ""
     body: str = ""
+    text_source: str = "body"
+    ocr_confidence: float | None = None
+    ocr_notes: list[str] = Field(default_factory=list)
 
 
 class Classification(BaseModel):

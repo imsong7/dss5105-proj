@@ -1,0 +1,613 @@
+﻿backend,review_id,phase,run,latency_ms,category,action,raw_valid,invalid_reason,input_tokens,output_tokens,true_action,true_category,raw_excerpt
+llama,33fb0c089ab4,cold,0,7226.798582996707,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,33fb0c089ab4,warmup,0,13053.691834007623,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,warmup,0,11205.151375004789,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,33fb0c089ab4,main,1,11339.474207983585,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,main,1,11572.69016598002,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,d96a6aa59806,main,1,12796.517999988282,promotional,no_immediate_action,True,,1077.0,55,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the recipient."" }"
+llama,e6b22082d1a9,main,1,10392.930959002115,promotional,no_immediate_action,True,,418.0,53,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink at BrewHouse on Friday."" }"
+llama,254be0b78976,main,1,10090.983457979746,promotional,no_immediate_action,True,,540.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message with special offers and promotions for students."" }"
+llama,4c6f8b1f0262,main,1,10384.720792004373,promotional,needs_action,True,,588.0,55,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""needs_action"", ""deadline"": ""Monday, 24 August 2026"", ""reason"": ""The email is promotional for a university event and requires students to register by a specific deadline."" }"
+llama,4a8d6bcac640,main,1,13425.578499998664,promotional,no_immediate_action,True,,585.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing message with a limited-time offer and no action required from the recipient."" }"
+llama,2e445fa17687,main,1,13509.965125005692,career,needs_action,True,,764.0,66,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""16 July 2026, 12:00PM"", ""reason"": ""The email invites students to a programme briefing and requires them to sign in via SSO to their Zoom account and change their display name."" }"
+llama,7b64d87e7924,main,1,14117.983083007857,medical,no_immediate_action,True,,671.0,65,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an update from the University Health Centre regarding an enhancement to the University Health Scheme's GP coverage, but it does not require any action or response from the student."" }"
+llama,5e6073b49bfe,main,1,13813.607582997065,career,needs_reply,True,,441.0,71,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": ""Mon 21 Oct"", ""reason"": ""The email is about a task for a university project, specifically a capstone project, which falls under the career category. The reader is expected to provide a written response with their ranking of tasks."" }"
+llama,47c886b45427,main,1,9894.332124997163,medical,needs_reply,True,,421.0,50,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and asks the recipient to reply if they need to reschedule."" }"
+llama,3c0a385c8a61,main,1,13171.475790994009,career,no_immediate_action,True,,904.0,54,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a promotional message for a career fair, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,main,1,9439.748249977129,promotional,no_immediate_action,True,,434.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,main,1,15003.926208009943,career,reminder,True,,1172.0,72,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is a reminder for the FoS Career Accelerator on 02 & 03 Sep 2026, which is a career-related event for postgraduate students.""\n}"
+llama,977fb11b4485,main,1,13340.62166698277,career,needs_action,True,,782.0,55,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""Friday, 8:59 PM"", ""reason"": ""The email is about a university program and requires the recipient to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,main,1,10554.148667026311,medical,no_immediate_action,True,,412.0,44,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice from the university's pharmacy services."" }"
+llama,79ba5e733153,main,1,16396.590457996354,general,no_immediate_action,True,,1026.0,71,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general notice from the university regarding payment due dates and information for semester 1 AY2026/2027, but it does not require any action or response from the student."" }"
+llama,3f583b850315,main,1,14496.946541999932,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,main,1,14408.399917010684,general,reminder,True,,1012.0,59,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder to students about outstanding fees and GIRO deduction, but it does not ask for any specific action or reply."" }"
+llama,5f612ff83e8c,main,1,13190.788208012236,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,main,1,11990.867082990007,general,needs_reply,True,,723.0,50,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, and the recipient is asked to RSVP by cancelling their attendance."" }"
+llama,e5e10382d939,main,1,10992.312584014144,canva,no_immediate_action,True,,431.0,59,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a BrowZine account, which is likely a Canva-related service, and does not require any action or response."" }"
+llama,1bd2058dac4f,main,1,12481.116124981781,career,no_immediate_action,True,,928.0,58,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for a Manager - Data Science position at American Express, and the reader is not required to take any action."" }"
+llama,687a67239af4,main,1,13621.191000012914,career,needs_reply,True,,610.0,46,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about finding teammates for a university course, which is a career-related activity."" }"
+llama,5b863888ae71,main,1,12460.090874985326,career,no_immediate_action,True,,480.0,49,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is purely promotional, listing new job openings and inviting the reader to view more jobs."" }"
+llama,5bb9ae519a34,main,1,9826.207583973883,medical,no_immediate_action,True,,414.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about health test results and does not require any action from the student."" }"
+llama,359d727e544d,main,1,14701.054083008785,career,needs_action,True,,1165.0,51,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""needs_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is about a career development program and asks students to submit questions and complete a survey.""\n}"
+llama,e4c80a09d7f7,main,1,12635.55741700111,general,no_immediate_action,True,,643.0,61,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a thank you message and a sharing of photos from a university event, but it does not require any action or response from the students."" }"
+llama,ae731c5f71a8,main,1,11452.245041989954,general,reminder,True,,609.0,49,reminder,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""null"", ""reason"": ""The email is a reminder about an event, but it does not ask the reader to do anything specific."" }"
+llama,95498db55010,main,1,10968.875207996462,general,no_immediate_action,True,,490.0,54,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the university, providing information and resources, but does not require any action or response."" }"
+llama,33fb0c089ab4,main,2,12105.963957990753,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,main,2,11570.316208992153,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,d96a6aa59806,main,2,12717.995707993396,promotional,no_immediate_action,True,,1077.0,55,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the recipient."" }"
+llama,e6b22082d1a9,main,2,11909.698874980677,promotional,no_immediate_action,True,,418.0,53,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink at BrewHouse on Friday."" }"
+llama,254be0b78976,main,2,10851.714000018546,promotional,no_immediate_action,True,,540.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message with special offers and promotions for students."" }"
+llama,4c6f8b1f0262,main,2,11176.428833976388,promotional,needs_action,True,,588.0,55,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""needs_action"", ""deadline"": ""Monday, 24 August 2026"", ""reason"": ""The email is promotional for a university event and requires students to register by a specific deadline."" }"
+llama,4a8d6bcac640,main,2,14571.414916979847,promotional,no_immediate_action,True,,585.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing message with a limited-time offer and no action required from the recipient."" }"
+llama,2e445fa17687,main,2,16390.693833003752,career,needs_action,True,,764.0,66,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""16 July 2026, 12:00PM"", ""reason"": ""The email invites students to a programme briefing and requires them to sign in via SSO to their Zoom account and change their display name."" }"
+llama,7b64d87e7924,main,2,13623.411792010302,medical,no_immediate_action,True,,671.0,65,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an update from the University Health Centre regarding an enhancement to the University Health Scheme's GP coverage, but it does not require any action or response from the student."" }"
+llama,5e6073b49bfe,main,2,12506.464957987191,career,needs_reply,True,,441.0,71,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": ""Mon 21 Oct"", ""reason"": ""The email is about a task for a university project, specifically a capstone project, which falls under the career category. The reader is expected to provide a written response with their ranking of tasks."" }"
+llama,47c886b45427,main,2,9784.406083985232,medical,needs_reply,True,,421.0,50,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and asks the recipient to reply if they need to reschedule."" }"
+llama,3c0a385c8a61,main,2,15467.464207991725,career,no_immediate_action,True,,904.0,54,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a promotional message for a career fair, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,main,2,9834.606666001491,promotional,no_immediate_action,True,,434.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,main,2,16338.141957996413,career,reminder,True,,1172.0,72,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is a reminder for the FoS Career Accelerator on 02 & 03 Sep 2026, which is a career-related event for postgraduate students.""\n}"
+llama,977fb11b4485,main,2,12302.567542006727,career,needs_action,True,,782.0,55,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""Friday, 8:59 PM"", ""reason"": ""The email is about a university program and requires the recipient to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,main,2,10230.382165987976,medical,no_immediate_action,True,,412.0,44,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice from the university's pharmacy services."" }"
+llama,79ba5e733153,main,2,15146.422791993245,general,no_immediate_action,True,,1026.0,71,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general notice from the university regarding payment due dates and information for semester 1 AY2026/2027, but it does not require any action or response from the student."" }"
+llama,3f583b850315,main,2,13716.080208017956,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,main,2,12802.54987499211,general,reminder,True,,1012.0,59,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder to students about outstanding fees and GIRO deduction, but it does not ask for any specific action or reply."" }"
+llama,5f612ff83e8c,main,2,12174.685292004142,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,main,2,11298.787750012707,general,needs_reply,True,,723.0,50,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, and the recipient is asked to RSVP by cancelling their attendance."" }"
+llama,e5e10382d939,main,2,10729.14170799777,canva,no_immediate_action,True,,431.0,59,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a BrowZine account, which is likely a Canva-related service, and does not require any action or response."" }"
+llama,1bd2058dac4f,main,2,12285.809749999316,career,no_immediate_action,True,,928.0,58,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for a Manager - Data Science position at American Express, and the reader is not required to take any action."" }"
+llama,687a67239af4,main,2,12087.431499996455,career,needs_reply,True,,610.0,46,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about finding teammates for a university course, which is a career-related activity."" }"
+llama,5b863888ae71,main,2,12580.37729098578,career,no_immediate_action,True,,480.0,49,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is purely promotional, listing new job openings and inviting the reader to view more jobs."" }"
+llama,5bb9ae519a34,main,2,9067.080834007356,medical,no_immediate_action,True,,414.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about health test results and does not require any action from the student."" }"
+llama,359d727e544d,main,2,14107.813292008359,career,needs_action,True,,1165.0,51,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""needs_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is about a career development program and asks students to submit questions and complete a survey.""\n}"
+llama,e4c80a09d7f7,main,2,13377.836958010448,general,no_immediate_action,True,,643.0,61,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a thank you message and a sharing of photos from a university event, but it does not require any action or response from the students."" }"
+llama,ae731c5f71a8,main,2,11574.66874999227,general,reminder,True,,609.0,49,reminder,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""null"", ""reason"": ""The email is a reminder about an event, but it does not ask the reader to do anything specific."" }"
+llama,95498db55010,main,2,11549.907582986634,general,no_immediate_action,True,,490.0,54,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the university, providing information and resources, but does not require any action or response."" }"
+llama,33fb0c089ab4,main,3,12534.202833019663,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,main,3,11806.444749992806,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,d96a6aa59806,main,3,13305.06908299867,promotional,no_immediate_action,True,,1077.0,55,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the recipient."" }"
+llama,e6b22082d1a9,main,3,10983.87445899425,promotional,no_immediate_action,True,,418.0,53,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink at BrewHouse on Friday."" }"
+llama,254be0b78976,main,3,10325.883042009082,promotional,no_immediate_action,True,,540.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message with special offers and promotions for students."" }"
+llama,4c6f8b1f0262,main,3,10527.621624991298,promotional,needs_action,True,,588.0,55,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""needs_action"", ""deadline"": ""Monday, 24 August 2026"", ""reason"": ""The email is promotional for a university event and requires students to register by a specific deadline."" }"
+llama,4a8d6bcac640,main,3,13624.843291006982,promotional,no_immediate_action,True,,585.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing message with a limited-time offer and no action required from the recipient."" }"
+llama,2e445fa17687,main,3,14757.266291999258,career,needs_action,True,,764.0,66,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""16 July 2026, 12:00PM"", ""reason"": ""The email invites students to a programme briefing and requires them to sign in via SSO to their Zoom account and change their display name."" }"
+llama,7b64d87e7924,main,3,12937.915709015215,medical,no_immediate_action,True,,671.0,65,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an update from the University Health Centre regarding an enhancement to the University Health Scheme's GP coverage, but it does not require any action or response from the student."" }"
+llama,5e6073b49bfe,main,3,12564.428542013047,career,needs_reply,True,,441.0,71,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": ""Mon 21 Oct"", ""reason"": ""The email is about a task for a university project, specifically a capstone project, which falls under the career category. The reader is expected to provide a written response with their ranking of tasks."" }"
+llama,47c886b45427,main,3,9993.074041994987,medical,needs_reply,True,,421.0,50,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and asks the recipient to reply if they need to reschedule."" }"
+llama,3c0a385c8a61,main,3,13372.522791993106,career,no_immediate_action,True,,904.0,54,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a promotional message for a career fair, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,main,3,9618.906458985293,promotional,no_immediate_action,True,,434.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,main,3,15182.778624992352,career,reminder,True,,1172.0,72,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is a reminder for the FoS Career Accelerator on 02 & 03 Sep 2026, which is a career-related event for postgraduate students.""\n}"
+llama,977fb11b4485,main,3,11940.63179101795,career,needs_action,True,,782.0,55,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""Friday, 8:59 PM"", ""reason"": ""The email is about a university program and requires the recipient to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,main,3,10242.926874983823,medical,no_immediate_action,True,,412.0,44,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice from the university's pharmacy services."" }"
+llama,79ba5e733153,main,3,14939.20320799225,general,no_immediate_action,True,,1026.0,71,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general notice from the university regarding payment due dates and information for semester 1 AY2026/2027, but it does not require any action or response from the student."" }"
+llama,3f583b850315,main,3,13888.622083002701,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,main,3,12653.7074589869,general,reminder,True,,1012.0,59,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder to students about outstanding fees and GIRO deduction, but it does not ask for any specific action or reply."" }"
+llama,5f612ff83e8c,main,3,12169.644375011558,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,main,3,11590.829958004178,general,needs_reply,True,,723.0,50,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, and the recipient is asked to RSVP by cancelling their attendance."" }"
+llama,e5e10382d939,main,3,10747.30141699547,canva,no_immediate_action,True,,431.0,59,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a BrowZine account, which is likely a Canva-related service, and does not require any action or response."" }"
+llama,1bd2058dac4f,main,3,13358.796040993184,career,no_immediate_action,True,,928.0,58,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for a Manager - Data Science position at American Express, and the reader is not required to take any action."" }"
+llama,687a67239af4,main,3,12044.513041997561,career,needs_reply,True,,610.0,46,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about finding teammates for a university course, which is a career-related activity."" }"
+llama,5b863888ae71,main,3,15308.045291982125,career,no_immediate_action,True,,480.0,49,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is purely promotional, listing new job openings and inviting the reader to view more jobs."" }"
+llama,5bb9ae519a34,main,3,10189.266000001226,medical,no_immediate_action,True,,414.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about health test results and does not require any action from the student."" }"
+llama,359d727e544d,main,3,23535.789165995084,career,needs_action,True,,1165.0,51,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""needs_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is about a career development program and asks students to submit questions and complete a survey.""\n}"
+llama,e4c80a09d7f7,main,3,15408.183959021699,general,no_immediate_action,True,,643.0,61,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a thank you message and a sharing of photos from a university event, but it does not require any action or response from the students."" }"
+llama,ae731c5f71a8,main,3,11823.97758300067,general,reminder,True,,609.0,49,reminder,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""null"", ""reason"": ""The email is a reminder about an event, but it does not ask the reader to do anything specific."" }"
+llama,95498db55010,main,3,12331.031124980655,general,no_immediate_action,True,,490.0,54,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the university, providing information and resources, but does not require any action or response."" }"
+llama,33fb0c089ab4,main,4,11415.853042009985,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,main,4,11770.710625016363,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,d96a6aa59806,main,4,12953.55199999176,promotional,no_immediate_action,True,,1077.0,55,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the recipient."" }"
+llama,e6b22082d1a9,main,4,10737.33691702364,promotional,no_immediate_action,True,,418.0,53,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink at BrewHouse on Friday."" }"
+llama,254be0b78976,main,4,10128.685957984999,promotional,no_immediate_action,True,,540.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message with special offers and promotions for students."" }"
+llama,4c6f8b1f0262,main,4,10547.581375023583,promotional,needs_action,True,,588.0,55,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""needs_action"", ""deadline"": ""Monday, 24 August 2026"", ""reason"": ""The email is promotional for a university event and requires students to register by a specific deadline."" }"
+llama,4a8d6bcac640,main,4,13785.769166017417,promotional,no_immediate_action,True,,585.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing message with a limited-time offer and no action required from the recipient."" }"
+llama,2e445fa17687,main,4,14693.693542008987,career,needs_action,True,,764.0,66,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""16 July 2026, 12:00PM"", ""reason"": ""The email invites students to a programme briefing and requires them to sign in via SSO to their Zoom account and change their display name."" }"
+llama,7b64d87e7924,main,4,13435.344458004693,medical,no_immediate_action,True,,671.0,65,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an update from the University Health Centre regarding an enhancement to the University Health Scheme's GP coverage, but it does not require any action or response from the student."" }"
+llama,5e6073b49bfe,main,4,13153.47212497727,career,needs_reply,True,,441.0,71,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": ""Mon 21 Oct"", ""reason"": ""The email is about a task for a university project, specifically a capstone project, which falls under the career category. The reader is expected to provide a written response with their ranking of tasks."" }"
+llama,47c886b45427,main,4,11012.130999995861,medical,needs_reply,True,,421.0,50,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and asks the recipient to reply if they need to reschedule."" }"
+llama,3c0a385c8a61,main,4,13671.593000006396,career,no_immediate_action,True,,904.0,54,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a promotional message for a career fair, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,main,4,11162.084375013364,promotional,no_immediate_action,True,,434.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,main,4,17215.003332996275,career,reminder,True,,1172.0,72,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is a reminder for the FoS Career Accelerator on 02 & 03 Sep 2026, which is a career-related event for postgraduate students.""\n}"
+llama,977fb11b4485,main,4,14066.25258299755,career,needs_action,True,,782.0,55,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""Friday, 8:59 PM"", ""reason"": ""The email is about a university program and requires the recipient to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,main,4,10423.491667024791,medical,no_immediate_action,True,,412.0,44,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice from the university's pharmacy services."" }"
+llama,79ba5e733153,main,4,17485.790749982698,general,no_immediate_action,True,,1026.0,71,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general notice from the university regarding payment due dates and information for semester 1 AY2026/2027, but it does not require any action or response from the student."" }"
+llama,3f583b850315,main,4,12373.42441699002,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,main,4,16273.609541996848,general,reminder,True,,1012.0,59,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder to students about outstanding fees and GIRO deduction, but it does not ask for any specific action or reply."" }"
+llama,5f612ff83e8c,main,4,12706.00450001075,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,main,4,14181.66362500051,general,needs_reply,True,,723.0,50,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, and the recipient is asked to RSVP by cancelling their attendance."" }"
+llama,e5e10382d939,main,4,11628.756291000172,canva,no_immediate_action,True,,431.0,59,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a BrowZine account, which is likely a Canva-related service, and does not require any action or response."" }"
+llama,1bd2058dac4f,main,4,15018.142332992284,career,no_immediate_action,True,,928.0,58,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for a Manager - Data Science position at American Express, and the reader is not required to take any action."" }"
+llama,687a67239af4,main,4,12581.85470799799,career,needs_reply,True,,610.0,46,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about finding teammates for a university course, which is a career-related activity."" }"
+llama,5b863888ae71,main,4,12072.361124999588,career,no_immediate_action,True,,480.0,49,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is purely promotional, listing new job openings and inviting the reader to view more jobs."" }"
+llama,5bb9ae519a34,main,4,11487.730708002346,medical,no_immediate_action,True,,414.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about health test results and does not require any action from the student."" }"
+llama,359d727e544d,main,4,16554.974166996544,career,needs_action,True,,1165.0,51,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""needs_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is about a career development program and asks students to submit questions and complete a survey.""\n}"
+llama,e4c80a09d7f7,main,4,14543.318584008375,general,no_immediate_action,True,,643.0,61,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a thank you message and a sharing of photos from a university event, but it does not require any action or response from the students."" }"
+llama,ae731c5f71a8,main,4,12834.367917006603,general,reminder,True,,609.0,49,reminder,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""null"", ""reason"": ""The email is a reminder about an event, but it does not ask the reader to do anything specific."" }"
+llama,95498db55010,main,4,12190.629582997644,general,no_immediate_action,True,,490.0,54,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the university, providing information and resources, but does not require any action or response."" }"
+llama,33fb0c089ab4,main,5,11941.975708003156,promotional,no_immediate_action,True,,423.0,50,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a service, with no specific action required from the recipient."" }"
+llama,79a545620560,main,5,13871.14612502046,general,no_immediate_action,True,,534.0,57,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general university announcement, providing information and resources to postgraduate students, but does not require any action or response."" }"
+llama,d96a6aa59806,main,5,14938.04191701929,promotional,no_immediate_action,True,,1077.0,55,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the recipient."" }"
+llama,e6b22082d1a9,main,5,11422.21012499067,promotional,no_immediate_action,True,,418.0,53,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink at BrewHouse on Friday."" }"
+llama,254be0b78976,main,5,10506.204042001627,promotional,no_immediate_action,True,,540.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing message with special offers and promotions for students."" }"
+llama,4c6f8b1f0262,main,5,11824.263667018386,promotional,needs_action,True,,588.0,55,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""needs_action"", ""deadline"": ""Monday, 24 August 2026"", ""reason"": ""The email is promotional for a university event and requires students to register by a specific deadline."" }"
+llama,4a8d6bcac640,main,5,11065.087208000477,promotional,no_immediate_action,True,,585.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing message with a limited-time offer and no action required from the recipient."" }"
+llama,2e445fa17687,main,5,15704.421667003771,career,needs_action,True,,764.0,66,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""16 July 2026, 12:00PM"", ""reason"": ""The email invites students to a programme briefing and requires them to sign in via SSO to their Zoom account and change their display name."" }"
+llama,7b64d87e7924,main,5,14857.190832990455,medical,no_immediate_action,True,,671.0,65,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an update from the University Health Centre regarding an enhancement to the University Health Scheme's GP coverage, but it does not require any action or response from the student."" }"
+llama,5e6073b49bfe,main,5,14438.871457998175,career,needs_reply,True,,441.0,71,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": ""Mon 21 Oct"", ""reason"": ""The email is about a task for a university project, specifically a capstone project, which falls under the career category. The reader is expected to provide a written response with their ranking of tasks."" }"
+llama,47c886b45427,main,5,5719.133167003747,medical,needs_reply,True,,421.0,50,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and asks the recipient to reply if they need to reschedule."" }"
+llama,3c0a385c8a61,main,5,8480.337291985052,career,no_immediate_action,True,,904.0,54,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a promotional message for a career fair, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,main,5,5958.368833002169,promotional,no_immediate_action,True,,434.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,main,5,12121.488417004002,career,reminder,True,,1172.0,72,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is a reminder for the FoS Career Accelerator on 02 & 03 Sep 2026, which is a career-related event for postgraduate students.""\n}"
+llama,977fb11b4485,main,5,6536.436750000576,career,needs_action,True,,782.0,55,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": ""Friday, 8:59 PM"", ""reason"": ""The email is about a university program and requires the recipient to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,main,5,5366.24716600636,medical,no_immediate_action,True,,412.0,44,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice from the university's pharmacy services."" }"
+llama,79ba5e733153,main,5,11703.534083004342,general,no_immediate_action,True,,1026.0,71,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a general notice from the university regarding payment due dates and information for semester 1 AY2026/2027, but it does not require any action or response from the student."" }"
+llama,3f583b850315,main,5,7166.286792024039,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,main,5,9900.29483399121,general,reminder,True,,1012.0,59,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder to students about outstanding fees and GIRO deduction, but it does not ask for any specific action or reply."" }"
+llama,5f612ff83e8c,main,5,6191.694832989015,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,main,5,7839.118166011758,general,needs_reply,True,,723.0,50,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, and the recipient is asked to RSVP by cancelling their attendance."" }"
+llama,e5e10382d939,main,5,6761.969334009336,canva,no_immediate_action,True,,431.0,59,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a BrowZine account, which is likely a Canva-related service, and does not require any action or response."" }"
+llama,1bd2058dac4f,main,5,9669.0362910158,career,no_immediate_action,True,,928.0,58,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for a Manager - Data Science position at American Express, and the reader is not required to take any action."" }"
+llama,687a67239af4,main,5,6337.348957982613,career,needs_reply,True,,610.0,46,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about finding teammates for a university course, which is a career-related activity."" }"
+llama,5b863888ae71,main,5,5996.298041980481,career,no_immediate_action,True,,480.0,49,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is purely promotional, listing new job openings and inviting the reader to view more jobs."" }"
+llama,5bb9ae519a34,main,5,5223.26245799195,medical,no_immediate_action,True,,414.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about health test results and does not require any action from the student."" }"
+llama,359d727e544d,main,5,9232.754249998834,career,needs_action,True,,1165.0,51,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""needs_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is about a career development program and asks students to submit questions and complete a survey.""\n}"
+llama,e4c80a09d7f7,main,5,7843.620333005674,general,no_immediate_action,True,,643.0,61,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a thank you message and a sharing of photos from a university event, but it does not require any action or response from the students."" }"
+llama,ae731c5f71a8,main,5,6570.217457978288,general,reminder,True,,609.0,49,reminder,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""null"", ""reason"": ""The email is a reminder about an event, but it does not ask the reader to do anything specific."" }"
+llama,95498db55010,main,5,6470.254457992269,general,no_immediate_action,True,,490.0,54,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the university, providing information and resources, but does not require any action or response."" }"
+llama,33fb0c089ab4,length_short,0,5167.110625014175,promotional,no_immediate_action,True,,422.0,46,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message promoting a map of coffee stops around campus."" }"
+llama,79a545620560,length_short,0,6016.628666984616,general,no_immediate_action,True,,428.0,55,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement to students who attended the orientation, providing a recap and resources, but no action is required."" }"
+llama,d96a6aa59806,length_short,0,5974.056167004164,promotional,no_immediate_action,True,,434.0,51,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message for an event, and there is no action required from the recipient."" }"
+llama,e6b22082d1a9,length_short,0,6146.036582998931,promotional,no_immediate_action,True,,417.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is a marketing promotion for a free upgrade to a large cold drink on a specific day."" }"
+llama,254be0b78976,length_short,0,5200.263875012752,promotional,no_immediate_action,True,,414.0,45,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message with no specific action or reply required."" }"
+llama,4c6f8b1f0262,length_short,0,5397.389124991605,promotional,no_immediate_action,True,,418.0,49,no_immediate_action,general,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an invitation to a celebration, but no action is required from the students."" }"
+llama,4a8d6bcac640,length_short,0,5752.86516698543,promotional,no_immediate_action,True,,439.0,52,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""30 September"", ""reason"": ""The email is a marketing promotion with a limited time offer and no action required from the recipient."" }"
+llama,2e445fa17687,length_short,0,5598.899584001629,career,no_immediate_action,True,,442.0,51,reminder,general,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": ""null"", ""reason"": ""The email is an invitation to a career-related event, but no action is required from the student."" }"
+llama,7b64d87e7924,length_short,0,4929.603541997494,medical,no_immediate_action,True,,421.0,43,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a medical update from the University Health Centre."" }"
+llama,5e6073b49bfe,length_short,0,5876.909000013256,career,needs_reply,True,,412.0,53,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is related to a university project, specifically a capstone project, which is a common task in a career context."" }"
+llama,47c886b45427,length_short,0,5699.096708005527,medical,needs_action,True,,412.0,52,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_action"", ""deadline"": null, ""reason"": ""The email is a confirmation of a medical appointment and requires the student to take action (arrive early, bring documents)."" }"
+llama,3c0a385c8a61,length_short,0,7003.709541022545,promotional,no_immediate_action,True,,425.0,54,no_immediate_action,career,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message for an event, but it does not require any action or response from the reader."" }"
+llama,53f91ac43a75,length_short,0,5094.751625001663,promotional,no_immediate_action,True,,415.0,43,no_immediate_action,promotional,"{ ""content_category"": ""promotional"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a marketing message offering a discount to students."" }"
+llama,ec4364bce389,length_short,0,6135.021916998085,career,reminder,True,,430.0,53,no_immediate_action,career,"{\n  ""content_category"": ""career"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""02-03 Sep 2026"",\n  ""reason"": ""The email is about a career event and reminds students of the remaining sessions.""\n}"
+llama,977fb11b4485,length_short,0,7642.4872080096975,career,needs_action,True,,418.0,51,needs_action,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_action"", ""deadline"": null, ""reason"": ""The email is about a university career event, and the reader is required to take action by joining a Telegram group."" }"
+llama,149f06bdfdab,length_short,0,6056.289583997568,medical,no_immediate_action,True,,408.0,51,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general medical notice, but it does not require any action or response from the student."" }"
+llama,79ba5e733153,length_short,0,7088.504334009485,general,no_immediate_action,True,,432.0,62,needs_action,general,"{\n  ""content_category"": ""general"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is a general notice to students about payment due dates and availability of student bills, but it does not require any action or response.""\n}"
+llama,3f583b850315,length_short,0,6907.34308300307,medical,no_immediate_action,True,,405.0,60,no_immediate_action,medical,"{\n  ""content_category"": ""medical"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a promotional message about a health-related event, but it does not require any action or response from the reader.""\n}"
+llama,0c7c7de36121,length_short,0,7390.806292009074,general,reminder,True,,432.0,56,needs_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""30 September 2026"", ""reason"": ""The email is a reminder about outstanding fees and GIRO deduction, but does not ask for a specific action or reply."" }"
+llama,5f612ff83e8c,length_short,0,6816.6545830026735,general,reminder,True,,384.0,54,no_immediate_action,medical,"{ ""content_category"": ""general"", ""reply_nature"": ""reminder"", ""deadline"": ""Friday, 4 September 2026"", ""reason"": ""The email is a general announcement from the university's health centre about a change in operating hours."" }"
+llama,62db401fad58,length_short,0,6958.283042011317,general,no_immediate_action,True,,530.0,53,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is an invitation to a university event, but it does not require any action or response from the recipient."" }"
+llama,e5e10382d939,length_short,0,7442.717917001573,canva,no_immediate_action,True,,416.0,64,needs_action,others,"{ ""content_category"": ""canva"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is about a Canva-related account confirmation, but it's not sent by or about Canva itself, rather a third-party service used by Canva."" }"
+llama,1bd2058dac4f,length_short,0,6407.275166013278,career,no_immediate_action,True,,447.0,53,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting for PhD students, but it does not require any action or response from the reader."" }"
+llama,687a67239af4,length_short,0,6131.570500001544,career,needs_reply,True,,424.0,53,needs_reply,others,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about a job or internship opportunity, specifically finding teammates for a course, and the sender is asking a question."" }"
+llama,5b863888ae71,length_short,0,5050.733083015075,career,no_immediate_action,True,,413.0,42,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a job posting, purely informational and promotional."" }"
+llama,5bb9ae519a34,length_short,0,5574.908749986207,medical,needs_reply,True,,409.0,47,no_immediate_action,medical,"{ ""content_category"": ""medical"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about medical test results and asks the recipient to contact the clinic for further discussion."" }"
+llama,359d727e544d,length_short,0,4931.562708021374,career,needs_reply,True,,431.0,43,no_immediate_action,career,"{ ""content_category"": ""career"", ""reply_nature"": ""needs_reply"", ""deadline"": null, ""reason"": ""The email is about a career event and asks for the students' inputs."" }"
+llama,e4c80a09d7f7,length_short,0,6507.9072499938775,general,no_immediate_action,True,,434.0,53,no_immediate_action,general,"{\n  ""content_category"": ""general"",\n  ""reply_nature"": ""no_immediate_action"",\n  ""deadline"": null,\n  ""reason"": ""The email is a thank you message and does not require any action or response from the students.""\n}"
+llama,ae731c5f71a8,length_short,0,5725.897292024456,general,reminder,True,,430.0,50,reminder,general,"{\n  ""content_category"": ""general"",\n  ""reply_nature"": ""reminder"",\n  ""deadline"": ""null"",\n  ""reason"": ""The email is a reminder about an event, but no action is required from the student.""\n}"
+llama,95498db55010,length_short,0,6321.711208001943,general,no_immediate_action,True,,405.0,56,no_immediate_action,general,"{ ""content_category"": ""general"", ""reply_nature"": ""no_immediate_action"", ""deadline"": null, ""reason"": ""The email is a general announcement from the faculty about scam prevention, but it does not require any action or response from the students."" }"
+bert,33fb0c089ab4,cold,0,332.48995899339207,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,33fb0c089ab4,warmup,0,25.169291999191046,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,warmup,0,54.68899998231791,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,main,1,25.156459014397115,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,main,1,48.40033300570212,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,d96a6aa59806,main,1,169.70550001133233,promotional,no_immediate_action,,,512.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,main,1,35.639291018014774,promotional,no_immediate_action,,,114.0,0,no_immediate_action,promotional,
+bert,254be0b78976,main,1,65.26762500288896,promotional,no_immediate_action,,,384.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,main,1,76.96891701198183,general,no_immediate_action,,,446.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,main,1,112.36154200742021,promotional,no_immediate_action,,,490.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,main,1,161.7341669916641,general,reminder,,,512.0,0,reminder,general,
+bert,7b64d87e7924,main,1,127.57512499229051,medical,no_immediate_action,,,512.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,main,1,47.296500008087605,others,needs_reply,,,161.0,0,needs_reply,others,
+bert,47c886b45427,main,1,31.182500009890646,medical,needs_action,,,122.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,main,1,84.37333299661987,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,53f91ac43a75,main,1,46.68499997933395,promotional,no_immediate_action,,,160.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,main,1,90.6312919978518,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,977fb11b4485,main,1,91.60725001129322,others,needs_action,,,512.0,0,needs_action,others,
+bert,149f06bdfdab,main,1,32.35066597699188,medical,no_immediate_action,,,111.0,0,no_immediate_action,medical,
+bert,79ba5e733153,main,1,98.10262499377131,general,needs_action,,,512.0,0,needs_action,general,
+bert,3f583b850315,main,1,32.66441699815914,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,main,1,100.07237500394695,general,needs_action,,,512.0,0,needs_action,general,
+bert,5f612ff83e8c,main,1,24.638583010528237,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,main,1,136.3262079830747,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,e5e10382d939,main,1,85.2008750080131,others,needs_action,,,159.0,0,needs_action,others,
+bert,1bd2058dac4f,main,1,209.34091598610394,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,687a67239af4,main,1,90.82804198260419,others,needs_reply,,,512.0,0,needs_reply,others,
+bert,5b863888ae71,main,1,52.45129100512713,career,no_immediate_action,,,240.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,main,1,29.029083001660183,medical,no_immediate_action,,,109.0,0,no_immediate_action,medical,
+bert,359d727e544d,main,1,84.46958399144933,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,main,1,85.54533400456421,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,main,1,79.69695801148191,general,reminder,,,480.0,0,reminder,general,
+bert,95498db55010,main,1,66.11120898742229,general,no_immediate_action,,,289.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,main,2,40.73683300521225,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,main,2,99.19212499517016,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,d96a6aa59806,main,2,95.18295800080523,promotional,no_immediate_action,,,512.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,main,2,23.99204100947827,promotional,no_immediate_action,,,114.0,0,no_immediate_action,promotional,
+bert,254be0b78976,main,2,57.796291017439216,promotional,no_immediate_action,,,384.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,main,2,69.1107910242863,general,no_immediate_action,,,446.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,main,2,92.5086660136003,promotional,no_immediate_action,,,490.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,main,2,87.87237500655465,general,reminder,,,512.0,0,reminder,general,
+bert,7b64d87e7924,main,2,85.4039580153767,medical,no_immediate_action,,,512.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,main,2,34.63454102165997,others,needs_reply,,,161.0,0,needs_reply,others,
+bert,47c886b45427,main,2,25.671874987892807,medical,needs_action,,,122.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,main,2,140.02462499774992,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,53f91ac43a75,main,2,45.14362500049174,promotional,no_immediate_action,,,160.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,main,2,73.95300001371652,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,977fb11b4485,main,2,74.13024999550544,others,needs_action,,,512.0,0,needs_action,others,
+bert,149f06bdfdab,main,2,25.117917015450075,medical,no_immediate_action,,,111.0,0,no_immediate_action,medical,
+bert,79ba5e733153,main,2,81.31924999179319,general,needs_action,,,512.0,0,needs_action,general,
+bert,3f583b850315,main,2,23.10704201227054,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,main,2,82.03483300167136,general,needs_action,,,512.0,0,needs_action,general,
+bert,5f612ff83e8c,main,2,16.52237499365583,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,main,2,68.39454200235195,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,e5e10382d939,main,2,36.91545798210427,others,needs_action,,,159.0,0,needs_action,others,
+bert,1bd2058dac4f,main,2,69.79300000239164,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,687a67239af4,main,2,70.2571669826284,others,needs_reply,,,512.0,0,needs_reply,others,
+bert,5b863888ae71,main,2,41.202332999091595,career,no_immediate_action,,,240.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,main,2,21.659291989635676,medical,no_immediate_action,,,109.0,0,no_immediate_action,medical,
+bert,359d727e544d,main,2,69.4276670110412,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,main,2,72.2193330002483,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,main,2,63.98608299787156,general,reminder,,,480.0,0,reminder,general,
+bert,95498db55010,main,2,48.16037500859238,general,no_immediate_action,,,289.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,main,3,28.328165994025767,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,main,3,57.90295801125467,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,d96a6aa59806,main,3,73.12858299701475,promotional,no_immediate_action,,,512.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,main,3,25.504915975034237,promotional,no_immediate_action,,,114.0,0,no_immediate_action,promotional,
+bert,254be0b78976,main,3,68.92633298411965,promotional,no_immediate_action,,,384.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,main,3,78.61208298709244,general,no_immediate_action,,,446.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,main,3,82.01650000410154,promotional,no_immediate_action,,,490.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,main,3,84.99266699072905,general,reminder,,,512.0,0,reminder,general,
+bert,7b64d87e7924,main,3,79.41900001605973,medical,no_immediate_action,,,512.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,main,3,29.821665986673906,others,needs_reply,,,161.0,0,needs_reply,others,
+bert,47c886b45427,main,3,24.321042001247406,medical,needs_action,,,122.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,main,3,66.83266698382795,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,53f91ac43a75,main,3,31.564875011099502,promotional,no_immediate_action,,,160.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,main,3,74.23262498923577,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,977fb11b4485,main,3,70.73350000428036,others,needs_action,,,512.0,0,needs_action,others,
+bert,149f06bdfdab,main,3,22.08274998702109,medical,no_immediate_action,,,111.0,0,no_immediate_action,medical,
+bert,79ba5e733153,main,3,76.58970801276155,general,needs_action,,,512.0,0,needs_action,general,
+bert,3f583b850315,main,3,23.984375002328306,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,main,3,87.97058399068192,general,needs_action,,,512.0,0,needs_action,general,
+bert,5f612ff83e8c,main,3,16.281958989566192,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,main,3,65.5481249850709,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,e5e10382d939,main,3,30.416374997003004,others,needs_action,,,159.0,0,needs_action,others,
+bert,1bd2058dac4f,main,3,75.00391697976738,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,687a67239af4,main,3,69.53316600993276,others,needs_reply,,,512.0,0,needs_reply,others,
+bert,5b863888ae71,main,3,42.33745802775957,career,no_immediate_action,,,240.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,main,3,22.121749992948025,medical,no_immediate_action,,,109.0,0,no_immediate_action,medical,
+bert,359d727e544d,main,3,69.42775001516566,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,main,3,71.06437502079643,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,main,3,65.88620800175704,general,reminder,,,480.0,0,reminder,general,
+bert,95498db55010,main,3,46.322499983944,general,no_immediate_action,,,289.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,main,4,29.329874989343807,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,main,4,58.22637499659322,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,d96a6aa59806,main,4,73.57662499998696,promotional,no_immediate_action,,,512.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,main,4,26.01629198761657,promotional,no_immediate_action,,,114.0,0,no_immediate_action,promotional,
+bert,254be0b78976,main,4,55.23166598868556,promotional,no_immediate_action,,,384.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,main,4,61.144124978454784,general,no_immediate_action,,,446.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,main,4,65.7154590007849,promotional,no_immediate_action,,,490.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,main,4,76.78358402336016,general,reminder,,,512.0,0,reminder,general,
+bert,7b64d87e7924,main,4,71.09341700561345,medical,no_immediate_action,,,512.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,main,4,30.304834013804793,others,needs_reply,,,161.0,0,needs_reply,others,
+bert,47c886b45427,main,4,24.98999997624196,medical,needs_action,,,122.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,main,4,67.71758300601505,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,53f91ac43a75,main,4,31.150666007306427,promotional,no_immediate_action,,,160.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,main,4,95.70608398644254,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,977fb11b4485,main,4,274.73945802194066,others,needs_action,,,512.0,0,needs_action,others,
+bert,149f06bdfdab,main,4,68.54925001971424,medical,no_immediate_action,,,111.0,0,no_immediate_action,medical,
+bert,79ba5e733153,main,4,304.36258399276994,general,needs_action,,,512.0,0,needs_action,general,
+bert,3f583b850315,main,4,67.69312499091029,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,main,4,287.21195898833685,general,needs_action,,,512.0,0,needs_action,general,
+bert,5f612ff83e8c,main,4,55.90158299310133,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,main,4,242.8167080215644,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,e5e10382d939,main,4,84.06037499662489,others,needs_action,,,159.0,0,needs_action,others,
+bert,1bd2058dac4f,main,4,225.14991700882092,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,687a67239af4,main,4,218.47566700307652,others,needs_reply,,,512.0,0,needs_reply,others,
+bert,5b863888ae71,main,4,112.71566600771621,career,no_immediate_action,,,240.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,main,4,65.40983301238157,medical,no_immediate_action,,,109.0,0,no_immediate_action,medical,
+bert,359d727e544d,main,4,216.65895901969634,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,main,4,331.6035000025295,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,main,4,362.20429197419435,general,reminder,,,480.0,0,reminder,general,
+bert,95498db55010,main,4,341.7629160103388,general,no_immediate_action,,,289.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,main,5,152.2284579987172,promotional,no_immediate_action,,,144.0,0,no_immediate_action,promotional,
+bert,79a545620560,main,5,259.0581660042517,general,no_immediate_action,,,357.0,0,no_immediate_action,general,
+bert,d96a6aa59806,main,5,300.6539999914821,promotional,no_immediate_action,,,512.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,main,5,111.62991699529812,promotional,no_immediate_action,,,114.0,0,no_immediate_action,promotional,
+bert,254be0b78976,main,5,313.045917020645,promotional,no_immediate_action,,,384.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,main,5,350.2524999785237,general,no_immediate_action,,,446.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,main,5,327.78958400012925,promotional,no_immediate_action,,,490.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,main,5,337.8848749853205,general,reminder,,,512.0,0,reminder,general,
+bert,7b64d87e7924,main,5,350.15912499511614,medical,no_immediate_action,,,512.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,main,5,123.67366600665264,others,needs_reply,,,161.0,0,needs_reply,others,
+bert,47c886b45427,main,5,109.82875002082437,medical,needs_action,,,122.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,main,5,343.614916986553,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,53f91ac43a75,main,5,138.41829099692404,promotional,no_immediate_action,,,160.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,main,5,328.3459579979535,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,977fb11b4485,main,5,309.9441659869626,others,needs_action,,,512.0,0,needs_action,others,
+bert,149f06bdfdab,main,5,97.76470900396816,medical,no_immediate_action,,,111.0,0,no_immediate_action,medical,
+bert,79ba5e733153,main,5,109.52958298730664,general,needs_action,,,512.0,0,needs_action,general,
+bert,3f583b850315,main,5,32.05870802048594,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,main,5,197.21104198833928,general,needs_action,,,512.0,0,needs_action,general,
+bert,5f612ff83e8c,main,5,46.47295901668258,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,main,5,190.15999999828637,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,e5e10382d939,main,5,79.62120900629088,others,needs_action,,,159.0,0,needs_action,others,
+bert,1bd2058dac4f,main,5,200.95741699333303,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,687a67239af4,main,5,190.4420829960145,others,needs_reply,,,512.0,0,needs_reply,others,
+bert,5b863888ae71,main,5,131.55058299889788,career,no_immediate_action,,,240.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,main,5,100.41433299193159,medical,no_immediate_action,,,109.0,0,no_immediate_action,medical,
+bert,359d727e544d,main,5,331.2699999951292,career,no_immediate_action,,,512.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,main,5,179.0015830192715,general,no_immediate_action,,,512.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,main,5,251.02875000447966,general,reminder,,,480.0,0,reminder,general,
+bert,95498db55010,main,5,206.60408298135735,general,no_immediate_action,,,289.0,0,no_immediate_action,general,
+bert,33fb0c089ab4,length_short,0,209.6135420142673,promotional,no_immediate_action,,,138.0,0,no_immediate_action,promotional,
+bert,79a545620560,length_short,0,115.7817920029629,general,no_immediate_action,,,140.0,0,no_immediate_action,general,
+bert,d96a6aa59806,length_short,0,114.78299999726005,promotional,no_immediate_action,,,140.0,0,no_immediate_action,promotional,
+bert,e6b22082d1a9,length_short,0,103.32712499075569,promotional,no_immediate_action,,,111.0,0,no_immediate_action,promotional,
+bert,254be0b78976,length_short,0,106.1307080090046,promotional,no_immediate_action,,,111.0,0,no_immediate_action,promotional,
+bert,4c6f8b1f0262,length_short,0,119.09833300160244,general,no_immediate_action,,,122.0,0,no_immediate_action,general,
+bert,4a8d6bcac640,length_short,0,136.53845799854025,promotional,no_immediate_action,,,159.0,0,no_immediate_action,promotional,
+bert,2e445fa17687,length_short,0,140.44729102170095,general,reminder,,,160.0,0,reminder,general,
+bert,7b64d87e7924,length_short,0,120.84691700874828,medical,no_immediate_action,,,130.0,0,no_immediate_action,medical,
+bert,5e6073b49bfe,length_short,0,99.97245902195573,others,needs_reply,,,104.0,0,needs_reply,others,
+bert,47c886b45427,length_short,0,99.94237500359304,medical,no_immediate_action,,,102.0,0,no_immediate_action,medical,
+bert,3c0a385c8a61,length_short,0,95.09462499408983,career,no_immediate_action,,,127.0,0,no_immediate_action,career,
+bert,53f91ac43a75,length_short,0,71.80483298725449,promotional,no_immediate_action,,,115.0,0,no_immediate_action,promotional,
+bert,ec4364bce389,length_short,0,72.33791600447148,career,no_immediate_action,,,138.0,0,no_immediate_action,career,
+bert,977fb11b4485,length_short,0,93.44575001159683,others,needs_action,,,117.0,0,needs_action,others,
+bert,149f06bdfdab,length_short,0,92.50541601795703,medical,no_immediate_action,,,102.0,0,no_immediate_action,medical,
+bert,79ba5e733153,length_short,0,116.27487500663847,general,needs_action,,,142.0,0,needs_action,general,
+bert,3f583b850315,length_short,0,105.20458398968913,medical,no_immediate_action,,,86.0,0,no_immediate_action,medical,
+bert,0c7c7de36121,length_short,0,123.24483299744315,general,needs_action,,,140.0,0,needs_action,general,
+bert,5f612ff83e8c,length_short,0,69.1177079861518,medical,no_immediate_action,,,47.0,0,no_immediate_action,medical,
+bert,62db401fad58,length_short,0,212.46208299999125,general,no_immediate_action,,,290.0,0,no_immediate_action,general,
+bert,e5e10382d939,length_short,0,109.88350000116043,others,needs_action,,,128.0,0,needs_action,others,
+bert,1bd2058dac4f,length_short,0,146.92887497949414,career,no_immediate_action,,,188.0,0,no_immediate_action,career,
+bert,687a67239af4,length_short,0,123.71520799933933,others,needs_reply,,,134.0,0,needs_reply,others,
+bert,5b863888ae71,length_short,0,92.41262500290759,career,no_immediate_action,,,115.0,0,no_immediate_action,career,
+bert,5bb9ae519a34,length_short,0,68.98379200720228,medical,no_immediate_action,,,94.0,0,no_immediate_action,medical,
+bert,359d727e544d,length_short,0,91.29712500725873,career,no_immediate_action,,,136.0,0,no_immediate_action,career,
+bert,e4c80a09d7f7,length_short,0,133.59887499245815,general,no_immediate_action,,,144.0,0,no_immediate_action,general,
+bert,ae731c5f71a8,length_short,0,127.21454200800508,general,reminder,,,134.0,0,reminder,general,
+bert,95498db55010,length_short,0,110.5812499881722,general,no_immediate_action,,,100.0,0,no_immediate_action,general,
+ml,33fb0c089ab4,cold,0,5.767249997006729,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,33fb0c089ab4,warmup,0,2.6672919921111315,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,warmup,0,2.424833015538752,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,main,1,1.7612919909879565,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,main,1,2.8459160239435732,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,main,1,3.972209000494331,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,main,1,1.8662499787751585,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,main,1,2.4908749910537153,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,main,1,2.7109580114483833,general,reminder,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,main,1,2.7812909975182265,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,main,1,2.6094580243807286,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,main,1,2.560667024226859,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,main,1,1.740000006975606,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,main,1,1.7432089953217655,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,main,1,3.533041977789253,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,main,1,1.5762079856358469,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,main,1,4.493916989304125,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,977fb11b4485,main,1,2.6668749924283475,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,main,1,1.4617919805459678,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,main,1,9.359332994790748,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,main,1,1.5288750000763685,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,main,1,11.85237499885261,general,needs_action,,,,0,needs_action,general,
+ml,5f612ff83e8c,main,1,1.8850000051315874,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,main,1,1.7067920125555247,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,main,1,1.443499990273267,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,main,1,4.973458009772003,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,main,1,2.091708010993898,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,main,1,1.5307919820770621,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,main,1,1.3922500074841082,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,main,1,4.606167000019923,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,main,1,1.759792008670047,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,main,1,2.0265000057406723,general,reminder,,,,0,reminder,general,
+ml,95498db55010,main,1,1.953500002855435,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,main,2,1.56154201249592,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,main,2,1.8863330187741667,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,main,2,3.3437499951105565,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,main,2,1.7488339799456298,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,main,2,1.958250009920448,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,main,2,1.902499992866069,general,reminder,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,main,2,2.1045829926151782,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,main,2,2.324291010154411,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,main,2,2.3188750201370567,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,main,2,1.535457995487377,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,main,2,1.470292016165331,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,main,2,3.4658749937079847,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,main,2,1.4782919897697866,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,main,2,3.9322499942500144,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,977fb11b4485,main,2,2.4555839772801846,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,main,2,1.370083016809076,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,main,2,9.473083016928285,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,main,2,1.543666992802173,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,main,2,11.77783400635235,general,needs_action,,,,0,needs_action,general,
+ml,5f612ff83e8c,main,2,1.6497920150868595,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,main,2,1.7150829953607172,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,main,2,1.4990830095484853,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,main,2,5.387750017689541,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,main,2,2.2322500008158386,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,main,2,1.582500000949949,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,main,2,1.3908749970141798,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,main,2,4.952708986820653,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,main,2,2.040749997831881,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,main,2,2.031957992585376,general,reminder,,,,0,reminder,general,
+ml,95498db55010,main,2,1.9129169813822955,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,main,3,1.6506249958183616,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,main,3,1.908584003103897,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,main,3,2.9126660083420575,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,main,3,1.607042009709403,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,main,3,2.2302920115180314,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,main,3,2.0684579794760793,general,reminder,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,main,3,2.1014169906266034,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,main,3,2.6606660103425384,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,main,3,2.4723749957047403,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,main,3,1.572042005136609,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,main,3,1.4281249896157533,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,main,3,3.6303749948274344,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,main,3,1.574124995386228,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,main,3,3.6884999717585742,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,977fb11b4485,main,3,3.033416985999793,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,main,3,1.5479169960599393,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,main,3,9.126250020926818,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,main,3,1.5363749989774078,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,main,3,11.442375020124018,general,needs_action,,,,0,needs_action,general,
+ml,5f612ff83e8c,main,3,1.4282909978646785,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,main,3,1.6377079882659018,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,main,3,1.4625419862568378,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,main,3,5.265666986815631,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,main,3,2.1157499868422747,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,main,3,1.6721249849069864,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,main,3,1.4712499978486449,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,main,3,5.0551250169519335,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,main,3,2.118916978361085,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,main,3,2.0948750025127083,general,reminder,,,,0,reminder,general,
+ml,95498db55010,main,3,1.8315839988645166,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,main,4,1.4804580132476985,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,main,4,1.932833023602143,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,main,4,3.0456660024356097,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,main,4,1.431457989383489,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,main,4,2.1111249807290733,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,main,4,2.2133750026114285,general,reminder,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,main,4,2.1726670092903078,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,main,4,2.2716250095982105,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,main,4,2.684208011487499,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,main,4,1.7766249948181212,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,main,4,1.4682920009363443,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,main,4,3.4341250138822943,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,main,4,1.9420409807935357,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,main,4,3.9025000005494803,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,977fb11b4485,main,4,2.508041012333706,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,main,4,1.422875007847324,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,main,4,8.939291001297534,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,main,4,1.4693749835714698,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,main,4,12.375791993690655,general,needs_action,,,,0,needs_action,general,
+ml,5f612ff83e8c,main,4,1.806958025554195,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,main,4,1.7013750039041042,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,main,4,1.4188749773893505,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,main,4,5.168582982150838,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,main,4,2.1005839807912707,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,main,4,1.558166986797005,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,main,4,1.436624996131286,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,main,4,5.045750003773719,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,main,4,1.9232920021750033,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,main,4,2.0434999896679074,general,reminder,,,,0,reminder,general,
+ml,95498db55010,main,4,1.799000019673258,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,main,5,1.4186250045895576,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,main,5,1.9211659964639693,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,main,5,3.259874996729195,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,main,5,1.2827080208808184,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,main,5,1.66095799067989,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,main,5,1.7682499892544001,general,reminder,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,main,5,1.8350830068811774,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,main,5,2.0180830033496022,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,main,5,2.282792003825307,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,main,5,1.341791998129338,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,main,5,52.42204200476408,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,main,5,111.32399999769405,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,main,5,3.628542006481439,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,main,5,8.65104197873734,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,977fb11b4485,main,5,5.922582990024239,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,main,5,8.036749990424141,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,main,5,18.304375000298023,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,main,5,40.02991699962877,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,main,5,22.566291998373345,general,needs_action,,,,0,needs_action,general,
+ml,5f612ff83e8c,main,5,2.7860420232173055,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,main,5,3.040958021301776,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,main,5,2.492875006282702,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,main,5,8.124874992063269,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,main,5,3.4832090022973716,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,main,5,2.7750829758588225,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,main,5,2.7897090185433626,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,main,5,7.844167004805058,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,main,5,3.2995420042425394,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,main,5,2.678416989510879,general,reminder,,,,0,reminder,general,
+ml,95498db55010,main,5,2.196292014559731,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,33fb0c089ab4,length_short,0,2.3367080138996243,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,79a545620560,length_short,0,2.183375007007271,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,d96a6aa59806,length_short,0,1.997709012357518,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,e6b22082d1a9,length_short,0,1.8747080175671726,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,254be0b78976,length_short,0,2.0092079939786345,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,4c6f8b1f0262,length_short,0,1.9276659877505153,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,4a8d6bcac640,length_short,0,1.9136249902658165,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,2e445fa17687,length_short,0,1.8015830137301236,general,reminder,,,,0,reminder,general,
+ml,7b64d87e7924,length_short,0,1.9432079861871898,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,5e6073b49bfe,length_short,0,1.7776669992599636,others,needs_reply,,,,0,needs_reply,others,
+ml,47c886b45427,length_short,0,1.7365830135531723,medical,reminder,,,,0,no_immediate_action,medical,
+ml,3c0a385c8a61,length_short,0,1.8233750015497208,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,53f91ac43a75,length_short,0,1.7208750068675727,promotional,no_immediate_action,,,,0,no_immediate_action,promotional,
+ml,ec4364bce389,length_short,0,1.9312090007588267,career,reminder,,,,0,no_immediate_action,career,
+ml,977fb11b4485,length_short,0,1.834833004977554,others,needs_action,,,,0,needs_action,others,
+ml,149f06bdfdab,length_short,0,1.7143329896498471,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,79ba5e733153,length_short,0,1.8331249884795398,general,needs_action,,,,0,needs_action,general,
+ml,3f583b850315,length_short,0,1.7487499862909317,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,0c7c7de36121,length_short,0,1.821665995521471,general,reminder,,,,0,needs_action,general,
+ml,5f612ff83e8c,length_short,0,1.5625420201104134,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,62db401fad58,length_short,0,1.879999996162951,general,no_immediate_action,,,,0,no_immediate_action,general,
+ml,e5e10382d939,length_short,0,1.7288750095758587,others,needs_action,,,,0,needs_action,others,
+ml,1bd2058dac4f,length_short,0,1.843417005147785,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,687a67239af4,length_short,0,1.7532090132590383,others,needs_reply,,,,0,needs_reply,others,
+ml,5b863888ae71,length_short,0,1.7119580006692559,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,5bb9ae519a34,length_short,0,1.7356249736621976,medical,no_immediate_action,,,,0,no_immediate_action,medical,
+ml,359d727e544d,length_short,0,1.7871250165626407,career,no_immediate_action,,,,0,no_immediate_action,career,
+ml,e4c80a09d7f7,length_short,0,2.3189169878605753,general,reminder,,,,0,no_immediate_action,general,
+ml,ae731c5f71a8,length_short,0,1.5814999933354557,general,reminder,,,,0,reminder,general,
+ml,95498db55010,length_short,0,1.9410829991102219,general,no_immediate_action,,,,0,no_immediate_action,general,
+claude,33fb0c089ab4,cold,0,1135.5915000021923,promotional,no_immediate_action,True,,697.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.93, ""reason"": ""Marketing email from a coffee company promoting a campus map and deals.""}"
+claude,33fb0c089ab4,warmup,0,969.6860410040244,promotional,no_immediate_action,True,,697.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.95, ""reason"": ""Marketing email from a coffee shop promoting a campus map and deals.""}"
+claude,79a545620560,warmup,0,1264.3643329793122,general,no_immediate_action,True,,866.0,61,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.85, ""reason"": ""Recap of orientation with slides link; purely informational, no response or task required.""}"
+claude,33fb0c089ab4,main,1,883.0373329983559,promotional,no_immediate_action,True,,697.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.95, ""reason"": ""Marketing email from coffee shop promoting a campus map and deals.""}"
+claude,79a545620560,main,1,2248.8394170068204,general,no_immediate_action,True,,866.0,61,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.85, ""reason"": ""Recap of orientation with slides link; purely informational, no response or task required.""}"
+claude,d96a6aa59806,main,1,1473.0613749998156,others,no_immediate_action,True,,1732.0,55,no_immediate_action,promotional,"{""topic"": ""Others"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Promotional social event invitation from graduate society; informational only""}"
+claude,e6b22082d1a9,main,1,1330.254457978299,promotional,no_immediate_action,True,,691.0,62,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer from a drink retailer; purely promotional with no required response.""}"
+claude,254be0b78976,main,1,1387.2364579874557,promotional,no_immediate_action,True,,897.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email with student shopping offers; purely promotional, no response required.""}"
+claude,4c6f8b1f0262,main,1,1132.0394999929704,general,needs_action,True,,966.0,60,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""Needs an action"", ""confidence"": 0.8, ""reason"": ""Departmental event invitation requiring registration form completion by deadline.""}"
+claude,4a8d6bcac640,main,1,1144.9606659880374,promotional,no_immediate_action,True,,979.0,59,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising a laptop discount; purely promotional.""}"
+claude,2e445fa17687,main,1,1058.945708005922,general,reminder,True,,1238.0,67,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.8, ""reason"": ""Programme briefing invitation from department on 16 July; time-bound info, no reply needed""}"
+claude,7b64d87e7924,main,1,953.9157499966677,medical,no_immediate_action,True,,1110.0,56,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Informational update on health scheme coverage; no required response or task.""}"
+claude,5e6073b49bfe,main,1,1057.4169169995002,general,needs_reply,True,,742.0,62,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.9, ""reason"": ""Sender asks for a written priority ranking by Monday 21 October.""}"
+claude,33fb0c089ab4,main,2,986.1316669848748,promotional,no_immediate_action,True,,697.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.93, ""reason"": ""Marketing email from a coffee business promoting a campus map and deals.""}"
+claude,79a545620560,main,2,2816.842958010966,general,no_immediate_action,True,,866.0,61,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.9, ""reason"": ""Faculty recap email with slides link; purely informational, no response or task required.""}"
+claude,d96a6aa59806,main,2,1668.451167002786,others,no_immediate_action,True,,1732.0,54,no_immediate_action,promotional,"{""topic"": ""Others"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Promotional student society event invitation; no reply or task required.""}"
+claude,e6b22082d1a9,main,2,1141.2592499982566,promotional,no_immediate_action,True,,691.0,62,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer from a drink retailer; purely promotional with no required response.""}"
+claude,254be0b78976,main,2,1285.3240830008872,promotional,no_immediate_action,True,,897.0,59,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email from UniStore advertising student discounts and offers.""}"
+claude,4c6f8b1f0262,main,2,1230.4797090182547,general,needs_action,True,,966.0,58,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""Needs an action"", ""confidence"": 0.8, ""reason"": ""Department event invitation requiring registration form completion by deadline.""}"
+claude,4a8d6bcac640,main,2,1330.4428329865914,promotional,no_immediate_action,True,,979.0,63,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising a laptop discount; purely promotional, no response required.""}"
+claude,2e445fa17687,main,2,1023.2183339830954,general,reminder,True,,1238.0,63,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.85, ""reason"": ""Programme briefing invitation from department; time-bound event, no immediate task required.""}"
+claude,7b64d87e7924,main,2,1022.8024999960326,medical,no_immediate_action,True,,1110.0,56,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Informational update on health scheme coverage; no task required from student.""}"
+claude,5e6073b49bfe,main,2,1060.9764579858165,general,needs_reply,True,,742.0,67,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.8, ""reason"": ""Lecturer asks for a priority ranking reply by Monday 21 Oct.""}"
+claude,33fb0c089ab4,main,3,926.519125001505,promotional,no_immediate_action,True,,697.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.95, ""reason"": ""Marketing email from a coffee business promoting a campus map and deals.""}"
+claude,79a545620560,main,3,2173.9132090006024,general,no_immediate_action,True,,866.0,62,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.9, ""reason"": ""Recap email from faculty with slides link; purely informational, no response or task required.""}"
+claude,d96a6aa59806,main,3,1135.0868750014342,others,no_immediate_action,True,,1732.0,62,no_immediate_action,promotional,"{""topic"": ""Others"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Promotional social event invitation from graduate student society, not a faculty or career matter.""}"
+claude,e6b22082d1a9,main,3,1234.0630420076195,promotional,no_immediate_action,True,,691.0,63,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer from a drink retailer; purely promotional, no response needed.""}"
+claude,254be0b78976,main,3,1152.7037080086302,promotional,no_immediate_action,True,,897.0,56,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Retail marketing email advertising student discounts and offers.""}"
+claude,4c6f8b1f0262,main,3,1186.8143749888986,general,needs_action,True,,966.0,60,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""Needs an action"", ""confidence"": 0.8, ""reason"": ""Departmental event invitation requiring registration form submission by deadline.""}"
+claude,4a8d6bcac640,main,3,1204.7569580026902,promotional,no_immediate_action,True,,979.0,63,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising a laptop discount; purely promotional, no response required.""}"
+claude,2e445fa17687,main,3,890.5431250168476,general,reminder,True,,1238.0,60,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.85, ""reason"": ""Programme briefing invitation with date and time; no direct action required yet.""}"
+claude,7b64d87e7924,main,3,930.5729579937179,medical,no_immediate_action,True,,1110.0,56,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Informational update on health scheme coverage; no required response or task.""}"
+claude,5e6073b49bfe,main,3,1000.0124590005726,general,needs_reply,True,,742.0,62,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.9, ""reason"": ""Sender directly asks for a priority ranking reply by a deadline.""}"
+claude,33fb0c089ab4,main,4,1022.8063749964349,promotional,no_immediate_action,True,,697.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.93, ""reason"": ""Marketing email from a coffee business promoting a campus coffee map.""}"
+claude,79a545620560,main,4,1332.2378330049105,general,no_immediate_action,True,,866.0,59,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.9, ""reason"": ""Recap of orientation with slides link; informational, no response or task required.""}"
+claude,d96a6aa59806,main,4,1480.9180829906836,others,no_immediate_action,True,,1732.0,55,no_immediate_action,promotional,"{""topic"": ""Others"", ""action"": ""No action needed"", ""confidence"": 0.85, ""reason"": ""Promotional event invitation from student society; no reply or action required.""}"
+claude,e6b22082d1a9,main,4,1432.6869169890415,promotional,no_immediate_action,True,,691.0,62,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer from a drink retailer; purely promotional with no required response.""}"
+claude,254be0b78976,main,4,2524.7549999912735,promotional,no_immediate_action,True,,897.0,57,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising student discounts and promotional offers.""}"
+claude,4c6f8b1f0262,main,4,1120.3393749892712,general,needs_action,True,,966.0,58,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""Needs an action"", ""confidence"": 0.8, ""reason"": ""Department event invitation requiring registration form completion by deadline.""}"
+claude,4a8d6bcac640,main,4,1202.7997499972116,promotional,no_immediate_action,True,,979.0,59,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising a laptop discount; purely promotional.""}"
+claude,2e445fa17687,main,4,977.1939589991234,general,reminder,True,,1238.0,61,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.85, ""reason"": ""Programme briefing invitation from department with a fixed date; no action yet.""}"
+claude,7b64d87e7924,main,4,960.2593330200762,medical,no_immediate_action,True,,1110.0,54,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Informational update on health scheme coverage; no task required.""}"
+claude,5e6073b49bfe,main,4,1206.4328329870477,general,needs_reply,True,,742.0,67,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.9, ""reason"": ""Lecturer asks for a written priority ranking of capstone tasks by Monday.""}"
+claude,33fb0c089ab4,main,5,1262.129874987295,promotional,no_immediate_action,True,,697.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.93, ""reason"": ""Marketing email from a coffee business promoting cafe deals and a map.""}"
+claude,79a545620560,main,5,2319.489165995037,general,no_immediate_action,True,,866.0,58,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.85, ""reason"": ""Recap of orientation with slides link; informational only, no response required.""}"
+claude,d96a6aa59806,main,5,2248.885250010062,others,no_immediate_action,True,,1732.0,60,no_immediate_action,promotional,"{""topic"": ""Others"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Promotional social event invitation from graduate students' society, not faculty or career.""}"
+claude,e6b22082d1a9,main,5,1238.9047500037123,promotional,no_immediate_action,True,,691.0,62,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer from a drink retailer; purely promotional with no required response.""}"
+claude,254be0b78976,main,5,2048.5643749998417,promotional,no_immediate_action,True,,897.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising student discounts and offers; purely promotional.""}"
+claude,4c6f8b1f0262,main,5,1056.549917004304,general,needs_action,True,,966.0,59,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""Needs an action"", ""confidence"": 0.8, ""reason"": ""Department event invitation requiring registration form completion by 24 August.""}"
+claude,4a8d6bcac640,main,5,1123.8597500196192,promotional,no_immediate_action,True,,979.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing offer for a laptop from a co-op; purely promotional.""}"
+claude,2e445fa17687,main,5,971.642416989198,general,reminder,True,,1238.0,66,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.85, ""reason"": ""Programme briefing invitation from department on 16 July; time-bound event, no action yet.""}"
+claude,7b64d87e7924,main,5,984.2247079941444,medical,no_immediate_action,True,,1110.0,56,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Informational update on health scheme coverage; no required response or task.""}"
+claude,5e6073b49bfe,main,5,1103.3685829897877,general,needs_reply,True,,742.0,62,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.9, ""reason"": ""Sender from capstone project asks for written priority ranking by Monday.""}"
+claude,33fb0c089ab4,length_short,0,1199.3861250230111,promotional,no_immediate_action,True,,691.0,62,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.9, ""reason"": ""Marketing email promoting coffee stops and student deals; purely promotional.""}"
+claude,79a545620560,length_short,0,1105.5962499813177,general,no_immediate_action,True,,709.0,56,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.85, ""reason"": ""Recap of orientation day with resources; informational, read later.""}"
+claude,d96a6aa59806,length_short,0,1163.478791975649,promotional,no_immediate_action,True,,717.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.8, ""reason"": ""Social event marketing blast from a student society; purely promotional, no response required.""}"
+claude,e6b22082d1a9,length_short,0,850.097165995976,promotional,no_immediate_action,True,,687.0,60,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.95, ""reason"": ""Marketing offer for a free drink upgrade; purely promotional.""}"
+claude,254be0b78976,length_short,0,1847.3036249924917,promotional,no_immediate_action,True,,675.0,58,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising student savings offers; purely promotional.""}"
+claude,4c6f8b1f0262,length_short,0,1214.1666249954142,general,no_immediate_action,True,,697.0,65,no_immediate_action,general,"{""topic"": ""FoS General"", ""action"": ""No action needed"", ""confidence"": 0.6, ""reason"": ""Departmental social event invitation, informational; no reply or registration evident in truncated text.""}"
+claude,4a8d6bcac640,length_short,0,2188.3600000001024,promotional,no_immediate_action,True,,741.0,61,no_immediate_action,promotional,"{""topic"": ""Promotions"", ""action"": ""No action needed"", ""confidence"": 0.97, ""reason"": ""Marketing email advertising a laptop discount offer; purely promotional.""}"
+claude,2e445fa17687,length_short,0,1056.3624589995015,general,reminder,True,,723.0,61,reminder,general,"{""topic"": ""FoS General"", ""action"": ""Reminder"", ""confidence"": 0.85, ""reason"": ""Programme briefing invitation for a future date; note the event, no action yet.""}"
+claude,7b64d87e7924,length_short,0,1230.447042005835,medical,no_immediate_action,True,,700.0,63,no_immediate_action,medical,"{""topic"": ""Medical"", ""action"": ""Further review"", ""confidence"": 0.8, ""reason"": ""Health centre update on GP coverage; email is truncated, so the required action is unclear.""}"
+claude,5e6073b49bfe,length_short,0,1104.8189160064794,general,needs_reply,True,,693.0,64,needs_reply,others,"{""topic"": ""FoS General"", ""action"": ""Needs a reply"", ""confidence"": 0.85, ""reason"": ""Lecturer or faculty asks me to reply with a task priority ranking.""}"

@@ -833,10 +833,15 @@
     }
   }
 
+
   function startPushedRefresh() {
-    stopPushedRefresh();
-    pushedRefreshTimer = setInterval(refreshPushedInbox, 20000);
-  }
+  stopPushedRefresh();
+
+  pushedRefreshTimer = setInterval(
+    refreshPushedInbox,
+    5000,
+  );
+}
 
   function startWebhookDiagnostics() {
     refreshWebhookDiagnostics();

@@ -430,3 +430,14 @@ body.no-sidebar .user-bar{margin-bottom:20px;padding-bottom:18px;border-bottom:1
 .user-gate .sub{margin:0 0 14px}
 .user-gate button{margin-top:16px}
 .user-gate-error{color:#c0392b;font-size:13px;margin:8px 0 0}
+.user-chip:disabled {
+  opacity: 1;
+  cursor: default;
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.user-chip:disabled:hover {
+  background: var(--panel);
+}

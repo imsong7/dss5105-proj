@@ -17,11 +17,9 @@ function normalizeUser(value) {
 }
 
 function currentUser() {
-  try {
-    return normalizeUser(localStorage.getItem(CURRENT_USER_KEY));
-  } catch {
-    return "";
-  }
+  return normalizeUser(
+    document.body?.dataset.currentUser || ""
+  );
 }
 
 function userInitials(email) {
@@ -56,52 +54,36 @@ function openUserGate() {
 }
 
 function initUserGate() {
+  // Authentication is already handled by the server.
   const gate = $("#user-gate");
-  const form = $("#user-form");
-  if (!gate || !form) return;
 
-  // The gate is a confirmation step, not a dismissible banner: the dashboard
-  // loads mail only after someone presses Continue.
-  gate.addEventListener("cancel", event => event.preventDefault());
-
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    const input = $("#user-input");
-    const email = normalizeUser(input.value);
-    const error = $("#user-gate-error");
-    if (!EMAIL_PATTERN.test(email)) {
-      error.textContent = "Enter a valid email address, e.g. you@u.nus.edu.";
-      error.hidden = false;
-      input.focus();
-      return;
+  if (gate) {
+    if (gate.open && typeof gate.close === "function") {
+      gate.close();
     }
-    const previous = currentUser();
-    try {
-      localStorage.setItem(CURRENT_USER_KEY, email);
-    } catch {
-      error.textContent = "This browser blocked local storage, so the email cannot be remembered.";
-      error.hidden = false;
-      return;
-    }
-    error.hidden = true;
-    if (gate.open) gate.close();
-    renderUserChip();
-    // Dashboard v2 handles the switch in place; older pages reload so one
-    // person's mail is never left on screen. The first confirmation never
-    // reloads, otherwise the launch gate would loop.
-    const switched = Boolean(previous && previous !== email);
-    const change = new CustomEvent("userchange", {
-      detail: { email, previous },
-      cancelable: true,
-    });
-    document.dispatchEvent(change);
-    if (switched && !change.defaultPrevented) location.reload();
-  });
+    gate.remove();
+  }
 
-  $("#user-chip")?.addEventListener("click", openUserGate);
+  // The old manually entered email is no longer used.
+  try {
+    localStorage.removeItem("inbox-sorter.currentUser");
+  } catch {
+    // Continue even if storage access is blocked.
+  }
+
   renderUserChip();
-  // Always confirm the mailbox on launch, even when an email is remembered.
-  openUserGate();
+
+  const chip = $("#user-chip");
+
+  if (chip) {
+    chip.title = `Signed in as ${currentUser()}`;
+
+    if (chip instanceof HTMLButtonElement) {
+      chip.disabled = true;
+    }
+
+    chip.querySelector(".user-switch")?.remove();
+  }
 }
 
 function el(tag, attrs = {}, text) {
@@ -131,8 +113,6 @@ async function api(path, body, { signal, timeoutMs = 30000 } = {}) {
   }
   try {
     const headers = { "Content-Type": "application/json" };
-    const user = currentUser();
-    if (user) headers["X-User-Email"] = user;
     const r = await fetch(path, {
       method: body ? "POST" : "GET",
       headers,

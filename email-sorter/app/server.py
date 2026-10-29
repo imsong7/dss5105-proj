@@ -41,6 +41,13 @@ from .rules import category_by_rule
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
 from .textutil import clean, strip_html
 
+from .multiuser import (
+    install_multiuser,
+    authenticated_owner,
+    webhook_owner,
+    refresh_url,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -135,18 +142,9 @@ def _inbound_token() -> str:
 def _normalize_user(value) -> str:
     return str(value or "").strip().lower()
 
-
 def _request_user(payload=None) -> str:
-    """Current dashboard user, from ``X-User-Email`` or the JSON body.
-
-    This identifies a person, it does not authenticate them; added by the
-    browser after the first-visit prompt.
-    """
-    supplied = request.headers.get("X-User-Email", "")
-    if not supplied.strip() and isinstance(payload, dict):
-        supplied = payload.get("user") or payload.get("user_email") or ""
-    return _normalize_user(supplied)
-
+    """Return the authenticated dashboard account."""
+    return authenticated_owner()
 
 def _address_list(value) -> list[str]:
     """Pull email addresses out of a Graph recipient list or a flat string."""
@@ -286,6 +284,13 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
         template_folder=str(ROOT / "templates"),
         static_folder=str(ROOT / "static"),
     )
+    install_multiuser(app)
+
+    @app.context_processor
+    def inject_authenticated_user():
+        return {
+            "authenticated_email": authenticated_owner(),
+        }
     # The mail source is fixed at launch, so every page renders the same value
     # instead of offering a dropdown.
     app.jinja_env.globals["mail_provider"] = mail_provider
@@ -329,59 +334,100 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
 
     @app.get("/api/inbound/diagnostics")
     def inbound_diagnostics():
-        """What the webhook has received lately, for the sidebar hint."""
-        return jsonify({
-            "configured": bool(settings.inbound_webhook_token),
-            "endpoint": "/api/inbound/outlook",
-            "refresh_configured": bool(settings.powerautomate_refresh_url),
-            "attempts": list(inbound_attempts),
-        })
+        """Return only this account's owner-tagged webhook attempts."""
+        owner = _request_user()
 
+        if not owner:
+            return jsonify({
+                "error": "Authentication required.",
+            }), 401
+
+        attempts = [
+            item
+            for item in list(inbound_attempts)
+            if item.get("owner") == owner
+        ]
+
+        return jsonify({
+            "configured": True,
+            "endpoint": "/api/inbound/outlook",
+            "refresh_configured": bool(refresh_url()),
+            "attempts": attempts,
+        })
+    
     @app.post("/api/inbound/refresh")
     def inbound_refresh():
-        """Ask the Power Automate flow to backfill a window now.
+        """Trigger only the authenticated user's registered flow."""
+        owner = _request_user()
 
-        The flow's "When an HTTP request is received" trigger takes
-        ``{owner, since, before}`` and pushes the matching messages back to
-        ``/api/inbound/outlook``. Only the trigger URL lives in ``.env``.
-        """
-        url = settings.powerautomate_refresh_url
+        if not owner:
+            return jsonify({
+                "error": "Authentication required.",
+            }), 401
+
+        url = refresh_url()
+
         if not url:
             return jsonify({
-                "error": "Set POWER_AUTOMATE_REFRESH_URL in .env and restart the app.",
+                "error": "No flow is configured for this account.",
             }), 503
+
         data = request.get_json(silent=True)
+
         if data is None:
             data = {}
+
         if not isinstance(data, dict):
-            return jsonify({"error": "Expected a JSON object."}), 400
-        owner = _request_user(data)
-        payload = {"owner": owner}
-        for key in ("since", "before"):
-            value = data.get(key)
-            if isinstance(value, str) and value.strip():
-                payload[key] = value.strip()
-        try:
-            response = requests.post(url, json=payload, timeout=15)
-        except requests.RequestException as error:
             return jsonify({
-                "error": f"Could not reach the Power Automate trigger: {error}",
+                "error": "Expected a JSON object.",
+            }), 400
+
+        try:
+            since = _parse_datetime(data.get("since"))
+            before = _parse_datetime(data.get("before"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        if since and before and since > before:
+            return jsonify({
+                "error": "`since` must be earlier than `before`.",
+            }), 400
+
+        payload = {"owner": owner}
+
+        if since:
+            payload["since"] = since.isoformat()
+
+        if before:
+            payload["before"] = before.isoformat()
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=15,
+                allow_redirects=False,
+            )
+        except requests.RequestException:
+            return jsonify({
+                "error": "Could not reach the Power Automate flow.",
             }), 502
-        if response.status_code >= 400:
+
+        if not 200 <= response.status_code < 300:
             return jsonify({
                 "error": (
                     "Power Automate rejected the refresh request "
-                    f"({response.status_code}). The trigger URL may have expired; "
-                    "copy it again from the flow and update .env."
+                    f"({response.status_code})."
                 ),
             }), 502
+
         return jsonify({
             "requested": True,
-            "owner": owner or None,
+            "owner": owner,
             "since": payload.get("since"),
             "before": payload.get("before"),
         })
-
+    
     @app.errorhandler(405)
     def method_not_allowed(error):
         """Explain a wrong method instead of Flask's bare 405 page."""
@@ -417,36 +463,37 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
         return render_template("dashboard_v2.html")
 
     def receive_inbound():
-        """Store one pushed message; shared by the webhook and the root fallback."""
-        expected = settings.inbound_webhook_token
-        if not expected:
-            return jsonify({
-                "error": "Set POWER_AUTOMATE_WEBHOOK_TOKEN in .env and restart the app.",
-            }), 503
-        if not secrets.compare_digest(_inbound_token(), expected):
-            return jsonify({"error": "Invalid webhook token."}), 401
-        data = request.get_json(silent=True)
-        if not isinstance(data, dict):
-            return jsonify({"error": "Expected a JSON object with the email fields."}), 400
-        email = _inbound_email(data)
-        owner = _inbound_owner(data)
+        """Store mail under the owner bound to the webhook token."""
+        owner = webhook_owner(_inbound_token())
+
         if not owner:
-            logging.warning(
-                "Inbound mail has no owner; send X-User-Email so the dashboard can show it."
-            )
+            return jsonify({
+                "error": "Invalid webhook token.",
+            }), 401
+
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            return jsonify({
+                "error": "Expected a JSON object with the email fields.",
+            }), 400
+
+        claimed_owner = _inbound_owner(data)
+
+        if claimed_owner and claimed_owner != owner:
+            return jsonify({
+                "error": "Owner does not match webhook token.",
+            }), 403
+
+        email = _inbound_email(data)
         stored, duplicate = inbound_store.add(email, owner)
-        payload = {
+
+        return jsonify({
             "status": "duplicate" if duplicate else "stored",
             "id": stored.id,
-            "owner": owner or None,
-            "stored": len(inbound_store),
-        }
-        if request.path != "/api/inbound/outlook":
-            payload["warning"] = (
-                f"Received on {request.path}. This worked, but the HTTP action's URI "
-                "should end in /api/inbound/outlook."
-            )
-        return jsonify(payload)
+            "owner": owner,
+            "stored": len(inbound_store.all(owner)),
+        })
 
     @app.post("/api/inbound/outlook")
     def inbound_outlook():
@@ -456,14 +503,7 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
     @app.post("/")
     @app.post("/dashboard-v2")
     def inbound_on_wrong_path():
-        """A flow that posts to the page root still delivers its mail.
-
-        Without a token this is just a stray POST, so let the 405 page explain
-        the correct URI instead of silently accepting it.
-        """
-        if not _inbound_token():
-            abort(405)
-        return receive_inbound()
+        abort(405)
 
     @app.get("/api/backends")
     def backends():

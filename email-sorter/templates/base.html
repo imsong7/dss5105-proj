@@ -42,7 +42,10 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='34') }}">
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body
+  class="{% block body_class %}{% endblock %}"
+  data-current-user="{{ authenticated_email }}"
+>
 <div class="layout">
 <aside>
   <div>

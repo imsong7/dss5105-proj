@@ -3,3 +3,4 @@ email_cl/
 .env
 __pycache__/
 *.pyc
+/private/

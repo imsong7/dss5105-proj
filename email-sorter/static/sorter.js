@@ -78,6 +78,11 @@
     } else if (h.backend === "ml") {
       ok = !!h.ml_ready;
       text = ok ? "Classical ML models ready." : "Classical ML model files not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml";
+    } else if (h.backend === "hybrid") {
+      ok = !!h.hybrid_ready;
+      text = ok
+        ? "Hybrid ready: ML category + BERT action."
+        : "Hybrid needs the classical-ML category model and the BERT action head. See README: Choosing a backend.";
     } else if (h.backend === "llama") {
       if (!h.ollama_up) text = "Ollama is not running. Start it, then reload.";
       else if (!h.ollama_ready) text = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`;
@@ -330,13 +335,16 @@
     try {
       const data = await api(
         "/api/emails",
-        { provider, credentials, count },
+        { provider, credentials, count, ...readWindow() },
         { signal: controller.signal, timeoutMs: 60000 },
       );
       state.emails = data.emails;
       if (!state.emails.length) {
-        $("#list").replaceChildren(el("p", { class: "empty" }, "No emails found in that mailbox."));
-        notice("No emails found in that mailbox.");
+        const empty = provider === "powerautomate"
+          ? "No pushed mail in that window."
+          : "No emails found in that window.";
+        $("#list").replaceChildren(el("p", { class: "empty" }, empty));
+        notice(empty);
         return;
       }
       $("#filters").hidden = false;

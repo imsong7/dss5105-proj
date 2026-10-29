@@ -19,6 +19,28 @@ The reserved 20% holdout is used only for a final sanity check. Existing
 comparison, tuning, and ablation reports are in `reports/`; rerun experiments
 to refresh them after changing data or training code.
 
+### Recorded best configurations
+
+`train_email_ml`, `experiments compare`, `experiments tune`, and
+`experiments ablation` now share one protocol: the same 80/20 stratified
+holdout, 5x5 repeated stratified CV, TF-IDF options, seeds, and model
+definitions. Model selection uses CV on the real training split only.
+
+| Task | Selected model | CV Macro-F1 | CV accuracy | Holdout Macro-F1 / accuracy |
+|------|----------------|------------:|------------:|----------------------------:|
+| `email_category` | `linear_svm` (`C=10`) | 0.906 ± 0.015 | 0.909 | 0.833 / 0.889 |
+| `required_action` | `complement_nb_balanced` (`alpha=3`) + synthetic | 0.688 ± 0.031 | 0.820 | 0.820 / 0.889 |
+
+`xgboost` is part of the candidate set and the tuning grid for completeness,
+but it ranks below the linear models on both tasks at this dataset size. The
+comparison report also includes non-candidate baselines (`complement_nb`,
+`multinomial_nb`, `random_forest`, `majority_baseline`) that are never eligible
+for production selection.
+
+See `reports/model_comparison.md`, `reports/hyperparameter_tuning.md`, and
+`reports/ablation_synthetic.md` for model comparisons, tuning results, and the
+synthetic-data ablation.
+
 ### Balancing
 
 No SMOTE or undersampling is used. Class imbalance is handled by:

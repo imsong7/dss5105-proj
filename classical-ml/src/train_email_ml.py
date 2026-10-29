@@ -1,22 +1,16 @@
 """Train classical ML baselines for the DSS5105 email project.
 
-Expected workbook structure
----------------------------
-One Excel workbook contains multiple worksheets.  Each worksheet contains
-emails belonging to one label, and its name contains both a team-member name
-and one of the labels below, for example:
+The canonical dataset is the shared ``../data/labels.csv`` file, where every
+row has a final ``category`` and ``action`` label. The source workbook
+``../data/labels.xlsx`` is used as a fallback when the CSV is missing. The
+legacy one-label-per-sheet workbook format is still supported by
+``read_workbook``.
 
-    Amelia - FoS General
-    Gouri_Needs a reply
-    Ssy Promotions
-
-Required email columns (case-insensitive):
-    Subject
-    Preview OR Body
+Required columns (case-insensitive):
+    Subject, Preview OR Body, category, action
 
 Useful optional columns:
-    Internet Message ID
-    From
+    review_id (or Internet Message ID), From
 
 The script builds two independent classifiers:
     1. email_category: FoS General, Career Enhancement, Medical (UHC),
@@ -26,6 +20,11 @@ The script builds two independent classifiers:
 
 Canvas is handled by the sender/rule shown in the team's architecture, so it
 is collected and reported but excluded from the category ML model.
+
+Generated models and metrics go to ``../artifacts``; aggregate reports go to
+``../reports``. The evaluation helpers in this module are shared with
+``comparison.py`` and ``experiments.py`` so every path selects models on the
+same split and CV protocol.
 """
 
 from __future__ import annotations
@@ -39,6 +38,9 @@ import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -48,21 +50,50 @@ from sklearn.metrics import (
     f1_score,
 )
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn.naive_bayes import ComplementNB
+from sklearn.naive_bayes import ComplementNB, MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import LinearSVC
+
+# macOS XGBoost wheels need libomp. Preload a local copy when present so the
+# trainer and comparison work without a Homebrew install.
+for _libomp in (
+    "/opt/anaconda3/lib/libomp.dylib",
+    "/opt/homebrew/opt/libomp/lib/libomp.dylib",
+    "/usr/local/opt/libomp/lib/libomp.dylib",
+):
+    if Path(_libomp).exists():
+        import ctypes
+
+        try:
+            ctypes.CDLL(_libomp, mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            pass
+        break
+
+try:
+    from xgboost import XGBClassifier
+except Exception as _xgboost_error:  # libomp missing on some macOS installs
+    XGBClassifier = None
+    print(f"XGBoost is unavailable and will be skipped: {_xgboost_error}")
 
 
 # ---------------------------------------------------------------------------
-# SETTINGS: change only EXCEL_FILE if your workbook has a different filename.
+# SETTINGS: shared data lives in ../data; generated files go to artifacts/.
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-EXCEL_FILE = BASE_DIR / "labels.xlsx"
-SYNTHETIC_ACTION_FILE = BASE_DIR / "synthetic_required_action.csv"
-OUTPUT_DIR = BASE_DIR / "ml_outputs"
+PROJECT_ROOT = BASE_DIR.parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+LABELS_CSV = DATA_DIR / "labels.csv"
+EXCEL_FILE = DATA_DIR / "labels.xlsx"
+SYNTHETIC_ACTION_FILE = DATA_DIR / "synthetic.csv"
+ARTIFACTS_DIR = BASE_DIR.parent / "artifacts"
+REPORTS_DIR = BASE_DIR.parent / "reports"
+OUTPUT_DIR = ARTIFACTS_DIR
 RANDOM_STATE = 42
 TEST_SIZE = 0.20
+CV_REPEATS = 5
 
 DEFAULT_TFIDF_OPTIONS = {
     "ngram_range": (1, 2),
@@ -197,6 +228,49 @@ class BalancedComplementNB(ComplementNB):
         return super().fit(X, y, sample_weight=sample_weight)
 
 
+class XGBTextClassifier(BaseEstimator, ClassifierMixin):
+    """XGBoost wrapper that encodes string labels for the sklearn API."""
+
+    def __init__(
+        self,
+        n_estimators: int = 300,
+        max_depth: int = 4,
+        learning_rate: float = 0.1,
+        subsample: float = 0.9,
+        colsample_bytree: float = 0.9,
+        random_state: int = RANDOM_STATE,
+        n_jobs: int = -1,
+    ):
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.learning_rate = learning_rate
+        self.subsample = subsample
+        self.colsample_bytree = colsample_bytree
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+
+    def fit(self, X, y):
+        self.encoder_ = LabelEncoder().fit(y)
+        self.model_ = XGBClassifier(
+            n_estimators=self.n_estimators,
+            max_depth=self.max_depth,
+            learning_rate=self.learning_rate,
+            subsample=self.subsample,
+            colsample_bytree=self.colsample_bytree,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            eval_metric="mlogloss",
+            tree_method="hist",
+        )
+        self.model_.fit(X, self.encoder_.transform(y))
+        self.classes_ = self.encoder_.classes_
+        return self
+
+    def predict(self, X):
+        encoded = self.model_.predict(X)
+        return self.encoder_.inverse_transform(encoded.astype(int))
+
+
 def normalise(value: object) -> str:
     """Lowercase text and remove punctuation/spaces for reliable matching."""
     return re.sub(r"[^a-z0-9]+", "", str(value).lower())
@@ -232,9 +306,14 @@ def label_from_sheet(sheet_name: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Read the new format where each row has final category/action labels."""
-    frame = pd.read_excel(EXCEL_FILE, sheet_name=sheet_name)
+def parse_labeled_frame(
+    frame: pd.DataFrame, source_name: str
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Map a row-level category/action table to the two training tasks.
+
+    Used by both the shared ``data/labels.csv`` file and the Excel workbook so
+    every entry point sees identical rows and label mappings.
+    """
     frame = frame.dropna(how="all").copy()
 
     subject_column = find_column(frame, COLUMN_ALIASES["subject"])
@@ -271,9 +350,9 @@ def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFra
         frame[sender_column].fillna("").astype(str) if sender_column else ""
     )
     base["source_sheet"] = (
-        frame[source_column].fillna(sheet_name).astype(str)
+        frame[source_column].fillna(source_name).astype(str)
         if source_column
-        else sheet_name
+        else source_name
     )
     base["text"] = (
         base["subject"].str.strip() + "\n" + base["body"].str.strip()
@@ -316,19 +395,45 @@ def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFra
     action_data["label"] = mapped_action
     action_data = action_data[action_data["label"] != "__skip__"].copy()
 
-    print(f"Loaded unified labels sheet: {sheet_name}")
+    print(f"Loaded labeled rows: {source_name}")
     print(f"  Category ML rows: {len(category_data)}")
     print(f"  Action ML rows:   {len(action_data)}")
     print(f"  Canvas rule rows: {len(canvas_data)}")
     return category_data, action_data, canvas_data
 
 
+def read_unified_labels_sheet(
+    sheet_name: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read the row-level category/action worksheet from the workbook."""
+    return parse_labeled_frame(
+        pd.read_excel(EXCEL_FILE, sheet_name=sheet_name),
+        f"{EXCEL_FILE.name}:{sheet_name}",
+    )
+
+
+def read_labeled_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load the shared labels CSV, falling back to the source workbook.
+
+    ``data/labels.csv`` is the canonical dataset for both model families; the
+    workbook is only read when the CSV has not been generated yet.
+    """
+    if LABELS_CSV.exists():
+        return parse_labeled_frame(pd.read_csv(LABELS_CSV), LABELS_CSV.name)
+    if EXCEL_FILE.exists():
+        return read_workbook()
+    raise FileNotFoundError(
+        f"Cannot find {LABELS_CSV} or {EXCEL_FILE}. Put the shared labels file "
+        f"in {DATA_DIR} (see classical-ml/README.md)."
+    )
+
+
 def read_workbook() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if not EXCEL_FILE.exists():
         raise FileNotFoundError(
-            f"Cannot find {EXCEL_FILE.name}. Put the Excel workbook in:\n"
-            f"{BASE_DIR}\n"
-            "or change EXCEL_FILE near the top of this script."
+            f"Cannot find {EXCEL_FILE}. Put the labels workbook or "
+            f"{LABELS_CSV.name} in:\n{DATA_DIR}\n"
+            "or change DATA_DIR near the top of this script."
         )
 
     workbook = pd.ExcelFile(EXCEL_FILE)
@@ -577,50 +682,124 @@ def remove_duplicates_and_check_conflicts(
     return data.drop(columns=["content_key"])
 
 
-def build_models(task_name: str | None = None) -> dict[str, Pipeline]:
+CANDIDATE_MODELS = (
+    "logistic_regression",
+    "linear_svm",
+    "complement_nb_balanced",
+    "xgboost",
+)
+
+
+def make_pipeline(
+    model_name: str,
+    tfidf_options: dict[str, object] | None = None,
+) -> Pipeline:
+    """Build one named pipeline with untuned classifier defaults."""
+    options = dict(tfidf_options or DEFAULT_TFIDF_OPTIONS)
+    if model_name == "logistic_regression":
+        classifier = LogisticRegression(
+            max_iter=2000,
+            class_weight="balanced",
+            random_state=RANDOM_STATE,
+        )
+    elif model_name == "linear_svm":
+        classifier = LinearSVC(
+            class_weight="balanced",
+            random_state=RANDOM_STATE,
+        )
+    elif model_name == "complement_nb_balanced":
+        classifier = BalancedComplementNB()
+    elif model_name == "complement_nb":
+        classifier = ComplementNB()
+    elif model_name == "multinomial_nb":
+        classifier = MultinomialNB()
+    elif model_name == "random_forest":
+        classifier = RandomForestClassifier(
+            n_estimators=400,
+            class_weight="balanced_subsample",
+            random_state=RANDOM_STATE,
+            n_jobs=-1,
+        )
+    elif model_name == "xgboost":
+        if XGBClassifier is None:
+            raise RuntimeError("XGBoost is not installed.")
+        classifier = XGBTextClassifier()
+    else:
+        raise ValueError(f"Unknown model: {model_name}")
+
+    return Pipeline(
+        [
+            ("tfidf", TfidfVectorizer(**options)),
+            ("classifier", classifier),
+        ]
+    )
+
+
+def build_models(
+    task_name: str | None = None,
+    *,
+    include_baselines: bool = False,
+) -> dict[str, Pipeline]:
+    """Build the model zoo for one task.
+
+    Production selection uses ``CANDIDATE_MODELS`` only. The comparison report
+    also shows the weaker baselines, which are never eligible for selection.
+    """
     tfidf_options = TASK_TFIDF_OPTIONS.get(task_name, DEFAULT_TFIDF_OPTIONS)
     model_params = TASK_MODEL_PARAMS.get(task_name, {})
 
-    return {
-        "logistic_regression": Pipeline(
+    models: dict[str, Pipeline] = {}
+    for model_name in CANDIDATE_MODELS:
+        if model_name == "xgboost" and XGBClassifier is None:
+            continue
+        pipeline = make_pipeline(model_name, tfidf_options)
+        params = model_params.get(model_name, {})
+        if params:
+            pipeline.set_params(
+                **{f"classifier__{key}": value for key, value in params.items()}
+            )
+        models[model_name] = pipeline
+
+    if include_baselines:
+        models["majority_baseline"] = Pipeline(
             [
                 ("tfidf", TfidfVectorizer(**tfidf_options)),
-                (
-                    "classifier",
-                    LogisticRegression(
-                        max_iter=2000,
-                        class_weight="balanced",
-                        random_state=RANDOM_STATE,
-                        **model_params.get("logistic_regression", {}),
-                    ),
-                ),
+                ("classifier", DummyClassifier(strategy="most_frequent")),
             ]
-        ),
-        "linear_svm": Pipeline(
-            [
-                ("tfidf", TfidfVectorizer(**tfidf_options)),
-                (
-                    "classifier",
-                    LinearSVC(
-                        class_weight="balanced",
-                        random_state=RANDOM_STATE,
-                        **model_params.get("linear_svm", {}),
-                    ),
-                ),
-            ]
-        ),
-        "complement_nb_balanced": Pipeline(
-            [
-                ("tfidf", TfidfVectorizer(**tfidf_options)),
-                (
-                    "classifier",
-                    BalancedComplementNB(
-                        **model_params.get("complement_nb_balanced", {})
-                    ),
-                ),
-            ]
-        ),
-    }
+        )
+        for model_name in ("multinomial_nb", "complement_nb", "random_forest"):
+            models[model_name] = make_pipeline(model_name, tfidf_options)
+    return models
+
+
+def split_train_test(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Stratified holdout split shared by training and comparison."""
+    number_of_classes = data["label"].nunique()
+    test_count = max(number_of_classes, math.ceil(len(data) * TEST_SIZE))
+    return train_test_split(
+        data,
+        test_size=test_count,
+        random_state=RANDOM_STATE,
+        stratify=data["label"],
+    )
+
+
+def prepare_synthetic(
+    synthetic_data: pd.DataFrame | None,
+    real_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Drop synthetic rows that duplicate real mail or use unseen labels."""
+    if synthetic_data is None or synthetic_data.empty:
+        return pd.DataFrame()
+
+    real_text_keys = set(real_data["text"].map(normalise))
+    allowed_labels = set(real_data["label"].unique())
+    prepared = synthetic_data[
+        ~synthetic_data["text"].map(normalise).isin(real_text_keys)
+        & synthetic_data["label"].isin(allowed_labels)
+    ].copy()
+    prepared["dedupe_key"] = prepared["text"].map(normalise)
+    return prepared.drop_duplicates("dedupe_key").reset_index(drop=True)
 
 
 def evaluate_real_cv_with_synthetic(
@@ -628,21 +807,28 @@ def evaluate_real_cv_with_synthetic(
     synthetic_data: pd.DataFrame,
     task_name: str,
     n_splits: int = 5,
-    n_repeats: int = 5,
+    n_repeats: int = CV_REPEATS,
+    models: dict[str, Pipeline] | None = None,
 ) -> dict[str, dict[str, float | int]]:
     """Cross-validate on real emails, adding synthetic rows only to train folds.
 
     ``n_repeats`` controls repeated stratified CV.  The returned mean/std are
     computed across repeat-level means, so repeated runs do not pretend that
-    correlated folds are independent samples.
+    correlated folds are independent samples.  ``mean``/``std`` are macro-F1
+    (kept for existing callers); accuracy has its own keys.
+
+    Pass ``models`` to evaluate an arbitrary model set (the tuner does this);
+    otherwise the task's production candidates are used.
     """
     counts = data["label"].value_counts()
     folds = min(n_splits, int(counts.min()))
     if folds < 2:
         return {}
 
-    models = build_models(task_name)
-    scores: dict[str, list[float]] = {name: [] for name in models}
+    models = models or build_models(task_name)
+    scores: dict[str, dict[str, list[float]]] = {
+        name: {"macro_f1": [], "accuracy": []} for name in models
+    }
     has_synthetic = synthetic_data is not None and not synthetic_data.empty
 
     for repeat in range(n_repeats):
@@ -651,7 +837,9 @@ def evaluate_real_cv_with_synthetic(
             shuffle=True,
             random_state=RANDOM_STATE + repeat,
         )
-        repeat_scores: dict[str, list[float]] = {name: [] for name in models}
+        repeat_scores: dict[str, dict[str, list[float]]] = {
+            name: {"macro_f1": [], "accuracy": []} for name in models
+        }
 
         for train_index, validation_index in cv.split(
             data["text"], data["label"]
@@ -682,7 +870,7 @@ def evaluate_real_cv_with_synthetic(
             for model_name, model in models.items():
                 model.fit(train_text, train_label)
                 predictions = model.predict(real_validation["text"])
-                repeat_scores[model_name].append(
+                repeat_scores[model_name]["macro_f1"].append(
                     float(
                         f1_score(
                             real_validation["label"],
@@ -692,24 +880,78 @@ def evaluate_real_cv_with_synthetic(
                         )
                     )
                 )
+                repeat_scores[model_name]["accuracy"].append(
+                    float(
+                        accuracy_score(real_validation["label"], predictions)
+                    )
+                )
 
         for model_name in models:
-            scores[model_name].append(
-                float(pd.Series(repeat_scores[model_name]).mean())
-            )
+            for metric in ("macro_f1", "accuracy"):
+                scores[model_name][metric].append(
+                    float(pd.Series(repeat_scores[model_name][metric]).mean())
+                )
 
     def spread(values: list[float]) -> float:
         return float(pd.Series(values).std()) if len(values) > 1 else 0.0
 
     return {
         name: {
-            "mean": float(pd.Series(repeat_means).mean()),
-            "std": spread(repeat_means),
+            "mean": float(pd.Series(values["macro_f1"]).mean()),
+            "std": spread(values["macro_f1"]),
+            "accuracy_mean": float(pd.Series(values["accuracy"]).mean()),
+            "accuracy_std": spread(values["accuracy"]),
             "folds": folds,
             "repeats": n_repeats,
         }
-        for name, repeat_means in scores.items()
+        for name, values in scores.items()
     }
+
+
+def evaluate_holdout(
+    data: pd.DataFrame,
+    synthetic_data: pd.DataFrame | None,
+    task_name: str | None = None,
+    models: dict[str, Pipeline] | None = None,
+) -> pd.DataFrame:
+    """Score every model on the same held-out real emails as the trainer."""
+    train_data, test_data = split_train_test(data)
+    synthetic_data = prepare_synthetic(synthetic_data, data)
+    models = models or build_models(task_name)
+
+    if synthetic_data.empty:
+        train_text = train_data["text"]
+        train_label = train_data["label"]
+    else:
+        train_text = pd.concat(
+            [train_data["text"], synthetic_data["text"]], ignore_index=True
+        )
+        train_label = pd.concat(
+            [train_data["label"], synthetic_data["label"]], ignore_index=True
+        )
+
+    rows = []
+    for name, model in models.items():
+        fitted = clone(model)
+        fitted.fit(train_text, train_label)
+        predictions = fitted.predict(test_data["text"])
+        rows.append(
+            {
+                "model": name,
+                "holdout_macro_f1": float(
+                    f1_score(
+                        test_data["label"],
+                        predictions,
+                        average="macro",
+                        zero_division=0,
+                    )
+                ),
+                "holdout_accuracy": float(
+                    accuracy_score(test_data["label"], predictions)
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def save_confusion_matrix(
@@ -763,43 +1005,19 @@ def train_task(
             "split. Add more examples to each label."
         )
 
-    train_data, test_data = train_test_split(
-        data,
-        test_size=test_count,
-        random_state=RANDOM_STATE,
-        stratify=data["label"],
-    )
+    train_data, test_data = split_train_test(data)
     real_train_data = train_data.copy()
-    synthetic_used = pd.DataFrame()
+    synthetic_used = prepare_synthetic(synthetic_train, data)
 
-    if synthetic_train is not None and not synthetic_train.empty:
-        synthetic_used = synthetic_train.copy()
-
-        # Never let a synthetic row duplicate a real row.  This also guarantees
-        # that no test email can leak into training.
-        real_text_keys = set(data["text"].map(normalise))
-        synthetic_used = synthetic_used[
-            ~synthetic_used["text"].map(normalise).isin(real_text_keys)
-        ].copy()
-        synthetic_used["dedupe_key"] = synthetic_used["text"].map(normalise)
-        synthetic_used = synthetic_used.drop_duplicates("dedupe_key").reset_index(
-            drop=True
+    if synthetic_used.empty:
+        print(
+            "\nSynthetic rows were empty after overlap filtering; "
+            "training on real data only."
         )
-
-        allowed_labels = set(data["label"].unique())
-        synthetic_used = synthetic_used[
-            synthetic_used["label"].isin(allowed_labels)
-        ].copy()
-
-        if synthetic_used.empty:
-            print(
-                "\nSynthetic rows were empty after overlap filtering; "
-                "training on real data only."
-            )
-        else:
-            print(f"\nSynthetic training rows: {len(synthetic_used)} (train only)")
-            print(synthetic_used["label"].value_counts().to_string())
-            synthetic_used = synthetic_used.reindex(columns=real_train_data.columns)
+    else:
+        print(f"\nSynthetic training rows: {len(synthetic_used)} (train only)")
+        print(synthetic_used["label"].value_counts().to_string())
+        synthetic_used = synthetic_used.reindex(columns=real_train_data.columns)
 
     if synthetic_used.empty:
         train_data = real_train_data
@@ -966,7 +1184,7 @@ def train_task(
 
 def print_saved_model_comparison() -> None:
     """Print the latest compare_models.py table, if it has been generated."""
-    comparison_file = OUTPUT_DIR / "model_comparison.csv"
+    comparison_file = REPORTS_DIR / "model_comparison.csv"
     required_columns = {
         "task",
         "model",
@@ -977,7 +1195,7 @@ def print_saved_model_comparison() -> None:
     }
     if not comparison_file.exists():
         print(
-            "\nTip: run `python compare_models.py` to print the full model "
+            "\nTip: run `python -m experiments compare` to print the full model "
             "comparison table."
         )
         return
@@ -1018,8 +1236,9 @@ def print_saved_model_comparison() -> None:
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    category_data, action_data, canvas_data = read_workbook()
+    category_data, action_data, canvas_data = read_labeled_data()
     if not canvas_data.empty:
         canvas_data.to_csv(
             OUTPUT_DIR / "canvas_rule_emails.csv",

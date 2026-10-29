@@ -1,11 +1,36 @@
 import email
 import imaplib
+from datetime import datetime, timedelta
 from email.header import decode_header, make_header
 from email.message import Message
 
 from ..models import Email
 from ..textutil import clean, strip_html
-from .base import AuthError, EmailProvider, InlineImage, ProviderError
+from .base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
+
+# IMAP wants English month names regardless of the machine locale, so a fixed
+# table is safer than strftime("%b").
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _imap_date(value: datetime) -> str:
+    """Format a date the way IMAP ``SINCE``/``BEFORE`` expect: ``13-Nov-2026``."""
+    return f"{value.day:02d}-{_MONTHS[value.month - 1]}-{value.year}"
+
+
+def _imap_criteria(query: MailQuery) -> list[str]:
+    """IMAP search keys for an inclusive received-date window.
+
+    IMAP dates are day-granular, so the upper bound is pushed to the next day
+    with ``BEFORE`` to keep the last day of the window included.
+    """
+    criteria: list[str] = []
+    if query.since:
+        criteria += ["SINCE", _imap_date(query.since)]
+    if query.before:
+        criteria += ["BEFORE", _imap_date(query.before + timedelta(days=1))]
+    return criteria
 
 
 def _decode(value) -> str:
@@ -49,7 +74,9 @@ class ImapProvider(EmailProvider):
             raise AuthError("IMAP needs host, email address and app password.")
         self.host, self.user, self.password, self.folder = host.strip(), user.strip(), password, folder
 
-    def fetch_emails(self, limit: int = 15) -> list[Email]:
+    def fetch_emails(self, query: MailQuery | None = None) -> list[Email]:
+        query = query or MailQuery()
+        limit = max(1, int(query.limit))
         try:
             box = imaplib.IMAP4_SSL(self.host)
             box.login(self.user, self.password)
@@ -61,7 +88,7 @@ class ImapProvider(EmailProvider):
         emails: list[Email] = []
         try:
             box.select(self.folder, readonly=True)  # read-only: nothing gets marked as read
-            _, data = box.search(None, "ALL")
+            _, data = box.search(None, *(_imap_criteria(query) or ["ALL"]))
             ids = data[0].split()[-limit:][::-1]
             for num in ids:
                 _, parts = box.fetch(num, "(BODY.PEEK[])")

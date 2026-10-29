@@ -19,6 +19,11 @@ class BaseClassifier(ABC):
 
 
 BACKEND_INFO: dict[str, dict[str, str]] = {
+    "hybrid": {
+        "label": "Hybrid (ML + BERT)",
+        "kind": "hybrid",
+        "description": "TF-IDF category model with the BERT action head.",
+    },
     "llama": {
         "label": "Llama (Ollama)",
         "kind": "llm",
@@ -54,6 +59,9 @@ def create_classifier(backend: str | None = None) -> BaseClassifier:
     if name == "ml":
         from .ml_classifier import MLClassifier  # noqa: PLC0415
         return MLClassifier()
+    if name == "hybrid":
+        from .hybrid_classifier import HybridClassifier  # noqa: PLC0415
+        return HybridClassifier()
 
     available = ", ".join(list_backends())
     raise ValueError(f"Unknown model backend '{name}'. Available: {available}")

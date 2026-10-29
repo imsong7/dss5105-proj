@@ -1,12 +1,30 @@
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import requests
 
 from ..models import Email
 from ..textutil import clean, strip_html
-from .base import AuthError, EmailProvider, InlineImage, ProviderError
+from .base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
 
 GRAPH_URL = "https://graph.microsoft.com/v1.0/me/messages"
+
+
+def _utc_iso(value: datetime) -> str:
+    """Graph wants UTC ISO 8601 with a ``Z`` suffix and no microseconds."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _received_filter(query: MailQuery) -> str | None:
+    """Build the ``$filter`` for an inclusive received-date window."""
+    clauses = []
+    if query.since:
+        clauses.append(f"receivedDateTime ge {_utc_iso(query.since)}")
+    if query.before:
+        clauses.append(f"receivedDateTime le {_utc_iso(query.before)}")
+    return " and ".join(clauses) or None
 
 
 def _graph_error(response: requests.Response) -> str:
@@ -15,6 +33,25 @@ def _graph_error(response: requests.Response) -> str:
     except (ValueError, AttributeError):
         message = None
     return str(message or response.reason or "Unknown Graph error")[:300]
+
+
+def message_to_email(message: dict) -> Email:
+    """Convert one Microsoft Graph ``message`` object into the app's Email."""
+    addr = (message.get("from") or {}).get("emailAddress") or {}
+    sender = addr.get("name") or addr.get("address") or "Unknown sender"
+    if addr.get("address") and addr.get("name"):
+        sender = f"{addr['name']} <{addr['address']}>"
+    body = (message.get("body") or {}).get("content", "") or ""
+    if "<html" in body.lower() or "<div" in body.lower():
+        body = strip_html(body)
+    return Email(
+        id=message.get("id") or message.get("internetMessageId") or "",
+        subject=message.get("subject") or "(no subject)",
+        sender=sender,
+        received=message.get("receivedDateTime", ""),
+        preview=clean(message.get("bodyPreview", ""), 200),
+        body=clean(body),
+    )
 
 
 class GraphProvider(EmailProvider):
@@ -34,12 +71,18 @@ class GraphProvider(EmailProvider):
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.token}"}
 
-    def fetch_emails(self, limit: int = 15) -> list[Email]:
+    def fetch_emails(self, query: MailQuery | None = None) -> list[Email]:
+        query = query or MailQuery()
+        # Graph only allows up to 1000 messages per page.
+        limit = max(1, min(int(query.limit), 1000))
         params = {
             "$top": limit,
             "$select": "id,subject,from,receivedDateTime,bodyPreview,body",
             "$orderby": "receivedDateTime desc",
         }
+        received_filter = _received_filter(query)
+        if received_filter:
+            params["$filter"] = received_filter
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Prefer": 'outlook.body-content-type="text"',
@@ -58,23 +101,7 @@ class GraphProvider(EmailProvider):
 
         emails = []
         for m in r.json().get("value", []):
-            addr = (m.get("from") or {}).get("emailAddress", {})
-            sender = addr.get("name") or addr.get("address") or "Unknown sender"
-            if addr.get("address") and addr.get("name"):
-                sender = f"{addr['name']} <{addr['address']}>"
-            body = (m.get("body") or {}).get("content", "") or ""
-            if "<html" in body.lower() or "<div" in body.lower():
-                body = strip_html(body)
-            emails.append(
-                Email(
-                    id=m["id"],
-                    subject=m.get("subject") or "(no subject)",
-                    sender=sender,
-                    received=m.get("receivedDateTime", ""),
-                    preview=clean(m.get("bodyPreview", ""), 200),
-                    body=clean(body),
-                )
-            )
+            emails.append(message_to_email(m))
         return emails
 
     def fetch_images(

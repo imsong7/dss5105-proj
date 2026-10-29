@@ -12,5 +12,7 @@ def strip_html(text: str) -> str:
 def clean(text: str, limit: int | None = None) -> str:
     text = text.replace("\r", "")
     text = re.sub(r"[ \t\u00a0]+", " ", text)
+    # A removed tag leaves a space behind: "23:59</b>." must not become "23:59 .".
+    text = re.sub(r"[ \t]+([,.;:!?])", r"\1", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text).strip()
     return text[:limit] if limit else text

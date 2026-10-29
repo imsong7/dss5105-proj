@@ -155,7 +155,7 @@ def ml_train_test_for_task(
     test_data: pd.DataFrame,
     synthetic: pd.DataFrame | None,
 ) -> pd.DataFrame:
-    from comparison import build_models
+    from train_email_ml import build_models
 
     model_name = "linear_svm" if task == "category" else "complement_nb_balanced"
     task_name = "email_category" if task == "category" else "required_action"
@@ -295,16 +295,15 @@ def ml_oof_for_task(
     from sklearn.model_selection import StratifiedKFold
 
     from app.ml_classifier import ACTION_LABELS, CATEGORY_LABELS
-    from comparison import build_models, filtered_synthetic
     from train_email_ml import (
         ACTION_VALUE_MAP,
         CATEGORY_VALUE_MAP,
-        map_label_values,
+        build_models,
         normalise,
+        prepare_synthetic,
         read_labeled_data,
         remove_duplicates_and_check_conflicts,
     )
-
     task_name = "email_category" if task == "category" else "required_action"
     category_data, action_data, _ = read_labeled_data()
     ml_data = category_data if task == "category" else action_data
@@ -344,22 +343,28 @@ def ml_oof_for_task(
                     + "\n"
                     + raw_synthetic["Preview"].str.strip()
                 ).str.strip(),
-                "label": map_label_values(
-                    raw_synthetic["action"],
-                    value_map,
-                    "action",
-                    Path(synthetic_path).name,
+                "label": raw_synthetic["action"].map(
+                    lambda value: value_map.get(normalise(value))
                 ),
             }
         )
+        if synthetic["label"].isna().any():
+            unknown = sorted(
+                raw_synthetic.loc[synthetic["label"].isna(), "action"]
+                .astype(str)
+                .unique()
+            )
+            raise ValueError(
+                f"Unknown synthetic action values: {unknown}"
+            )
         synthetic = synthetic[synthetic["text"].ne("")].copy()
+        synthetic = prepare_synthetic(synthetic, ml_data)
         synthetic["label"] = synthetic["label"].map(
             lambda value: label_map.get(
                 re.sub(r"[^a-z0-9]+", "", str(value).lower())
             )
         )
         synthetic = synthetic[synthetic["label"].notna()]
-        synthetic = filtered_synthetic(synthetic, ml_data)
 
     model_name = "linear_svm" if task == "category" else "complement_nb_balanced"
     model = build_models(task_name)[model_name]
@@ -719,10 +724,10 @@ def write_artifacts(
         ["model_family", "task", "dataset", "review_id"]
     ).reset_index(drop=True)
 
-    write_csv(summary, out_dir / "offline_quality_summary.csv")
-    write_csv(predictions, out_dir / "offline_quality_predictions.csv")
-    plot_offline_quality(summary, out_dir / "offline_quality_comparison.png")
-    write_json(manifest, out_dir / "offline_quality_manifest.json")
+    write_csv(summary, out_dir / "quality_summary.csv")
+    write_csv(predictions, out_dir / "quality_predictions.csv")
+    plot_offline_quality(summary, out_dir / "quality_comparison.png")
+    write_json(manifest, out_dir / "quality_manifest.json")
     report = render_report(summary, manifest)
     print("\n" + "=" * 78)
     print(report)

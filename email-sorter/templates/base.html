@@ -1,25 +1,36 @@
 {% macro mailbox_fields() %}
-<label for="provider">Mail source</label>
-<select id="provider">
-  <option value="outlook">Outlook (Graph token)</option>
-  <option value="imap">Gmail or other (IMAP)</option>
-</select>
-
-<div id="f-outlook">
+<input type="hidden" id="provider" value="{{ mail_provider }}">
+{% if mail_provider == 'outlook' %}
+<div id="f-graph">
+  <p class="sub">Mail source: Outlook Graph token, fixed at launch with <code>--provider graphtoken</code>.</p>
   <label for="token">Graph access token</label>
   <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste the token from Graph Explorer"></textarea>
 </div>
-<div id="f-imap" hidden>
-  <label for="host">IMAP server</label>
-  <input id="host" placeholder="imap.gmail.com" autocomplete="off">
-  <label for="user">Email address</label>
-  <input id="user" autocomplete="off">
-  <label for="pass">App password</label>
-  <input id="pass" type="password" autocomplete="off">
+{% else %}
+<div id="f-pushed">
+  <p class="sub" id="webhook-diag" aria-live="polite">Last mail: none yet.</p>
+  <p class="sub" id="backfill-status" aria-live="polite" hidden></p>
+</div>
+{% endif %}
+
+<label for="window">Time window</label>
+<select id="window">
+  <option value="1">Last 24 hours</option>
+  <option value="7" selected>Last 7 days</option>
+  <option value="30">Last 30 days</option>
+  <option value="90">Last 90 days</option>
+  <option value="custom">Custom range…</option>
+</select>
+
+<div id="f-custom-range" hidden>
+  <label for="since">From</label>
+  <input id="since" type="date">
+  <label for="before">To</label>
+  <input id="before" type="date">
 </div>
 
-<label for="count">How many recent emails</label>
-<input id="count" type="number" min="1" value="10">
+<label for="count">Max emails to scan</label>
+<input id="count" type="number" min="1" value="50">
 {% endmacro %}
 
 <!doctype html>
@@ -29,9 +40,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Inbox sorter{% endblock %}</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='34') }}">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <div class="layout">
 <aside>
   <div>
@@ -41,18 +52,37 @@
 
   <nav class="tabs" aria-label="Pages">
     <a class="tab {{ 'active' if request.path == '/' else '' }}" href="{{ url_for('index') }}">Sorter</a>
-    <a class="tab {{ 'active' if request.path == '/compare' else '' }}" href="{{ url_for('compare') }}">Compare</a>
+    <a class="tab" href="{{ url_for('dashboard_v2') }}#calendar">Calendar</a>
   </nav>
 
   {% block sidebar %}{% endblock %}
 </aside>
 
 <main>
+  <div class="user-bar">
+    <div class="user-bar-start">{% block topbar %}{% endblock %}</div>
+    <button class="user-chip" id="user-chip" type="button" hidden title="Switch user">
+      <span class="user-avatar" id="user-avatar" aria-hidden="true">?</span>
+      <span class="user-email" id="user-email"></span>
+      <span class="user-switch">Switch</span>
+    </button>
+  </div>
   {% block main %}{% endblock %}
 </main>
 </div>
 
-<script src="{{ url_for('static', filename='common.js') }}"></script>
+<dialog class="user-gate" id="user-gate" aria-labelledby="user-gate-title">
+  <form id="user-form" method="dialog">
+    <h2 id="user-gate-title">Who is using this dashboard?</h2>
+    <p class="sub">Your email keeps pushed mail separate from other people using this app. It stays in this browser.</p>
+    <label for="user-input">Email address</label>
+    <input id="user-input" type="email" required autocomplete="email" placeholder="you@u.nus.edu">
+    <p class="user-gate-error" id="user-gate-error" hidden></p>
+    <button id="user-save" type="submit">Continue</button>
+  </form>
+</dialog>
+
+<script src="{{ url_for('static', filename='common.js', v='9') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

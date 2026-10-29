@@ -36,8 +36,13 @@ class BertClassifier(BaseClassifier):
 
     name = "bert"
 
-    def __init__(self, models_dir: str | None = None):
+    def __init__(
+        self,
+        models_dir: str | None = None,
+        tasks: tuple[str, ...] = ("category", "action"),
+    ):
         self.models_dir = models_dir or ENCODER_MODELS_DIR
+        self.tasks = (tasks,) if isinstance(tasks, str) else tuple(tasks)
         self._action_clf = None
         self._category_clf = None
         self._load_errors: dict[str, str] = {}
@@ -45,7 +50,7 @@ class BertClassifier(BaseClassifier):
         self._load()
 
     def _load(self) -> None:
-        """Load both heads; record every failure instead of silently skipping."""
+        """Load the requested heads; record every failure instead of silently skipping."""
         try:
             from src.model import EmbedPredictor  # noqa: E402
         except ImportError as exc:
@@ -53,7 +58,11 @@ class BertClassifier(BaseClassifier):
             print(f"[bert] {self._load_error}")
             return
 
-        for task, default_dir in MODEL_DIRS.items():
+        for task in self.tasks:
+            default_dir = MODEL_DIRS.get(task)
+            if default_dir is None:
+                self._load_errors[task] = f"unknown task: {task}"
+                continue
             model_dir = os.path.join(self.models_dir, os.path.basename(default_dir))
             if not os.path.isdir(model_dir):
                 self._load_errors[task] = f"model dir not found: {model_dir}"
@@ -77,10 +86,9 @@ class BertClassifier(BaseClassifier):
 
     @property
     def available(self) -> bool:
-        return (
-            self._load_error is None
-            and self._category_clf is not None
-            and self._action_clf is not None
+        loaded = {"category": self._category_clf, "action": self._action_clf}
+        return self._load_error is None and all(
+            loaded.get(task) is not None for task in self.tasks
         )
 
     def load_error(self) -> str | None:
@@ -97,6 +105,26 @@ class BertClassifier(BaseClassifier):
                     encoders.append(encoder)
         return " + ".join(encoders) or "Text encoders"
 
+    def _predict(self, task: str, email: Email) -> str:
+        predictor = self._category_clf if task == "category" else self._action_clf
+        if predictor is None:
+            raise RuntimeError(
+                f"BERT {task} head could not be loaded: "
+                f"{self._load_errors.get(task, self._load_error or 'not loaded')}"
+            )
+        label, _conf = predictor.predict(
+            email.subject or "", _model_text(email), email.sender or ""
+        )
+        allowed = CONTENT_CATEGORIES if task == "category" else REPLY_NATURE
+        default = DEFAULT_CONTENT if task == "category" else DEFAULT_REPLY
+        return label if label in allowed else default
+
+    def predict_category(self, email: Email) -> str:
+        return self._predict("category", email)
+
+    def predict_action(self, email: Email) -> str:
+        return self._predict("action", email)
+
     def classify(self, email: Email) -> Classification:
         """Predict category and reply nature for one email."""
         if self._load_error:
@@ -104,25 +132,9 @@ class BertClassifier(BaseClassifier):
                 f"BERT model could not be loaded: {self._load_error}"
             )
 
-        sender = email.sender or ""
-        subject = email.subject or ""
-        text = _model_text(email)
-
-        if self._category_clf is not None:
-            label, _conf = self._category_clf.predict(subject, text, sender)
-            category = label if label in CONTENT_CATEGORIES else DEFAULT_CONTENT
-        else:
-            category = DEFAULT_CONTENT
-
-        if self._action_clf is not None:
-            label, _conf = self._action_clf.predict(subject, text, sender)
-            action = label if label in REPLY_NATURE else DEFAULT_REPLY
-        else:
-            action = DEFAULT_REPLY
-
         return Classification(
-            content_category=category,
-            reply_nature=action,
+            content_category=self.predict_category(email),
+            reply_nature=self.predict_action(email),
             deadline=None,
             reason="bert frozen-encoder head",
         )

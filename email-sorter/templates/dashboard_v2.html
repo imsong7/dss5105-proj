@@ -1,76 +1,187 @@
 {% extends "base.html" %}
-{% block title %}Inbox dashboard v2{% endblock %}
+{% block title %}Inbox · Inbox sorter{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
 
-{% block sidebar %}
-<section>
-  <details class="mailbox-settings" id="mailbox-settings" open>
-    <summary>Mailbox connection</summary>
-    {{ mailbox_fields() }}
-  </details>
-  <button id="go">Fetch and classify</button>
-  <button id="cancel" class="btn-secondary" hidden>Cancel</button>
-</section>
-
-<section class="status" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking backend...</span></section>
-
-<section>
-  <h2>Model backend</h2>
-  <select id="backend"></select>
-</section>
+{% block topbar %}
+<div class="v2-brand">
+  <span class="v2-logo" aria-hidden="true">✉</span>
+  <span class="brand-name">Inbox sorter</span>
+  <span class="v2-tagline">Mail stays on this computer</span>
+</div>
 {% endblock %}
 
 {% block main %}
-<header class="dashboard-header">
-  <div>
-    <h1>Inbox dashboard <span class="version-mark">v2</span></h1>
-    <p class="sub">A quick view of what needs your attention.</p>
-  </div>
-  <span class="sub" id="progress-label" aria-live="polite"></span>
-</header>
-<div class="progress" id="progress" hidden><div></div></div>
-<div id="notice"></div>
+<input type="hidden" id="provider" value="{{ mail_provider }}">
 
-<section class="dashboard-summary" aria-label="Classification summary">
-  <button class="summary-card" id="quick-all" type="button" aria-pressed="true"><span>Total emails</span><strong id="count-total">0</strong></button>
-  <button class="summary-card summary-action" id="quick-action" type="button" aria-pressed="false"><span>Needs action</span><strong id="count-action">0</strong></button>
-  <button class="summary-card summary-reply" id="quick-reply" type="button" aria-pressed="false"><span>Needs reply</span><strong id="count-reply">0</strong></button>
-  <button class="summary-card summary-deadline" id="quick-deadline" type="button" aria-pressed="false"><span>Has deadline</span><strong id="count-deadline">0</strong></button>
-</section>
+<div class="v2-bar">
+  <nav class="v2-tabs" role="tablist" aria-label="Dashboard views">
+    <button class="v2-tab active" id="inbox-tab" type="button" role="tab" aria-selected="true" aria-controls="inbox-panel">Inbox</button>
+    <button class="v2-tab" id="calendar-tab" type="button" role="tab" aria-selected="false" aria-controls="calendar-panel">Calendar <span class="v2-tab-count" id="calendar-count">0</span></button>
+  </nav>
 
-<section class="dashboard-controls" aria-label="Email filters">
-  <label class="search-control">Search
-    <input id="search" type="search" placeholder="Sender or subject">
-  </label>
-  <label>Content category
-    <select id="filter-content"><option value="">All categories</option></select>
-  </label>
-  <label>Reply / action
-    <select id="filter-reply"><option value="">All types</option></select>
-  </label>
-  <label>Sort by
-    <select id="sort">
-      <option value="priority">Priority</option>
-      <option value="newest">Newest</option>
-      <option value="oldest">Oldest</option>
+  <label class="v2-window">Showing
+    <select id="window">
+      <option value="1">Last 24 hours</option>
+      <option value="7" selected>Last 7 days</option>
+      <option value="30">Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="custom">Custom range…</option>
     </select>
   </label>
-  <button class="clear-filters" id="clear-filters" type="button">Clear filters</button>
-</section>
-<p class="dashboard-results" id="results-count" aria-live="polite"></p>
 
-<section class="dashboard-grid">
-  <div class="dashboard-table-wrap">
+  <div class="v2-custom-range" id="f-custom-range" hidden>
+    <label>From <input id="since" type="date"></label>
+    <label>To <input id="before" type="date"></label>
+  </div>
+
+  <div class="v2-bar-tools">
+    <span class="v2-health" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking…</span></span>
+    <details class="v2-settings" id="v2-settings">
+      <summary>Settings</summary>
+      <div class="v2-settings-panel">
+        <label>Max emails
+          <input id="count" type="number" min="1" value="100">
+        </label>
+        <label>Model
+          <select id="backend"></select>
+        </label>
+        {% if mail_provider == 'outlook' %}
+        <label class="v2-token">Graph token
+          <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste a token from Graph Explorer"></textarea>
+        </label>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+</div>
+
+{% if mail_provider != 'outlook' %}
+<p class="v2-mailstatus">
+  <span id="webhook-diag" aria-live="polite">Last mail: none yet.</span>
+  <span id="backfill-status" aria-live="polite" hidden></span>
+</p>
+{% endif %}
+
+<div id="notice"></div>
+
+<section id="inbox-panel" role="tabpanel" aria-labelledby="inbox-tab">
+  <h1 class="sr-only">Inbox</h1>
+
+  <div class="v2-inbox-tools">
+    <section class="v2-quickfilters" aria-label="Quick filters">
+      <button class="v2-chip" id="quick-all" type="button" aria-pressed="true"><span>All mail</span><strong id="count-total">0</strong></button>
+      <button class="v2-chip" id="quick-action" type="button" aria-pressed="false"><span class="v2-chip-dot" aria-hidden="true"></span><span>Needs action</span><strong id="count-action">0</strong></button>
+      <button class="v2-chip" id="quick-reply" type="button" aria-pressed="false"><span class="v2-chip-dot v2-chip-dot-reply" aria-hidden="true"></span><span>Needs reply</span><strong id="count-reply">0</strong></button>
+    </section>
+    <div class="v2-inbox-actions">
+      <button class="v2-filter-toggle" id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-advanced">Filters</button>
+      <button id="go" class="v2-refresh" data-busy="Loading…">Load emails</button>
+      <button id="cancel" class="v2-cancel" hidden>Cancel</button>
+    </div>
+  </div>
+
+  <section class="v2-filterbar" aria-label="Email filters">
+    <label class="v2-search">
+      <span class="sr-only">Search</span>
+      <input id="search" type="search" placeholder="Search sender or subject (press /)">
+    </label>
+    <div class="v2-filter-advanced" id="filter-advanced">
+      <label><span class="v2-field-label">Category</span>
+        <select id="filter-content"><option value="">All categories</option></select>
+      </label>
+      <label><span class="v2-field-label">Type</span>
+        <select id="filter-reply"><option value="">All types</option></select>
+      </label>
+      <label><span class="v2-field-label">Sort</span>
+        <select id="sort">
+          <option value="priority">Priority</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+      </label>
+    </div>
+    <button class="v2-clear" id="clear-filters" type="button" hidden>Clear filters</button>
+  </section>
+
+  <div class="v2-listmeta">
+    <span id="results-count" aria-live="polite"></span>
+    <span class="v2-progress-label" id="progress-label" aria-live="polite"></span>
+  </div>
+
+  <div class="dashboard-table-wrap" id="email-table-wrap">
     <table class="dashboard-table">
       <thead><tr>
-        <th scope="col">Email</th><th scope="col">Category</th>
-        <th scope="col">Reply / action</th><th scope="col">Deadline</th>
+        <th scope="col">Title</th><th scope="col">From</th>
+        <th scope="col">Category</th><th scope="col">Status</th>
+        <th scope="col"><span class="sr-only">Open</span></th>
       </tr></thead>
       <tbody id="email-rows">
-        <tr><td class="table-empty" colspan="4">Connect a mailbox to load and classify emails.</td></tr>
+        <tr><td class="table-empty" colspan="5">{% if mail_provider == 'outlook' %}Press Fetch mail to read your inbox.{% else %}Waiting for mail.{% endif %}</td></tr>
       </tbody>
     </table>
   </div>
 </section>
+
+<section id="calendar-panel" role="tabpanel" aria-labelledby="calendar-tab" hidden>
+  <header class="v2-calhead">
+    <div>
+      <h1>Calendar</h1>
+    </div>
+    <div class="calendar-actions">
+      <span id="calendar-status" class="calendar-status" aria-live="polite"></span>
+      <button class="calendar-fetch" id="calendar-fetch" type="button">Scan mailbox</button>
+    </div>
+  </header>
+
+  <section id="calendar-legend-section" class="calendar-legend-section" hidden aria-label="Courses you are taking">
+    <div id="calendar-course-legend" class="calendar-course-legend"></div>
+  </section>
+
+  <div class="calendar-layout">
+    <aside class="calendar-month-panel" id="calendar-month-panel" aria-label="Month view">
+      <div class="calendar-toolbar">
+        <h2 id="calendar-month" aria-live="polite"></h2>
+        <div class="calendar-nav-group">
+          <button class="calendar-nav" id="calendar-previous" type="button" aria-label="Previous month" title="Previous month">‹</button>
+          <button class="calendar-nav calendar-today" id="calendar-today" type="button">Today</button>
+          <button class="calendar-nav" id="calendar-next" type="button" aria-label="Next month" title="Next month">›</button>
+        </div>
+      </div>
+      <div class="calendar-grid-wrap">
+        <div id="calendar-grid" class="calendar-grid" role="grid" aria-labelledby="calendar-month"></div>
+      </div>
+      <p class="calendar-help">Coloured chips are Canvas deadlines; small labels mark NUS term dates (↦ starts, ↤ ends).</p>
+    </aside>
+
+    <div class="calendar-side">
+      <section class="calendar-upcoming" aria-label="Upcoming deadlines">
+        <div class="calendar-upcoming-head">
+          <h2 class="calendar-section-title">Upcoming deadlines</h2>
+          <span class="calendar-count-pill" id="calendar-upcoming-count" hidden></span>
+        </div>
+        <div id="calendar-events" class="calendar-events">
+          <div class="calendar-empty">
+            <strong>Nothing here yet</strong>
+            <p>Scan your mailbox and we will pull out assignment deadlines, exams, and other explicit dates.</p>
+            <button class="calendar-empty-scan" type="button">Scan my mailbox</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="calendar-academic" aria-label="NUS academic calendar">
+        <div class="calendar-upcoming-head">
+          <h2 class="calendar-section-title">Academic calendar</h2>
+          <span class="calendar-count-pill" id="academic-count" hidden></span>
+        </div>
+        <p class="academic-source" id="academic-source" hidden></p>
+        <div id="academic-events" class="academic-events">
+          <p class="academic-empty">Loading the NUS academic calendar…</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
 <dialog class="email-detail-dialog" id="email-detail-dialog" aria-labelledby="email-detail-title">
   <header class="email-detail-header">
     <div>
@@ -86,5 +197,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='dashboard_v2.js', v='7') }}"></script>
+<script src="{{ url_for('static', filename='dashboard_v2.js', v='72') }}"></script>
 {% endblock %}

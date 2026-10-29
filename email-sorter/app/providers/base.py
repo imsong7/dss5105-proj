@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 
 from ..models import Email
 
@@ -8,6 +9,21 @@ from ..models import Email
 class InlineImage:
     name: str
     data: bytes
+
+
+@dataclass(frozen=True)
+class MailQuery:
+    """Which emails to fetch.
+
+    ``limit`` is always a hard safety cap. ``since`` and ``before`` form an
+    inclusive received-date window; leave both as ``None`` to get the newest
+    ``limit`` emails. Both bounds are inclusive so a UI can send
+    ``before = end of the chosen day`` without losing that day's mail.
+    """
+
+    limit: int = 15
+    since: datetime | None = None
+    before: datetime | None = None
 
 
 class ProviderError(Exception):
@@ -24,8 +40,13 @@ class EmailProvider(ABC):
     name: str = "base"
 
     @abstractmethod
-    def fetch_emails(self, limit: int = 15) -> list[Email]:
-        """Return the newest `limit` emails, newest first."""
+    def fetch_emails(self, query: MailQuery | None = None) -> list[Email]:
+        """Return matching emails, newest first.
+
+        ``query`` carries an optional received-date window plus a hard cap.
+        When it is omitted or has no window, return the newest ``query.limit``
+        emails (15 by default).
+        """
 
     def fetch_images(
         self, email: Email, max_images: int, max_bytes: int

@@ -84,21 +84,23 @@ See `bert/README.md` for full BERT training docs.
 
 **Train classical ML baselines** (from repo root):
 ```bash
-cd ML
+cd classical-ml
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-ml.txt
 
-# labels.xlsx is not committed (real email data). Get it from the team first.
-cp "/path/to/labels.xlsx" ./labels.xlsx
+# ../data/labels.csv is not committed (real email data). Convert the team's
+# workbook once, or place labels.csv/labels.xlsx in ../data/ yourself.
+cp "/path/to/labels.xlsx" ../data/labels.xlsx
+PYTHONPATH=src python -m data_tools convert-labels
 
-python train_email_ml.py       # main training + metrics
-python compare_models.py       # 8-model comparison
-python tune_models.py          # hyperparameter search
-python ablation_synthetic.py   # synthetic vs real-only
+PYTHONPATH=src python -m train_email_ml       # models + metrics -> artifacts/
+PYTHONPATH=src python -m experiments compare  # model comparison -> reports/
+PYTHONPATH=src python -m experiments tune     # hyperparameter search -> reports/
+PYTHONPATH=src python -m experiments ablation # synthetic vs real-only -> reports/
 ```
 
-See `ML/README.md` for data format, results, and evaluation caveats.
+See `classical-ml/README.md` for data format, results, and evaluation caveats.
 
 ---
 

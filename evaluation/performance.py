@@ -921,12 +921,12 @@ def write_artifacts(
     out_dir: Path, summary: pd.DataFrame, runs: pd.DataFrame, manifest: dict
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    write_csv(summary, out_dir / "operational_performance_summary.csv")
-    write_csv(runs, out_dir / "operational_performance_runs.csv")
+    write_csv(summary, out_dir / "performance_summary.csv")
+    write_csv(runs, out_dir / "performance_runs.csv")
     plot_operational_performance(
-        summary, out_dir / "operational_performance_comparison.png"
+        summary, out_dir / "performance_comparison.png"
     )
-    write_json(manifest, out_dir / "operational_performance_manifest.json")
+    write_json(manifest, out_dir / "performance_manifest.json")
     report = render_report(summary, manifest)
     print("\n" + "=" * 100)
     print(report)

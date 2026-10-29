@@ -1,0 +1,10 @@
+requests>=2.32
+beautifulsoup4>=4.12
+pyyaml>=6.0
+python-dotenv>=1.0
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.5      # accuracy metrics only
+anthropic>=0.40        # Claude API
+streamlit>=1.50        # dashboard and labelling tool
+pytest>=8.0            # tests

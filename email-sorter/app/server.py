@@ -21,6 +21,7 @@ from .classifier_base import (
     create_classifier,
     list_backends,
 )
+from .claude_classifier import claude_ready
 from .config import ROOT, settings
 from .ml_classifier import models_ready as _ml_ready
 from .models import Classification, Email
@@ -74,6 +75,8 @@ def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bo
         return _bert_ready()
     if name == "ml":
         return _ml_ready()
+    if name == "claude":
+        return claude_ready()
     return True if loaded else None
 
 
@@ -141,6 +144,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
         ollama_up, ollama_ready = _ollama_status()
         bert_ready = _bert_ready()
         ml_ready = _ml_ready()
+        claude_backend_ready = claude_ready()
         backend_ready = _backend_ready(
             requested,
             ollama_ready,
@@ -159,6 +163,7 @@ def create_app(backend: str | None = None, version: int = 1) -> Flask:
                 "model_ready": ollama_ready,
                 "bert_ready": bert_ready,
                 "ml_ready": ml_ready,
+                "claude_ready": claude_backend_ready,
                 "ocr": ocr_status(),
             }
         )

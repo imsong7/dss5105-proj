@@ -34,6 +34,11 @@ BACKEND_INFO: dict[str, dict[str, str]] = {
         "kind": "ml",
         "description": "TF-IDF category and action pipelines.",
     },
+    "claude": {
+        "label": "Claude",
+        "kind": "llm",
+        "description": "Anthropic Claude through the inbox-sorter pipeline (rules, guardrails).",
+    },
 }
 
 
@@ -54,6 +59,9 @@ def create_classifier(backend: str | None = None) -> BaseClassifier:
     if name == "ml":
         from .ml_classifier import MLClassifier  # noqa: PLC0415
         return MLClassifier()
+    if name == "claude":
+        from .claude_classifier import ClaudeClassifier  # noqa: PLC0415
+        return ClaudeClassifier()
 
     available = ", ".join(list_backends())
     raise ValueError(f"Unknown model backend '{name}'. Available: {available}")

@@ -78,6 +78,9 @@
     } else if (h.backend === "ml") {
       ok = !!h.ml_ready;
       text = ok ? "Classical ML models ready." : "Classical ML model files not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml";
+    } else if (h.backend === "claude") {
+      ok = !!h.claude_ready;
+      text = ok ? "Claude ready." : "Claude is not ready. Add ANTHROPIC_API_KEY to inbox-sorter/.env and install the anthropic package.";
     } else if (h.backend === "llama") {
       if (!h.ollama_up) text = "Ollama is not running. Start it, then reload.";
       else if (!h.ollama_ready) text = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`;

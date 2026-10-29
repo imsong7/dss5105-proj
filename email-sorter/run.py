@@ -5,6 +5,7 @@ Usage::
     python run.py                           # uses MODEL_BACKEND env or default (llama)
     python run.py -version 2                # use the dashboard v2 as the home page
     python run.py --backend bert            # force BERT backend
+    python run.py --backend claude          # Claude via the inbox-sorter
     python run.py --backend llama --port 8080
 """
 
@@ -19,10 +20,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the email-sorter Flask app.")
     parser.add_argument(
         "--backend",
-        choices=["llama", "bert", "ml"],
+        choices=["llama", "bert", "ml", "claude"],
         default=None,
         help="Model backend to use (overrides MODEL_BACKEND env var / config). "
-             "Choices: llama, bert, ml",
+             "Choices: llama, bert, ml, claude",
     )
     parser.add_argument(
         "-version",

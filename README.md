@@ -177,7 +177,8 @@ because they contain real email content.
 
 The app loads models via `EmbedPredictor("text-encoders/models/<task>_head")`. See
 `text-encoders/README.md`. The classical ML pipelines are also selectable in the
-app through `classical-ml/artifacts/`.
+app through `classical-ml/artifacts/`, and Claude is selectable through the
+`inbox-sorter/` pipeline (it needs `ANTHROPIC_API_KEY` in `inbox-sorter/.env`).
 
 ---
 

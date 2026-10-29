@@ -38,10 +38,12 @@ app/
 tests/test_system.py  offline tests (no token or API key needed)
 ```
 
-This project is also benchmarked against the other three methods:
+This project is also available as the **Claude** backend in
+`email-sorter/`, and is benchmarked against the other three methods:
 
 ```bash
 # from the repo root
+python email-sorter/run.py --backend claude      # app backend
 python evaluation/performance.py --model all     # llama + bert + ml + claude
 python evaluation/quality.py --model all         # accuracy and macro F1
 ```

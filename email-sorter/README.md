@@ -25,25 +25,27 @@ python run.py
 Open <http://127.0.0.1:5000>. Choose the home dashboard with:
 
 ```bash
-python run.py -version 1  # original sorter (default)
-python run.py -version 2  # dashboard v2
+python run.py             # dashboard v2 (default)
+python run.py -version 1  # original sorter
 ```
 
-`--version` is also accepted. Version 2 is available at `/dashboard-v2`.
+`--version` is also accepted. Version 2 is the default home page and is also
+available at `/dashboard-v2`.
 
 ## Choosing the mail source
 
 The source is fixed when the app starts, not in the browser:
 
 ```bash
-python run.py --version 2 --provider powerautomate   # default: the flow pushes mail
-python run.py --version 2 --provider graphtoken      # paste a Graph token in the toolbar
+python run.py --version 2 --provider graphtoken      # default: paste a Graph token
+python run.py --version 2 --provider powerautomate   # the flow pushes mail
 ```
 
-`MAIL_PROVIDER=powerautomate` or `MAIL_PROVIDER=graphtoken` in `.env` sets the
-same default, and `--provider` overrides it. A Graph token is entered in the
-dashboard toolbar each time (or refreshed when it expires); the Power Automate
-source needs no credentials because the flow authenticates on its own.
+`MAIL_PROVIDER=graphtoken` is the default in `.env`; set
+`MAIL_PROVIDER=powerautomate` or pass `--provider powerautomate` to switch. A
+Graph token is entered in the dashboard popup each time (or refreshed when it
+expires); the Power Automate source needs no token because the flow
+authenticates on its own.
 
 ## OCR for inline images
 
@@ -149,13 +151,27 @@ avoids pasting a Graph token into the dashboard. This uses HTTPS, not a
 WebSocket: the flow collects Outlook mail and an HTTP action posts each message
 to the app.
 
-1. Put a shared secret in `.env` and restart the app:
+In `powerautomate` mode, `run.py` starts ngrok automatically for the app port
+using the static domain in `NGROK_DOMAIN` (default:
+`chive-suitably-slingshot.ngrok-free.dev`). Use `--no-tunnel` to skip it, or
+`--ngrok-domain other.ngrok-free.dev` to use another reserved domain.
+
+1. Create the account (or reuse an existing one) and get its webhook token. In
+   the multi-user app, each push is authenticated with the account's
+   `webhook_token` from `private/multiuser.json` — not the
+   `POWER_AUTOMATE_WEBHOOK_TOKEN` in `.env`.
 
    ```bash
-   POWER_AUTOMATE_WEBHOOK_TOKEN=<long random string>
-   POWER_AUTOMATE_REFRESH_URL=<trigger URL, optional>
-   INBOUND_MAX_EMAILS=500
+   cd email-sorter
+   python tools/configure_multiuser.py   # first time only
+   # print the token you already created
+   python -c "import json,pathlib; print(next(iter(json.loads(pathlib.Path('private/multiuser.json').read_text()).values()))['webhook_token'])"
    ```
+
+   Keep `INBOUND_MAX_EMAILS=500` in `.env` if you want a larger in-memory store.
+   The account's `refresh_url` (asked for by the script) is what the dashboard's
+   refresh button calls; `.env`'s `POWER_AUTOMATE_REFRESH_URL` is not used on
+   this branch.
 
 2. In Power Automate, build a flow that collects a window of mail and posts each
    message to the app (an HTTP action requires a premium connector):
@@ -175,7 +191,7 @@ to the app.
    - Method: `POST`
    - URI: `https://your-ngrok-domain/api/inbound/outlook`
    - Header: `Content-Type: application/json`
-   - Header: `X-Webhook-Token: <the value from .env>`
+   - Header: `X-Webhook-Token: <the token printed in step 1>`
    - Header: `X-User-Email: <the mailbox this flow watches>`
    - Header: `ngrok-skip-browser-warning: true` (only needed for free ngrok tunnels)
    - Body (inside the loop, so `item()` refers to the current message):
@@ -306,7 +322,7 @@ python run.py --compare --provider graphtoken --token "$GRAPH_TOKEN"
 
 | Flag | Default | Meaning |
 |------|---------|---------|
-| `--backends` | `all` | Comma-separated backend names (`hybrid`, `llama`, `bert`, `ml`). |
+| `--backends` | `all` | Comma-separated backend names (`hybrid_claude`, `hybrid`, `llama`, `bert`, `ml`, `claude`). |
 | `--days` | `7` | Received-date window; `0` disables it. |
 | `--limit` | `MAX_EMAILS` | Maximum emails to classify. |
 | `--owner` | `MAIL_OWNER` | Mailbox address, so the CLI sees the same pushed inbox as the dashboard. |
@@ -321,28 +337,30 @@ to be restarted, and the CLI exits without starting a second Flask server.
 
 ## Choosing a backend
 
-Pick **Hybrid**, **Llama**, **Text encoders**, or **Classical ML** in the
-dashboard toolbar (or the sidebar on the original sorter page). The choice is
-saved in your browser and does not require a server restart.
+Pick **Hybrid (ML + Claude)**, **Hybrid (ML + BERT)**, **Llama**, **Text
+encoders**, or **Classical ML** in the dashboard toolbar (or the sidebar on the
+original sorter page). The choice is saved in your browser and does not require
+a server restart.
 
 `MODEL_BACKEND` in `.env` or `--backend` sets the initial default for browsers
-without a saved choice. The default is `hybrid`: the content category comes from
-the classical TF-IDF model and the reply nature comes from the BERT encoder
-head, so each task uses its stronger pipeline.
+without a saved choice. The default is `hybrid_claude`: the content category
+comes from the classical TF-IDF model and the reply nature comes from Claude,
+so each task uses its stronger pipeline.
 
 ```bash
-python run.py                      # hybrid (default)
-python run.py --backend bert       # both tasks from the BERT heads
-MODEL_BACKEND=ml python run.py     # both tasks from the TF-IDF pipelines
+python run.py                         # hybrid_claude (default)
+python run.py --backend hybrid        # ML category + BERT action
+python run.py --backend bert          # both tasks from the BERT heads
+MODEL_BACKEND=ml python run.py        # both tasks from the TF-IDF pipelines
 ```
 
-Only the halves a backend needs are loaded. `hybrid` loads
-`classical-ml/artifacts/email_category_model.joblib` for the category and
-`text-encoders/models/action_head/` for the action; the ML action pipeline and
-the BERT category head stay untouched.
+Only the halves a backend needs are loaded. `hybrid_claude` loads
+`classical-ml/artifacts/email_category_model.joblib` for the category and the
+Claude pipeline for the action; `hybrid` loads the same category model plus
+`text-encoders/models/action_head/` for the action.
 
-The classical ML models are not committed. Generate them before using `hybrid`
-or `ml`:
+The classical ML models are not committed. Generate them before using
+`hybrid_claude`, `hybrid`, or `ml`:
 
 ```bash
 PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml
@@ -357,10 +375,16 @@ backend still classifies reply nature, deadline, and reason.
 
 | Backend | Description | Requirements |
 |---------|-------------|--------------|
-| `hybrid` | ML category (`LinearSVC`) + BERT action head (`e5-small-multi`) — default | ML category model and `text-encoders/models/action_head/` |
+| `hybrid_claude` | ML category (`LinearSVC`) + Claude action — default | ML category model and `ANTHROPIC_API_KEY` in `inbox-sorter/.env` |
+| `hybrid` | ML category (`LinearSVC`) + BERT action head (`e5-small-multi`) | ML category model and `text-encoders/models/action_head/` |
 | `llama` | Llama via Ollama | `ollama pull llama3.1:8b`, Ollama running |
 | `bert` | Frozen text encoders + logistic heads (tiny, fast) | `text-encoders/models/{category,action}_head/` trained via `text-encoders/train.py` |
 | `ml` | Classical TF-IDF pipelines | Production model files generated by `train_email_ml` |
+| `claude` | Anthropic Claude through the inbox-sorter pipeline | `ANTHROPIC_API_KEY` in `inbox-sorter/.env`; `anthropic` installed |
+
+The Claude backend loads `inbox-sorter/` under an alias and keeps its pipeline
+intact (sender rules → Claude API → guardrails → fallback). It needs the
+Anthropic key in `inbox-sorter/.env` and does not use the local models.
 
 Backends are registered in `app/classifier_base.py`. To add one:
 

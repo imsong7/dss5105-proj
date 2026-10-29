@@ -17,6 +17,7 @@
     userReady: false,
     loading: false,
     loadError: null,
+    replyFilter: "",
   };
 
   const priority = {
@@ -75,10 +76,27 @@
     status.classList.toggle("err", Boolean(text) && isError);
   }
 
-  function fillOptions(select, items, allLabel) {
-    select.replaceChildren(el("option", { value: "" }, allLabel));
+  function fillCategoryCheckboxes(items) {
+    const box = $("#filter-content");
+    box.replaceChildren();
     for (const [key, item] of Object.entries(items)) {
-      select.append(el("option", { value: key }, item.label));
+      const label = el("label", { class: "v2-check" });
+      label.append(
+        el("input", { type: "checkbox", value: key }),
+        el("span", {}, item.label),
+      );
+      box.append(label);
+    }
+  }
+
+  function selectedCategories() {
+    return [...document.querySelectorAll("#filter-content input[type=checkbox]:checked")]
+      .map(input => input.value);
+  }
+
+  function clearCategoryFilters() {
+    for (const input of document.querySelectorAll("#filter-content input[type=checkbox]")) {
+      input.checked = false;
     }
   }
 
@@ -92,6 +110,7 @@
     $("#count-total").textContent = emails.length;
     $("#count-action").textContent = results.filter(r => r.reply_nature === "needs_action").length;
     $("#count-reply").textContent = results.filter(r => r.reply_nature === "needs_reply").length;
+    $("#count-reminder").textContent = results.filter(r => r.reply_nature === "reminder").length;
     const deadlines = calendarEmails(emails);
     $("#calendar-count").textContent = deadlines.length;
     // Rebuild the calendar when the window or the deadline set changes, but not
@@ -106,11 +125,16 @@
     }
   }
 
+  function quickFilterLabel() {
+    return { needs_action: "action", needs_reply: "reply", reminder: "reminder" }[state.replyFilter] || "";
+  }
+
   function updateQuickButtons(filter) {
     for (const [id, active] of [
       ["quick-all", filter === "all"],
       ["quick-action", filter === "action"],
       ["quick-reply", filter === "reply"],
+      ["quick-reminder", filter === "reminder"],
     ]) {
       const button = $(`#${id}`);
       button.classList.toggle("active", active);
@@ -121,9 +145,10 @@
   function setQuickFilter(filter) {
     if (filter === "all") {
       $("#search").value = "";
-      $("#filter-content").value = "";
+      clearCategoryFilters();
     }
-    $("#filter-reply").value = filter === "action" || filter === "reply" ? `needs_${filter}` : "";
+    const replyFilters = { action: "needs_action", reply: "needs_reply", reminder: "reminder" };
+    state.replyFilter = replyFilters[filter] || "";
     updateQuickButtons(filter);
     renderRows();
   }
@@ -163,14 +188,14 @@
 
   function visibleEmails() {
     const query = $("#search").value.trim().toLowerCase();
-    const category = $("#filter-content").value;
-    const reply = $("#filter-reply").value;
+    const categories = selectedCategories();
+    const reply = state.replyFilter;
 
     return sortedEmails().filter(email => {
       const result = state.results.get(email.id);
       const matchesText = !query || `${email.sender} ${email.subject}`.toLowerCase().includes(query);
       return matchesText &&
-        (!category || (result && result.content_category === category)) &&
+        (!categories.length || (result && categories.includes(result.content_category))) &&
         (!reply || (result && result.reply_nature === reply));
     });
   }
@@ -790,7 +815,7 @@
       refreshTriggerReady = Boolean(data.refresh_configured);
       if (!refreshTriggerReady) {
         setBackfillStatus(
-          "Automatic flow trigger is off. Set POWER_AUTOMATE_REFRESH_URL in .env to turn it on.",
+          "Automatic flow trigger is off. Set this account's refresh URL with tools/configure_multiuser.py.",
         );
       }
       // Wait for this check so a missing trigger URL stays silent instead of
@@ -933,23 +958,23 @@
   function hasActiveFilters() {
     return Boolean(
       $("#search").value.trim() ||
-      $("#filter-content").value ||
-      $("#filter-reply").value
+      selectedCategories().length ||
+      state.replyFilter
     );
   }
 
   function activeFilterCount() {
     let count = 0;
     if ($("#search").value.trim()) count += 1;
-    if ($("#filter-content").value) count += 1;
-    if ($("#filter-reply").value) count += 1;
+    if (selectedCategories().length) count += 1;
+    if (state.replyFilter) count += 1;
     return count;
   }
 
   function resetFilters() {
     $("#search").value = "";
-    $("#filter-content").value = "";
-    $("#filter-reply").value = "";
+    clearCategoryFilters();
+    state.replyFilter = "";
     setQuickFilter("all");
     $("#search").focus();
   }
@@ -1161,7 +1186,9 @@
           ? "Classical ML models not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml"
           : isReady === false && backend === "hybrid"
             ? "Hybrid needs the classical-ML category model and the BERT action head. See README: Choosing a backend."
-            : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";
+            : isReady === false && backend === "hybrid_claude"
+              ? "Hybrid (ML + Claude) needs the classical-ML category model and ANTHROPIC_API_KEY in inbox-sorter/.env."
+              : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";
       $("#health").textContent = isReady === true ? "Ready" : isReady === false ? "Not ready" : "Checking…";
       pill.classList.toggle("bad", isReady === false);
       pill.title = detail;
@@ -1339,8 +1366,42 @@
     }
   }
 
+  function openGraphTokenDialog() {
+    const dialog = $("#graph-token-dialog");
+    if (!dialog) return;
+    const error = $("#graph-token-error");
+    if (error) error.hidden = true;
+    if (typeof dialog.showModal === "function") {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+    $("#token")?.focus();
+  }
+
   async function init() {
     initMailboxForm();
+    const tokenDialog = $("#graph-token-dialog");
+    $("#graph-token-open")?.addEventListener("click", openGraphTokenDialog);
+    $("#graph-token-cancel")?.addEventListener("click", () => tokenDialog?.close());
+    $("#graph-token-form")?.addEventListener("submit", event => {
+      const token = ($("#token")?.value || "").trim();
+      if (!token) {
+        event.preventDefault();
+        const error = $("#graph-token-error");
+        if (error) {
+          error.textContent = "Paste a Graph access token first.";
+          error.hidden = false;
+        }
+        $("#token")?.focus();
+        return;
+      }
+      // Let the dialog close, then fetch with the pasted token.
+      setTimeout(() => loadEmails({ announce: true }), 0);
+    });
+    if (currentProvider() === "outlook" && !($("#token")?.value || "").trim()) {
+      openGraphTokenDialog();
+    }
     loadAcademicCalendar();
     $("#go").addEventListener("click", () => (
       state.hasFetchedEmails ? classifyLoaded() : loadEmails({ announce: true })
@@ -1384,6 +1445,13 @@
         renderRows();
       });
     }
+    // The multi-user app authenticates with HTTP Basic auth, so the person is
+    // already identified when the page loads. There is no gate event to wait
+    // for, and without this the flow trigger and inbox polling never start.
+    state.userReady = Boolean(currentUser());
+    if (state.userReady && currentProvider() === "powerautomate") {
+      startPushedRefresh();
+    }
     startWebhookDiagnostics();
     $("#cancel").addEventListener("click", () => state.controller?.abort());
     $("#inbox-tab").addEventListener("click", () => showDashboardTab("inbox"));
@@ -1422,14 +1490,15 @@
     $("#quick-all").addEventListener("click", () => setQuickFilter("all"));
     $("#quick-action").addEventListener("click", () => setQuickFilter("action"));
     $("#quick-reply").addEventListener("click", () => setQuickFilter("reply"));
+    $("#quick-reminder").addEventListener("click", () => setQuickFilter("reminder"));
     $("#clear-filters").addEventListener("click", resetFilters);
-    for (const selector of ["#search", "#filter-content", "#filter-reply", "#sort"]) {
+    for (const selector of ["#search", "#filter-content", "#sort"]) {
       $(selector).addEventListener("input", () => {
-        updateQuickButtons("");
+        updateQuickButtons(quickFilterLabel());
         renderRows();
       });
       $(selector).addEventListener("change", () => {
-        updateQuickButtons("");
+        updateQuickButtons(quickFilterLabel());
         renderRows();
       });
     }
@@ -1454,7 +1523,7 @@
       } else if (event.key === "Escape" && document.activeElement === $("#search")) {
         if ($("#search").value) {
           $("#search").value = "";
-          updateQuickButtons("");
+          updateQuickButtons(quickFilterLabel());
           renderRows();
         } else {
           $("#search").blur();
@@ -1476,8 +1545,7 @@
       ]);
       state.taxonomy = taxonomy;
       setQuickFilter("all");
-      fillOptions($("#filter-content"), taxonomy.content, "All categories");
-      fillOptions($("#filter-reply"), taxonomy.reply, "All types");
+      fillCategoryCheckboxes(taxonomy.content);
       $("#backend").replaceChildren(...BACKENDS.map(item =>
         el("option", { value: item.id }, item.label)));
       if (!backendData.backends.length) throw new Error("No classifier backends are available.");

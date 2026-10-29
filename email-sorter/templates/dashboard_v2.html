@@ -6,7 +6,6 @@
 <div class="v2-brand">
   <span class="v2-logo" aria-hidden="true">✉</span>
   <span class="brand-name">Inbox sorter</span>
-  <span class="v2-tagline">Mail stays on this computer</span>
 </div>
 {% endblock %}
 
@@ -19,23 +18,11 @@
     <button class="v2-tab" id="calendar-tab" type="button" role="tab" aria-selected="false" aria-controls="calendar-panel">Calendar <span class="v2-tab-count" id="calendar-count">0</span></button>
   </nav>
 
-  <label class="v2-window">Showing
-    <select id="window">
-      <option value="1">Last 24 hours</option>
-      <option value="7" selected>Last 7 days</option>
-      <option value="30">Last 30 days</option>
-      <option value="90">Last 90 days</option>
-      <option value="custom">Custom range…</option>
-    </select>
-  </label>
-
-  <div class="v2-custom-range" id="f-custom-range" hidden>
-    <label>From <input id="since" type="date"></label>
-    <label>To <input id="before" type="date"></label>
-  </div>
-
   <div class="v2-bar-tools">
     <span class="v2-health" aria-live="polite"><span class="dot" id="dot"></span><span id="health">Checking…</span></span>
+    {% if mail_provider == 'outlook' %}
+    <button class="v2-token-button" id="graph-token-open" type="button">Graph token</button>
+    {% endif %}
     <details class="v2-settings" id="v2-settings">
       <summary>Settings</summary>
       <div class="v2-settings-panel">
@@ -45,11 +32,6 @@
         <label>Model
           <select id="backend"></select>
         </label>
-        {% if mail_provider == 'outlook' %}
-        <label class="v2-token">Graph token
-          <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste a token from Graph Explorer"></textarea>
-        </label>
-        {% endif %}
       </div>
     </details>
   </div>
@@ -72,6 +54,7 @@
       <button class="v2-chip" id="quick-all" type="button" aria-pressed="true"><span>All mail</span><strong id="count-total">0</strong></button>
       <button class="v2-chip" id="quick-action" type="button" aria-pressed="false"><span class="v2-chip-dot" aria-hidden="true"></span><span>Needs action</span><strong id="count-action">0</strong></button>
       <button class="v2-chip" id="quick-reply" type="button" aria-pressed="false"><span class="v2-chip-dot v2-chip-dot-reply" aria-hidden="true"></span><span>Needs reply</span><strong id="count-reply">0</strong></button>
+      <button class="v2-chip" id="quick-reminder" type="button" aria-pressed="false"><span class="v2-chip-dot v2-chip-dot-reminder" aria-hidden="true"></span><span>Reminder</span><strong id="count-reminder">0</strong></button>
     </section>
     <div class="v2-inbox-actions">
       <button class="v2-filter-toggle" id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-advanced">Filters</button>
@@ -81,18 +64,39 @@
   </div>
 
   <section class="v2-filterbar" aria-label="Email filters">
+    <div class="v2-filter-pair">
+      <div class="v2-filter-advanced" id="filter-advanced">
+        <fieldset class="v2-checkgroup">
+          <legend class="v2-field-label">Category</legend>
+          <div class="v2-checkboxes" id="filter-content"></div>
+        </fieldset>
+      </div>
+      <label class="v2-window">Showing
+        <select id="window">
+          <option value="1">Last 24 hours</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="custom">Custom range…</option>
+        </select>
+      </label>
+    </div>
     <label class="v2-search">
       <span class="sr-only">Search</span>
       <input id="search" type="search" placeholder="Search sender or subject (press /)">
     </label>
-    <div class="v2-filter-advanced" id="filter-advanced">
-      <label><span class="v2-field-label">Category</span>
-        <select id="filter-content"><option value="">All categories</option></select>
-      </label>
-      <label><span class="v2-field-label">Type</span>
-        <select id="filter-reply"><option value="">All types</option></select>
-      </label>
-      <label><span class="v2-field-label">Sort</span>
+    <button class="v2-clear" id="clear-filters" type="button" hidden>Clear filters</button>
+    <div class="v2-custom-range" id="f-custom-range" hidden>
+      <label>From <input id="since" type="date"></label>
+      <label>To <input id="before" type="date"></label>
+    </div>
+  </section>
+
+  <div class="v2-listmeta">
+    <span id="results-count" aria-live="polite"></span>
+    <div class="v2-listmeta-right">
+      <span class="v2-progress-label" id="progress-label" aria-live="polite"></span>
+      <label class="v2-sort-inline" for="sort">Sort
         <select id="sort">
           <option value="priority">Priority</option>
           <option value="newest">Newest</option>
@@ -100,12 +104,6 @@
         </select>
       </label>
     </div>
-    <button class="v2-clear" id="clear-filters" type="button" hidden>Clear filters</button>
-  </section>
-
-  <div class="v2-listmeta">
-    <span id="results-count" aria-live="polite"></span>
-    <span class="v2-progress-label" id="progress-label" aria-live="polite"></span>
   </div>
 
   <div class="dashboard-table-wrap" id="email-table-wrap">
@@ -194,8 +192,27 @@
     <p class="empty">Select an email to view its details.</p>
   </div>
 </dialog>
+
+{% if mail_provider == 'outlook' %}
+<dialog class="graph-token-dialog" id="graph-token-dialog" aria-labelledby="graph-token-title">
+  <form id="graph-token-form" method="dialog">
+    <h2 id="graph-token-title">Microsoft Graph token</h2>
+    <p class="sub">
+      Open <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>,
+      sign in, and copy the access token. It needs <code>Mail.Read</code> and stays in this tab.
+    </p>
+    <label for="token">Graph access token</label>
+    <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste a token from Graph Explorer"></textarea>
+    <p class="graph-token-error" id="graph-token-error" hidden></p>
+    <div class="graph-token-actions">
+      <button class="dialog-close" id="graph-token-cancel" type="button">Cancel</button>
+      <button id="graph-token-save" type="submit">Load emails</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='dashboard_v2.js', v='72') }}"></script>
+<script src="{{ url_for('static', filename='dashboard_v2.js', v='77') }}"></script>
 {% endblock %}

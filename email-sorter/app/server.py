@@ -30,6 +30,7 @@ from .classifier_base import (
     create_classifier,
     list_backends,
 )
+from .claude_classifier import claude_ready
 from .config import ROOT, settings
 from .deadline_extractor import extract_deadline
 from .inbound_store import inbound_store
@@ -233,6 +234,10 @@ def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bo
         return _ml_ready()
     if name == "hybrid":
         return _ml_ready(("category",)) and _bert_ready(("action",))
+    if name == "hybrid_claude":
+        return _ml_ready(("category",)) and claude_ready()
+    if name == "claude":
+        return claude_ready()
     return True if loaded else None
 
 
@@ -256,7 +261,7 @@ def normalize_provider(value: str | None) -> str:
     """
     key = str(value or "").strip().lower()
     if not key:
-        return "powerautomate"
+        return "outlook"
     if key not in _PROVIDER_ALIASES:
         raise ValueError(
             f"Unknown mail provider {value!r}. Use 'graphtoken' or 'powerautomate'."
@@ -277,7 +282,7 @@ def _parse_datetime(value) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
-def create_app(backend: str | None = None, version: int = 1, provider: str | None = None) -> Flask:
+def create_app(backend: str | None = None, version: int = 2, provider: str | None = None) -> Flask:
     mail_provider = normalize_provider(provider or settings.mail_provider)
     app = Flask(
         __name__,
@@ -554,6 +559,8 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
         bert_ready = _bert_ready()
         ml_ready = _ml_ready()
         hybrid_ready = _ml_ready(("category",)) and _bert_ready(("action",))
+        hybrid_claude_ready = _ml_ready(("category",)) and claude_ready()
+        claude_backend_ready = claude_ready()
         backend_ready = _backend_ready(
             requested,
             ollama_ready,
@@ -573,6 +580,8 @@ def create_app(backend: str | None = None, version: int = 1, provider: str | Non
                 "bert_ready": bert_ready,
                 "ml_ready": ml_ready,
                 "hybrid_ready": hybrid_ready,
+                "hybrid_claude_ready": hybrid_claude_ready,
+                "claude_ready": claude_backend_ready,
                 "ocr": ocr_status(),
             }
         )

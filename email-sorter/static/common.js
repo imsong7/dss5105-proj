@@ -152,7 +152,7 @@ function initMailboxForm() {
 }
 
 function readCredentials() {
-  const provider = $("#provider")?.value || "powerautomate";
+  const provider = $("#provider")?.value || "outlook";
   const credentials = provider === "outlook"
     ? { token: ($("#token")?.value || "").trim() }
     : {};
@@ -196,6 +196,10 @@ async function loadBackends() {
 
 function validateCredentials(provider) {
   if (provider === "outlook" && !($("#token")?.value || "").trim()) {
+    const dialog = $("#graph-token-dialog");
+    if (dialog && typeof dialog.showModal === "function" && !dialog.open) {
+      dialog.showModal();
+    }
     return { msg: "Paste a Graph access token first.", focus: "#token" };
   }
   return null;

@@ -83,6 +83,14 @@
       text = ok
         ? "Hybrid ready: ML category + BERT action."
         : "Hybrid needs the classical-ML category model and the BERT action head. See README: Choosing a backend.";
+    } else if (h.backend === "hybrid_claude") {
+      ok = !!h.hybrid_claude_ready;
+      text = ok
+        ? "Hybrid ready: ML category + Claude action."
+        : "Hybrid needs the classical-ML category model and ANTHROPIC_API_KEY in inbox-sorter/.env.";
+    } else if (h.backend === "claude") {
+      ok = !!h.claude_ready;
+      text = ok ? "Claude ready." : "Claude is not ready. Add ANTHROPIC_API_KEY to inbox-sorter/.env and install the anthropic package.";
     } else if (h.backend === "llama") {
       if (!h.ollama_up) text = "Ollama is not running. Start it, then reload.";
       else if (!h.ollama_ready) text = `Model ${h.model} is not installed. Run: ollama pull ${h.model}`;

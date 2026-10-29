@@ -1,4 +1,4 @@
-"""Hybrid backend: classical-ML category plus BERT encoder action head."""
+"""Hybrid backends: classical-ML category plus BERT or Claude action."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .bert_classifier import BertClassifier
 from .classifier_base import BaseClassifier
+from .claude_classifier import ClaudeClassifier
 from .ml_classifier import MLClassifier
 from .models import Classification, Email
 
@@ -45,4 +46,28 @@ class HybridClassifier(BaseClassifier):
             reply_nature=action,
             deadline=None,
             reason="Hybrid: ML category + BERT action head.",
+        )
+
+
+class HybridClaudeClassifier(BaseClassifier):
+    """Content category from the TF-IDF model, reply nature from Claude."""
+
+    name = "hybrid_claude"
+
+    def __init__(self, models_dir: Path | str | None = None):
+        self._category = MLClassifier(models_dir=models_dir, tasks=("category",))
+        self._action = ClaudeClassifier()
+
+    @property
+    def model_name(self) -> str:
+        return f"{self._category.model_name} + {self._action.model_name}"
+
+    def classify(self, email: Email) -> Classification:
+        category = self._category.predict_category(email)
+        action = self._action.classify(email)
+        return Classification(
+            content_category=category,
+            reply_nature=action.reply_nature,
+            deadline=action.deadline,
+            reason=f"Hybrid: ML category + Claude action ({action.reason})",
         )

@@ -13,7 +13,7 @@ if "@" not in email:
     raise SystemExit("Invalid email.")
 password = getpass.getpass("New app-only password (not your Outlook password): ")
 confirm = getpass.getpass("Repeat password: ")
-if len(password) < 16 or password != confirm:
+if len(password) < 8 or password != confirm:
     raise SystemExit("Use a matching password of at least 16 characters.")
 url = getpass.getpass("Power Automate HTTPS trigger URL (blank = disable refresh): ").strip()
 if url and not url.startswith("https://"):

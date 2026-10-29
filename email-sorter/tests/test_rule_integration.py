@@ -31,7 +31,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         )
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.client = create_app(backend="llama").test_client()
+        self.client = create_app(backend="llama", provider="powerautomate").test_client()
 
     def test_dashboard_v2_page_loads(self):
         response = self.client.get("/dashboard-v2")
@@ -41,7 +41,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertIn(b'class="v2-bar"', response.data)
         self.assertIn(b'<body class="no-sidebar">', response.data)
         self.assertIn(b'<dialog class="email-detail-dialog"', response.data)
-        self.assertIn(b"dashboard_v2.js?v=72", response.data)
+        self.assertIn(b"dashboard_v2.js?v=74", response.data)
         self.assertIn(b'id="calendar-panel"', response.data)
         self.assertIn(b'id="calendar-tab"', response.data)
         self.assertIn(b'id="calendar-grid"', response.data)
@@ -62,7 +62,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         ).test_client().get("/dashboard-v2")
 
         self.assertIn(b'value="outlook"', response.data)
-        self.assertIn(b'class="v2-token"', response.data)
+        self.assertIn(b'id="graph-token-dialog"', response.data)
         self.assertIn(b'id="token"', response.data)
         self.assertNotIn(b'id="webhook-diag"', response.data)
 

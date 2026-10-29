@@ -19,6 +19,11 @@ class BaseClassifier(ABC):
 
 
 BACKEND_INFO: dict[str, dict[str, str]] = {
+    "hybrid_claude": {
+        "label": "Hybrid (ML + Claude)",
+        "kind": "hybrid",
+        "description": "TF-IDF category model with Claude for the action.",
+    },
     "hybrid": {
         "label": "Hybrid (ML + BERT)",
         "kind": "hybrid",
@@ -38,6 +43,11 @@ BACKEND_INFO: dict[str, dict[str, str]] = {
         "label": "Classical ML",
         "kind": "ml",
         "description": "TF-IDF category and action pipelines.",
+    },
+    "claude": {
+        "label": "Claude",
+        "kind": "llm",
+        "description": "Anthropic Claude through the inbox-sorter pipeline (rules, guardrails).",
     },
 }
 
@@ -62,6 +72,12 @@ def create_classifier(backend: str | None = None) -> BaseClassifier:
     if name == "hybrid":
         from .hybrid_classifier import HybridClassifier  # noqa: PLC0415
         return HybridClassifier()
+    if name == "hybrid_claude":
+        from .hybrid_classifier import HybridClaudeClassifier  # noqa: PLC0415
+        return HybridClaudeClassifier()
+    if name == "claude":
+        from .claude_classifier import ClaudeClassifier  # noqa: PLC0415
+        return ClaudeClassifier()
 
     available = ", ".join(list_backends())
     raise ValueError(f"Unknown model backend '{name}'. Available: {available}")

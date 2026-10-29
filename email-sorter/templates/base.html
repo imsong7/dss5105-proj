@@ -5,6 +5,11 @@
   <p class="sub">Mail source: Outlook Graph token, fixed at launch with <code>--provider graphtoken</code>.</p>
   <label for="token">Graph access token</label>
   <textarea id="token" spellcheck="false" autocomplete="off" placeholder="Paste the token from Graph Explorer"></textarea>
+  <p class="sub">
+    Copy a token from
+    <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>
+    (it needs <code>Mail.Read</code>).
+  </p>
 </div>
 {% else %}
 <div id="f-pushed">
@@ -40,7 +45,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Inbox sorter{% endblock %}</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='34') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='50') }}">
 </head>
 <body
   class="{% block body_class %}{% endblock %}"
@@ -64,11 +69,13 @@
 <main>
   <div class="user-bar">
     <div class="user-bar-start">{% block topbar %}{% endblock %}</div>
+    {% if mail_provider != 'outlook' %}
     <button class="user-chip" id="user-chip" type="button" hidden title="Switch user">
       <span class="user-avatar" id="user-avatar" aria-hidden="true">?</span>
       <span class="user-email" id="user-email"></span>
       <span class="user-switch">Switch</span>
     </button>
+    {% endif %}
   </div>
   {% block main %}{% endblock %}
 </main>
@@ -85,7 +92,7 @@
   </form>
 </dialog>
 
-<script src="{{ url_for('static', filename='common.js', v='9') }}"></script>
+<script src="{{ url_for('static', filename='common.js', v='11') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

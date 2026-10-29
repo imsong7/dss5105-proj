@@ -17,9 +17,9 @@ class Settings:
     inbound_max_emails: int = int(os.getenv("INBOUND_MAX_EMAILS", "500"))
     inbound_webhook_token: str = os.getenv("POWER_AUTOMATE_WEBHOOK_TOKEN", "")
     powerautomate_refresh_url: str = os.getenv("POWER_AUTOMATE_REFRESH_URL", "")
-    mail_provider: str = os.getenv("MAIL_PROVIDER", "powerautomate")
+    mail_provider: str = os.getenv("MAIL_PROVIDER", "graphtoken")
     body_char_limit: int = 3000  # how much of each email the model reads
-    model_backend: str = os.getenv("MODEL_BACKEND", "hybrid")  # hybrid | llama | bert | ml
+    model_backend: str = os.getenv("MODEL_BACKEND", "hybrid_claude")  # hybrid_claude | hybrid | llama | bert | ml | claude
 
 
 settings = Settings()

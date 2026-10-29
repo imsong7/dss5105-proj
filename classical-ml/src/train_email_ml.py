@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 from pathlib import Path
 
@@ -55,12 +56,18 @@ from sklearn.svm import LinearSVC
 
 # ---------------------------------------------------------------------------
 # SETTINGS: change only EXCEL_FILE if your workbook has a different filename.
+# ML_LABELS_XLSX overrides the workbook path without editing this file.
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-EXCEL_FILE = BASE_DIR / "labels.xlsx"
-SYNTHETIC_ACTION_FILE = BASE_DIR / "synthetic_required_action.csv"
-OUTPUT_DIR = BASE_DIR / "ml_outputs"
+EXCEL_FILE = Path(os.environ.get("ML_LABELS_XLSX", BASE_DIR / "labels.xlsx"))
+# Shared review CSV: the same reviewed emails, used when the workbook is absent.
+LABELS_CSV = Path(
+    os.environ.get("ML_LABELS_CSV", BASE_DIR.parent.parent / "data" / "labels.csv")
+)
+SYNTHETIC_ACTION_FILE = BASE_DIR.parent.parent / "data" / "synthetic.csv"
+OUTPUT_DIR = BASE_DIR.parent / "artifacts"
+REPORTS_DIR = BASE_DIR.parent / "reports"
 RANDOM_STATE = 42
 TEST_SIZE = 0.20
 
@@ -73,7 +80,7 @@ DEFAULT_TFIDF_OPTIONS = {
     "strip_accents": "unicode",
 }
 
-# Best configurations from repeated training-split CV in tune_models.py.
+# Best configurations from repeated training-split CV (`experiments tune`).
 TASK_TFIDF_OPTIONS = {
     "email_category": {
         "ngram_range": (1, 2),
@@ -232,10 +239,14 @@ def label_from_sheet(sheet_name: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Read the new format where each row has final category/action labels."""
-    frame = pd.read_excel(EXCEL_FILE, sheet_name=sheet_name)
+def _labels_to_frames(
+    frame: pd.DataFrame,
+    source_name: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Build the ML frames from a table with row-level category and action."""
     frame = frame.dropna(how="all").copy()
+    if frame.empty:
+        raise ValueError(f"{source_name} has no rows.")
 
     subject_column = find_column(frame, COLUMN_ALIASES["subject"])
     text_column = find_column(frame, COLUMN_ALIASES["text"])
@@ -271,9 +282,9 @@ def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFra
         frame[sender_column].fillna("").astype(str) if sender_column else ""
     )
     base["source_sheet"] = (
-        frame[source_column].fillna(sheet_name).astype(str)
+        frame[source_column].fillna(source_name).astype(str)
         if source_column
-        else sheet_name
+        else source_name
     )
     base["text"] = (
         base["subject"].str.strip() + "\n" + base["body"].str.strip()
@@ -316,20 +327,44 @@ def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFra
     action_data["label"] = mapped_action
     action_data = action_data[action_data["label"] != "__skip__"].copy()
 
-    print(f"Loaded unified labels sheet: {sheet_name}")
+    print(f"Loaded unified labels sheet: {source_name}")
     print(f"  Category ML rows: {len(category_data)}")
     print(f"  Action ML rows:   {len(action_data)}")
     print(f"  Canvas rule rows: {len(canvas_data)}")
     return category_data, action_data, canvas_data
 
 
+def read_unified_labels_sheet(sheet_name: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read the new format where each row has final category/action labels."""
+    frame = pd.read_excel(EXCEL_FILE, sheet_name=sheet_name)
+    return _labels_to_frames(frame, sheet_name)
+
+
+def read_labeled_csv(path: Path | str | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read the shared review CSV (data/labels.csv) in the same shape.
+
+    This is the fallback when the labelled Excel workbook is not on this
+    machine: the CSV holds the same reviewed emails with their labels.
+    """
+    csv_path = Path(path or LABELS_CSV)
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Cannot find {csv_path.name}: {csv_path}\n"
+            "Set ML_LABELS_CSV to the labelled CSV, or ML_LABELS_XLSX to the workbook."
+        )
+    frame = pd.read_csv(csv_path, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    return _labels_to_frames(frame, csv_path.name)
+
+
 def read_workbook() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if not EXCEL_FILE.exists():
-        raise FileNotFoundError(
-            f"Cannot find {EXCEL_FILE.name}. Put the Excel workbook in:\n"
-            f"{BASE_DIR}\n"
-            "or change EXCEL_FILE near the top of this script."
+        # The workbook is real email data and is not committed; the shared
+        # review CSV carries the same reviewed rows.
+        print(
+            f"{EXCEL_FILE.name} not found in {EXCEL_FILE.parent}; "
+            f"using the shared review CSV {LABELS_CSV.name} instead."
         )
+        return read_labeled_csv()
 
     workbook = pd.ExcelFile(EXCEL_FILE)
 
@@ -965,7 +1000,7 @@ def train_task(
 
 
 def print_saved_model_comparison() -> None:
-    """Print the latest compare_models.py table, if it has been generated."""
+    """Print the latest `experiments compare` table, if it has been generated."""
     comparison_file = OUTPUT_DIR / "model_comparison.csv"
     required_columns = {
         "task",
@@ -977,8 +1012,8 @@ def print_saved_model_comparison() -> None:
     }
     if not comparison_file.exists():
         print(
-            "\nTip: run `python compare_models.py` to print the full model "
-            "comparison table."
+            "\nTip: run `PYTHONPATH=src python -m experiments compare` to print "
+            "the full model comparison table."
         )
         return
 

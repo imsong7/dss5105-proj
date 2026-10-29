@@ -51,17 +51,17 @@ except Exception as _xgboost_error:  # libomp missing on some macOS installs
     print(f"XGBoost is unavailable and will be skipped: {_xgboost_error}")
 
 from train_email_ml import (
-    BASE_DIR,
     DEFAULT_TFIDF_OPTIONS,
     OUTPUT_DIR,
     RANDOM_STATE,
+    REPORTS_DIR,
     TASK_MODEL_PARAMS,
     TASK_TFIDF_OPTIONS,
     TEST_SIZE,
     BalancedComplementNB,
     load_synthetic_action_data,
     normalise,
-    read_labeled_data,
+    read_workbook,
     remove_duplicates_and_check_conflicts,
 )
 
@@ -393,8 +393,9 @@ def format_table(frame: pd.DataFrame, task_name: str) -> str:
 
 def run_comparison() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    category_data, action_data, _ = read_labeled_data()
+    category_data, action_data, _ = read_workbook()
     category_data = remove_duplicates_and_check_conflicts(
         category_data, "email_category"
     )
@@ -437,7 +438,7 @@ def run_comparison() -> None:
     csv_path = OUTPUT_DIR / "model_comparison.csv"
     results.to_csv(csv_path, index=False, encoding="utf-8-sig")
     results.to_csv(
-        BASE_DIR / "model_comparison.csv", index=False, encoding="utf-8-sig"
+        REPORTS_DIR / "model_comparison.csv", index=False, encoding="utf-8-sig"
     )
 
     category_table = category_results.sort_values(
@@ -459,14 +460,14 @@ def run_comparison() -> None:
     (OUTPUT_DIR / "model_comparison.md").write_text(
         markdown, encoding="utf-8"
     )
-    (BASE_DIR / "model_comparison.md").write_text(
+    (REPORTS_DIR / "model_comparison.md").write_text(
         markdown, encoding="utf-8"
     )
 
     print_console_table(results)
     print(
         "\nSaved comparison to:\n"
-        f"  {BASE_DIR / 'model_comparison.md'}\n"
-        f"  {BASE_DIR / 'model_comparison.csv'}\n"
+        f"  {REPORTS_DIR / 'model_comparison.md'}\n"
+        f"  {REPORTS_DIR / 'model_comparison.csv'}\n"
         f"  {OUTPUT_DIR / 'model_comparison.md'}"
     )

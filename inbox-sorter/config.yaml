@@ -13,12 +13,16 @@ topics:
 
 # Category B: action. One per email. ORDER MATTERS: this is the tie-break priority
 # (an email that fits several actions gets the first one in this list).
+# The wording is aligned with the shared review rubric (data/labels.csv): an
+# announcement of a talk, workshop or event asks for nothing, so it is not a
+# reminder. Measured on the 134 action-usable emails, this wording is worth
+# +12 accuracy points (0.769 -> 0.888); see `evaluation/cli.py rubric`.
 actions:
   Needs a reply: "The sender expects a written response from me."
   Needs an action: "I must do something other than reply: submit, register, pay, book, sign."
-  Reminder: "Time-bound information to note (deadline, event, due date), with nothing to do yet."
+  Reminder: "A deadline or due date I personally have to meet, with nothing to do yet. Announcements of talks, workshops, celebrations or events where nothing is asked of me are not reminders."
   Further review: "Unclear what is needed; I should read it and decide."
-  No action needed: "Purely informational or promotional; safe to read later or skip."
+  No action needed: "Purely informational, automated or promotional, including announcements of talks, workshops, celebrations and events. Safe to read later or skip."
 
 fallback_topic: Others
 fallback_action: Further review   # used whenever Claude is unsure or the call fails
@@ -32,9 +36,11 @@ examples: []
 
 claude:
   model: claude-haiku-5-5        # small and fast is enough for labelling; override with CLAUDE_MODEL in .env
-  max_tokens: 200
+  max_tokens: 512                # room for the JSON answer (thinking tokens count against this)
   timeout_seconds: 30
   min_confidence: 0.5            # below this, the action becomes Further review
+  thinking: disabled             # disabled | enabled | auto. Labelling does not need reasoning.
+  thinking_budget_tokens: 1024   # only used when thinking: enabled
 
 # Guardrails applied after Claude answers (they never call the API).
 rules:

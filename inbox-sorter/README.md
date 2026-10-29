@@ -38,6 +38,18 @@ app/
 tests/test_system.py  offline tests (no token or API key needed)
 ```
 
+This project is also benchmarked against the other three methods:
+
+```bash
+# from the repo root
+python evaluation/performance.py --model all     # llama + bert + ml + claude
+python evaluation/quality.py --model all         # accuracy and macro F1
+```
+
+`evaluation/inbox_sorter.py` loads the package from here under an alias (its
+`src`/`app` names would otherwise shadow the other projects) and maps the
+labels above onto the email-sorter taxonomy.
+
 ## Setup
 
 1. **Install Python 3.11+**, then in this folder:
@@ -50,6 +62,18 @@ tests/test_system.py  offline tests (no token or API key needed)
 2. **Get a Claude API key.** In the Claude Console, add billing, set a monthly spend limit, and create a key under API Keys.
 3. **Configure.** `cp .env.example .env` (Windows: `copy .env.example .env`) and set `ANTHROPIC_API_KEY`. The model is `claude.model` in `config.yaml` (default `claude-haiku-5-5`).
 4. **Start the dashboard:** `streamlit run app/dashboard.py`
+
+### Thinking tokens
+
+Newer Claude models think before they answer, and those thinking tokens are
+billed against `claude.max_tokens`. With a small budget the whole answer can be
+spent on thinking, leaving no JSON behind -- the email then falls back to
+"Further review" for no visible reason.
+
+So `config.yaml` keeps `claude.max_tokens: 512` and sets `claude.thinking:
+disabled` (labelling does not need reasoning). Change it to `enabled` (with
+`claude.thinking_budget_tokens`) or `auto` if you want the model to reason.
+`max_tokens` must be larger than the thinking budget.
 
 ## Getting a Graph token
 
@@ -76,6 +100,16 @@ python -m src.evaluate                    # Claude vs. your labels -> reports/
 ```
 
 The report shows PASS/FAIL against `targets:` in `config.yaml`, confusion matrices, and every disagreement with Claude's reason. Fix definitions, add examples, re-run (only new or changed results cost API calls). For a consistency check, re-label 100 in the label tool's **Second-pass mode** and run `python -m src.dataset kappa`.
+
+### Definitions must match the shared review rubric
+
+When this sorter is compared with the other three methods, it is scored against
+the shared review labels (`data/labels.csv`). The action definitions in
+`config.yaml` are aligned with that rubric on purpose: an announcement of a
+talk, workshop or event asks for nothing, so it is `No action needed` and not
+`Reminder`. On the 134 action-usable emails that wording is worth **+10
+accuracy points** for Claude (0.784 -> 0.888). The per-class numbers are kept in
+`evaluation/results/rubric_alignment.csv`.
 
 ## Cost control
 

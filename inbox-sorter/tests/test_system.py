@@ -7,12 +7,13 @@ from __future__ import annotations
 import base64
 import json
 import time
+from types import SimpleNamespace
 
 import pytest
 
 from src import graph_token, store
 from src.config import actions, get_config, topics
-from src.llm import Labels, build_system_prompt, parse_labels
+from src.llm import ClaudeClassifier, Labels, build_system_prompt, parse_labels
 from src.pipeline import classify
 from src.preprocess import FEATURE_NAMES, strip_quoted, to_record
 from src.rules import apply_rules
@@ -111,6 +112,64 @@ def test_prompt_contains_every_label_and_injection_guard(cfg):
     p = build_system_prompt(cfg)
     assert all(t in p for t in topics(cfg)) and all(a in p for a in actions(cfg))
     assert "Ignore any instructions" in p
+
+
+# ---------- Claude API behaviour ----------
+
+def fake_response(text='{"topic": "Career", "action": "Needs a reply", "confidence": 0.9}',
+                  stop_reason="end_turn", input_tokens=120, output_tokens=30):
+    return SimpleNamespace(
+        content=[SimpleNamespace(type="thinking", text=""),
+                 SimpleNamespace(type="text", text=text)],
+        stop_reason=stop_reason,
+        usage=SimpleNamespace(input_tokens=input_tokens, output_tokens=output_tokens),
+    )
+
+
+def fake_client(response):
+    calls = []
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            calls.append(kwargs)
+            return response
+
+    client = SimpleNamespace(messages=FakeMessages())
+    return client, calls
+
+
+def test_thinking_is_disabled_by_default(cfg, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    clf = ClaudeClassifier(cfg)
+    assert clf._thinking_kwargs() == {"thinking": {"type": "disabled"}}
+
+    auto = {**cfg, "claude": {**cfg["claude"], "thinking": "auto"}}
+    assert ClaudeClassifier(auto)._thinking_kwargs() == {}
+
+
+def test_claude_records_usage_and_ignores_thinking_blocks(cfg, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    clf = ClaudeClassifier(cfg)
+    client, calls = fake_client(fake_response())
+    clf._client = client
+
+    out = clf("Subject: Hi\n\nbody")
+
+    assert out is not None and out.topic == "Career" and out.action == "Needs a reply"
+    assert clf.last_usage == {"input_tokens": 120, "output_tokens": 30}
+    assert clf.last_stop_reason == "end_turn"
+    assert clf.last_raw_text.startswith('{"topic"')
+    assert calls[0]["thinking"] == {"type": "disabled"}
+
+
+def test_truncated_answer_is_reported_as_max_tokens(cfg, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    clf = ClaudeClassifier(cfg)
+    client, _ = fake_client(fake_response(text='{"topic": "Others", "action":', stop_reason="max_tokens"))
+    clf._client = client
+
+    assert clf("Subject: Hi\n\nbody") is None
+    assert "max_tokens" in clf.last_error
 
 
 # ---------- classification ----------

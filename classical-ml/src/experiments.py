@@ -18,12 +18,12 @@ from sklearn.svm import LinearSVC
 
 from comparison import CV_REPEATS, evaluate_cv, filtered_synthetic
 from train_email_ml import (
-    BASE_DIR,
+    REPORTS_DIR,
     RANDOM_STATE,
     TEST_SIZE,
     BalancedComplementNB,
     load_synthetic_action_data,
-    read_labeled_data,
+    read_workbook,
     remove_duplicates_and_check_conflicts,
 )
 
@@ -94,9 +94,9 @@ def split_like_training(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]
 
 
 def run_tuning() -> None:
-    BASE_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    category_data, action_data, _ = read_labeled_data()
+    category_data, action_data, _ = read_workbook()
     category_data = remove_duplicates_and_check_conflicts(
         category_data, "email_category"
     )
@@ -165,7 +165,7 @@ def run_tuning() -> None:
 
     results = pd.DataFrame(all_rows)
     results.to_csv(
-        BASE_DIR / "hyperparameter_tuning.csv",
+        REPORTS_DIR / "hyperparameter_tuning.csv",
         index=False,
         encoding="utf-8-sig",
     )
@@ -210,7 +210,7 @@ def run_tuning() -> None:
 
     best_frame = pd.DataFrame(best_rows)
     best_frame.to_csv(
-        BASE_DIR / "hyperparameter_tuning_best.csv",
+        REPORTS_DIR / "hyperparameter_tuning_best.csv",
         index=False,
         encoding="utf-8-sig",
     )
@@ -282,7 +282,7 @@ def run_tuning() -> None:
         )
 
     markdown = "\n".join(markdown_lines) + "\n"
-    (BASE_DIR / "hyperparameter_tuning.md").write_text(
+    (REPORTS_DIR / "hyperparameter_tuning.md").write_text(
         markdown, encoding="utf-8"
     )
 
@@ -307,9 +307,9 @@ def run_tuning() -> None:
 
     print(
         "\nSaved tuning results to:\n"
-        f"  {BASE_DIR / 'hyperparameter_tuning.md'}\n"
-        f"  {BASE_DIR / 'hyperparameter_tuning.csv'}\n"
-        f"  {BASE_DIR / 'hyperparameter_tuning_best.csv'}"
+        f"  {REPORTS_DIR / 'hyperparameter_tuning.md'}\n"
+        f"  {REPORTS_DIR / 'hyperparameter_tuning.csv'}\n"
+        f"  {REPORTS_DIR / 'hyperparameter_tuning_best.csv'}"
     )
 
 
@@ -321,14 +321,14 @@ def run_ablation() -> None:
         filtered_synthetic,
     )
     from train_email_ml import (
-        BASE_DIR,
+        REPORTS_DIR,
         load_synthetic_action_data,
-        read_labeled_data,
+        read_workbook,
         remove_duplicates_and_check_conflicts,
     )
 
-    BASE_DIR.mkdir(parents=True, exist_ok=True)
-    _, action_data, _ = read_labeled_data()
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    _, action_data, _ = read_workbook()
     action_data = remove_duplicates_and_check_conflicts(
         action_data, "required_action"
     )
@@ -364,7 +364,7 @@ def run_ablation() -> None:
         result["with_synthetic_accuracy_mean"] - result["real_only_accuracy_mean"]
     )
     result = result.sort_values("delta_macro_f1", ascending=False)
-    result.to_csv(BASE_DIR / "ablation_synthetic.csv", index=False)
+    result.to_csv(REPORTS_DIR / "ablation_synthetic.csv", index=False)
 
     lines = [
         "# Synthetic data ablation (required_action)",
@@ -387,7 +387,7 @@ def run_ablation() -> None:
             f"{row['with_synthetic_accuracy_mean']:.3f} |"
         )
     report = "\n".join(lines) + "\n"
-    (BASE_DIR / "ablation_synthetic.md").write_text(report, encoding="utf-8")
+    (REPORTS_DIR / "ablation_synthetic.md").write_text(report, encoding="utf-8")
     print(report)
 
 

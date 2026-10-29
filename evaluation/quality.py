@@ -1,13 +1,13 @@
-"""Offline quality evaluation with bootstrap confidence intervals.
+"""Offline quality evaluation: accuracy and macro F1 per method.
 
-Encoder and ML use out-of-fold predictions or an explicit train/test split.
-The LLM is evaluated by app inference.
+Encoder and ML use out-of-fold predictions. The LLM is evaluated by app
+inference, Claude by the inbox-sorter pipeline.
 
 Usage:
     python evaluation/quality.py
     python evaluation/quality.py --model both
     python evaluation/quality.py --model all
-    python evaluation/quality.py --model all --train-review train.csv --test-review test.csv
+    python evaluation/quality.py --model claude --claude-limit 50
     python evaluation/quality.py --task action --no-synthetic
 """
 
@@ -28,7 +28,6 @@ for _path in (REPO_ROOT, ENCODERS_DIR, CLASSICAL_ML_SOURCE, EMAIL_SORTER):
         sys.path.insert(0, str(_path))
 
 from evaluation import (  # noqa: E402
-    bootstrap_proportion,
     display_path,
     package_version,
     write_csv,
@@ -47,29 +46,36 @@ DEFAULT_REVIEW = REPO_ROOT / "data" / "labels.csv"
 DEFAULT_SYNTHETIC = REPO_ROOT / "data" / "synthetic.csv"
 DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
 
+# Families scored by running the model on the labelled emails, not by
+# out-of-fold training.
+INFERENCE_FAMILIES = {"llm", "claude"}
 
-def parse_args() -> argparse.Namespace:
+
+def parse_args(argv=None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument(
         "--review",
-        help="single labeled file for out-of-fold evaluation (default: shared labels)",
+        help="labeled file for out-of-fold evaluation (default: shared labels)",
     )
-    ap.add_argument("--train-review")
-    ap.add_argument("--test-review")
     ap.add_argument("--task", choices=["both", "category", "action"], default="both")
     ap.add_argument(
         "--model",
-        choices=["encoder", "ml", "both", "llm", "all"],
+        choices=["encoder", "ml", "both", "llm", "claude", "all"],
         default="encoder",
         help=(
             "model family to evaluate; both compares encoder and ML, "
-            "all compares encoder, ML, and LLM"
+            "all compares encoder, ML, LLM and Claude"
         ),
     )
+    ap.add_argument(
+        "--claude-limit",
+        type=int,
+        default=0,
+        help="max unique emails sent to the Claude API; 0 = all (API calls cost money)",
+    )
     ap.add_argument("--folds", type=int, default=5)
-    ap.add_argument("--bootstrap", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--encoder-category", choices=list(ENCODERS), default="bge-small-en")
     ap.add_argument("--encoder-action", choices=list(ENCODERS), default="e5-small-multi")
@@ -80,140 +86,15 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--no-synthetic", action="store_true")
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT))
     ap.add_argument("--allow-missing-labels", action="store_true")
-    return ap.parse_args()
+    return ap.parse_args(argv)
 
 
 def selected_model_families(model: str) -> list[str]:
     if model == "both":
         return ["encoder", "ml"]
     if model == "all":
-        return ["encoder", "ml", "llm"]
+        return ["encoder", "ml", "llm", "claude"]
     return [model]
-
-
-def prediction_frame(
-    task: str,
-    test_data: pd.DataFrame,
-    predicted: np.ndarray,
-    family: str,
-    confidence: np.ndarray | None = None,
-) -> pd.DataFrame:
-    frame = test_data[["review_id", "label_key"]].rename(
-        columns={"label_key": "true_label"}
-    ).copy()
-    frame["dataset"] = task
-    frame["task"] = task
-    frame["pred_label"] = predicted
-    frame["confidence"] = confidence if confidence is not None else np.nan
-    frame["source"] = family
-    frame["fold"] = pd.NA
-    frame["model_family"] = family
-    return frame[
-        [
-            "dataset",
-            "task",
-            "review_id",
-            "true_label",
-            "pred_label",
-            "confidence",
-            "source",
-            "fold",
-            "model_family",
-        ]
-    ]
-
-
-def encoder_train_test_for_task(
-    task: str,
-    train_data: pd.DataFrame,
-    test_data: pd.DataFrame,
-    encoder_name: str,
-    synthetic: pd.DataFrame | None,
-) -> pd.DataFrame:
-    encoder = FrozenEncoder(encoder_name)
-    train_vectors = encoder.encode(train_data["text"].tolist())
-    train_labels = train_data["label_key"].tolist()
-    if synthetic is not None and not synthetic.empty:
-        synthetic_vectors = encoder.encode(synthetic["text"].tolist())
-        train_vectors = np.vstack([train_vectors, synthetic_vectors])
-        train_labels.extend(synthetic["label_key"].tolist())
-    classifier = fit_head(train_vectors, train_labels)
-    test_vectors = encoder.encode(test_data["text"].tolist())
-    probabilities = classifier.predict_proba(test_vectors)
-    return prediction_frame(
-        task,
-        test_data,
-        classifier.classes_[probabilities.argmax(axis=1)].astype(str),
-        "encoder",
-        probabilities.max(axis=1),
-    )
-
-
-def ml_train_test_for_task(
-    task: str,
-    train_data: pd.DataFrame,
-    test_data: pd.DataFrame,
-    synthetic: pd.DataFrame | None,
-) -> pd.DataFrame:
-    from comparison import build_models
-
-    model_name = "linear_svm" if task == "category" else "complement_nb_balanced"
-    task_name = "email_category" if task == "category" else "required_action"
-    model = build_models(task_name)[model_name]
-    train_text = train_data["text"].tolist()
-    train_labels = train_data["label_key"].tolist()
-    if synthetic is not None and not synthetic.empty:
-        train_text.extend(synthetic["text"].tolist())
-        train_labels.extend(synthetic["label_key"].tolist())
-    model.fit(train_text, train_labels)
-    return prediction_frame(
-        task, test_data, model.predict(test_data["text"].tolist()), "ml"
-    )
-
-
-def heldout_predictions(
-    task: str,
-    train_data: pd.DataFrame,
-    test_data: pd.DataFrame,
-    synthetic: pd.DataFrame | None,
-    args: argparse.Namespace,
-) -> tuple[dict[str, pd.DataFrame], list[dict]]:
-    frames, rows = {}, []
-    for family in selected_model_families(args.model):
-        if family == "llm":
-            continue
-        if family == "encoder":
-            encoder_name = (
-                args.encoder_category if task == "category" else args.encoder_action
-            )
-            frame = encoder_train_test_for_task(
-                task, train_data, test_data, encoder_name, synthetic
-            )
-        else:
-            frame = ml_train_test_for_task(
-                task, train_data, test_data, synthetic
-            )
-        frames[f"{family}:{task}"] = frame
-        notes = (
-            "train/test holdout; synthetic rows used in training only"
-            if synthetic is not None and not synthetic.empty
-            else "train/test holdout"
-        )
-        if task == "category":
-            notes += "; Canvas sender-rule rows excluded"
-        rows.append(
-            evaluate_frame(
-                task,
-                task,
-                frame,
-                train_data["label_key"].drop_duplicates().tolist(),
-                args.bootstrap,
-                args.seed,
-                notes,
-                family,
-            )
-        )
-    return frames, rows
 
 
 # Out-of-fold predictions
@@ -289,8 +170,6 @@ def ml_oof_for_task(
     synthetic_path: str,
 ) -> pd.DataFrame:
     """Evaluate the selected classical ML pipeline on the encoder's exact folds."""
-    import re
-
     from sklearn.base import clone
     from sklearn.model_selection import StratifiedKFold
 
@@ -299,20 +178,19 @@ def ml_oof_for_task(
     from train_email_ml import (
         ACTION_VALUE_MAP,
         CATEGORY_VALUE_MAP,
-        map_label_values,
         normalise,
-        read_labeled_data,
+        read_workbook,
         remove_duplicates_and_check_conflicts,
     )
 
     task_name = "email_category" if task == "category" else "required_action"
-    category_data, action_data, _ = read_labeled_data()
+    category_data, action_data, _ = read_workbook()
     ml_data = category_data if task == "category" else action_data
     ml_data = remove_duplicates_and_check_conflicts(ml_data, task_name).copy()
     label_map = CATEGORY_LABELS if task == "category" else ACTION_LABELS
     value_map = CATEGORY_VALUE_MAP if task == "category" else ACTION_VALUE_MAP
     ml_data["label_key"] = ml_data["label"].map(
-        lambda value: label_map.get(re.sub(r"[^a-z0-9]+", "", str(value).lower()))
+        lambda value: label_map.get(normalise(value))
     )
     if ml_data["label_key"].isna().any():
         raise ValueError(f"Unmapped labels found in ML {task} data.")
@@ -344,19 +222,14 @@ def ml_oof_for_task(
                     + "\n"
                     + raw_synthetic["Preview"].str.strip()
                 ).str.strip(),
-                "label": map_label_values(
-                    raw_synthetic["action"],
-                    value_map,
-                    "action",
-                    Path(synthetic_path).name,
+                "label": raw_synthetic["action"].map(
+                    lambda value: value_map.get(normalise(value))
                 ),
             }
         )
         synthetic = synthetic[synthetic["text"].ne("")].copy()
         synthetic["label"] = synthetic["label"].map(
-            lambda value: label_map.get(
-                re.sub(r"[^a-z0-9]+", "", str(value).lower())
-            )
+            lambda value: label_map.get(normalise(value))
         )
         synthetic = synthetic[synthetic["label"].notna()]
         synthetic = filtered_synthetic(synthetic, ml_data)
@@ -409,19 +282,14 @@ def ml_oof_for_task(
     return out
 
 
-def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
-    """Classify each unique review once with the app's LLM backend."""
-    from app.models import Email
-
-    if predictor is None:
-        from app.llama_classifier import EmailClassifier
-
-        predictor = EmailClassifier()
-
+def _unique_email_inputs(datasets: dict, family: str) -> pd.DataFrame:
+    """One row per unique email, shared by the inference-based families."""
     input_columns = ["review_id", "Subject", "From", "Preview", "Received DateTime"]
     available_columns = ["review_id", "Subject", "From", "Preview"]
     if any(not set(available_columns) <= set(frame.columns) for frame in datasets.values()):
-        raise ValueError("LLM evaluation requires review_id, Subject, From, and Preview.")
+        raise ValueError(
+            f"{family} evaluation requires review_id, Subject, From, and Preview."
+        )
 
     inputs = pd.concat(
         [frame.reindex(columns=input_columns) for frame in datasets.values()],
@@ -437,7 +305,56 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
     if conflicting.any():
         ids = conflicting[conflicting].index.tolist()[:5]
         raise ValueError(f"Conflicting email inputs across evaluation tasks: {ids}")
-    inputs = inputs.drop_duplicates("review_id").sort_values("review_id")
+    return inputs.drop_duplicates("review_id").sort_values("review_id")
+
+
+def _prediction_frames(
+    datasets: dict, predictions: dict, family: str
+) -> dict[str, pd.DataFrame]:
+    """Turn one prediction per email into one prediction frame per task."""
+    frames = {}
+    for task, dataset in datasets.items():
+        frame = dataset[["review_id", "label_key"]].rename(
+            columns={"label_key": "true_label"}
+        ).copy()
+        frame["review_id"] = frame["review_id"].astype(str)
+        frame["dataset"] = task
+        frame["task"] = task
+        frame["pred_label"] = frame["review_id"].map(
+            {review_id: pred[task] for review_id, pred in predictions.items()}
+        )
+        if frame["pred_label"].isna().any():
+            raise ValueError(f"Missing {family} predictions for {task} evaluation rows.")
+        frame["confidence"] = np.nan
+        frame["source"] = family
+        frame["fold"] = pd.NA
+        frame["model_family"] = family
+        frames[task] = frame[
+            [
+                "dataset",
+                "task",
+                "review_id",
+                "true_label",
+                "pred_label",
+                "confidence",
+                "source",
+                "fold",
+                "model_family",
+            ]
+        ]
+    return frames
+
+
+def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
+    """Classify each unique review once with the app's LLM backend."""
+    from app.models import Email
+
+    if predictor is None:
+        from app.llama_classifier import EmailClassifier
+
+        predictor = EmailClassifier()
+
+    inputs = _unique_email_inputs(datasets, "LLM")
 
     print(f"[llm] classifying {len(inputs)} unique labeled emails ...", flush=True)
     predictions = {}
@@ -458,70 +375,66 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
         if index == 1 or index % 10 == 0 or index == len(inputs):
             print(f"[llm] completed {index}/{len(inputs)}", flush=True)
 
-    frames = {}
-    for task, dataset in datasets.items():
-        frame = dataset[["review_id", "label_key"]].rename(
-            columns={"label_key": "true_label"}
-        ).copy()
-        frame["review_id"] = frame["review_id"].astype(str)
-        frame["dataset"] = task
-        frame["task"] = task
-        frame["pred_label"] = frame["review_id"].map(
-            {review_id: pred[task] for review_id, pred in predictions.items()}
+    return _prediction_frames(datasets, predictions, "llm")
+
+
+def claude_predictions(
+    datasets: dict, predictor=None, limit: int = 0
+) -> dict[str, pd.DataFrame]:
+    """Classify each unique review once with the inbox-sorter pipeline.
+
+    The inbox-sorter answers topic and action in one API call, and its labels
+    are translated to the email-sorter taxonomy by the adapter.
+    """
+    from app.models import Email
+
+    if predictor is None:
+        from evaluation.inbox_sorter import InboxSorterBackend
+
+        predictor = InboxSorterBackend()
+
+    inputs = _unique_email_inputs(datasets, "Claude")
+    total = len(inputs)
+    if limit:
+        inputs = inputs.head(limit)
+    keep = set(inputs["review_id"])
+    limited = {
+        task: dataset[dataset["review_id"].astype(str).isin(keep)].copy()
+        for task, dataset in datasets.items()
+    }
+    print(
+        f"[claude] classifying {len(inputs)} of {total} unique labeled emails "
+        "with the Anthropic API ...",
+        flush=True,
+    )
+
+    predictions = {}
+    for index, row in enumerate(inputs.itertuples(index=False), 1):
+        result = predictor.predict(
+            Email(
+                id=row.review_id,
+                subject=row.Subject,
+                sender=row.From,
+                received=row.received,
+                preview=row.Preview,
+            )
         )
-        if frame["pred_label"].isna().any():
-            raise ValueError(f"Missing LLM predictions for {task} evaluation rows.")
-        frame["confidence"] = np.nan
-        frame["source"] = "llm"
-        frame["fold"] = pd.NA
-        frame["model_family"] = "llm"
-        frames[task] = frame[
-            [
-                "dataset",
-                "task",
-                "review_id",
-                "true_label",
-                "pred_label",
-                "confidence",
-                "source",
-                "fold",
-                "model_family",
-            ]
-        ]
-    return frames
+        predictions[row.review_id] = {
+            "category": str(result.category).strip().lower().replace(" ", "_"),
+            "action": str(result.action).strip().lower().replace(" ", "_"),
+        }
+        if index == 1 or index % 10 == 0 or index == len(inputs):
+            print(f"[claude] completed {index}/{len(inputs)}", flush=True)
+
+    return _prediction_frames(limited, predictions, "claude")
 
 
-# Metrics and bootstrap
-def bootstrap_metrics(y_true, y_pred, labels, n_boot: int, seed: int) -> tuple:
-    """Stratified bootstrap CIs for accuracy and macro F1."""
-    from sklearn.metrics import accuracy_score, f1_score
-
-    rng = np.random.default_rng(seed)
-    groups = [np.flatnonzero(y_true == c) for c in np.unique(y_true)]
-    accs = np.empty(n_boot)
-    f1s = np.empty(n_boot)
-
-    for i in range(n_boot):
-        idx = np.concatenate(
-            [rng.choice(group, size=len(group), replace=True) for group in groups]
-        )
-        accs[i] = accuracy_score(y_true[idx], y_pred[idx])
-        f1s[i] = f1_score(
-            y_true[idx], y_pred[idx], labels=labels, average="macro", zero_division=0
-        )
-
-    acc_lo, acc_hi = np.percentile(accs, [2.5, 97.5])
-    f1_lo, f1_hi = np.percentile(f1s, [2.5, 97.5])
-    return (float(acc_lo), float(acc_hi)), (float(f1_lo), float(f1_hi))
-
-
+# Metrics
 def evaluate_frame(
     name: str,
     task: str,
     frame: pd.DataFrame,
     labels: list,
-    n_boot: int,
-    seed: int,
     notes: str = "",
     model_family: str = "encoder",
 ) -> dict:
@@ -530,23 +443,15 @@ def evaluate_frame(
 
     y_true = frame["true_label"].to_numpy()
     y_pred = frame["pred_label"].to_numpy()
-    acc_ci, f1_ci = bootstrap_metrics(y_true, y_pred, labels, n_boot, seed)
-    acc = accuracy_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred, labels=labels, average="macro", zero_division=0)
     return {
         "dataset": name,
         "model_family": model_family,
         "task": task,
         "n": len(frame),
-        "label_count": len(labels),
-        "accuracy": float(acc),
-        "accuracy_ci_low": acc_ci[0],
-        "accuracy_ci_high": acc_ci[1],
-        "macro_f1": float(f1),
-        "macro_f1_ci_low": f1_ci[0],
-        "macro_f1_ci_high": f1_ci[1],
-        "bootstrap": n_boot,
-        "seed": seed,
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "macro_f1": float(
+            f1_score(y_true, y_pred, labels=labels, average="macro", zero_division=0)
+        ),
         "notes": notes,
     }
 
@@ -597,9 +502,11 @@ def evaluate_task(
 ) -> tuple:
     frames, rows = {}, []
     model_families = [
-        family for family in selected_model_families(args.model) if family != "llm"
+        family
+        for family in selected_model_families(args.model)
+        if family not in INFERENCE_FAMILIES
     ]
-    for family_index, family in enumerate(model_families):
+    for family in model_families:
         if family == "encoder":
             encoder = (
                 args.encoder_category if task == "category" else args.encoder_action
@@ -620,7 +527,6 @@ def evaluate_task(
                 args.synthetic,
             )
         oof["model_family"] = family
-        model_seed = args.seed + family_index
 
         if task == "action":
             frame = oof.assign(dataset="action")
@@ -633,7 +539,7 @@ def evaluate_task(
             rows.append(
                 evaluate_frame(
                     "action", task, frame, infos[task]["supported_labels"],
-                    args.bootstrap, model_seed, notes, family,
+                    notes, family,
                 )
             )
             continue
@@ -643,67 +549,12 @@ def evaluate_task(
         rows.append(
             evaluate_frame(
                 "category", task, frame,
-                infos[task]["supported_labels"], args.bootstrap,
-                model_seed, "classifier only; Canvas sender-rule rows excluded",
+                infos[task]["supported_labels"],
+                "classifier only; Canvas sender-rule rows excluded",
                 family,
             )
         )
     return frames, rows
-
-
-def both_summary(eval_frames: dict, args: argparse.Namespace) -> list[dict]:
-    rows = []
-    families = [
-        family
-        for family in ("encoder", "ml", "llm")
-        if f"{family}:category" in eval_frames
-    ]
-    for family in families:
-        cat_key, action_key = (
-            f"{family}:category",
-            f"{family}:action",
-        )
-        if cat_key not in eval_frames or action_key not in eval_frames:
-            continue
-        cat = eval_frames[cat_key].set_index("review_id")
-        act = eval_frames[action_key].set_index("review_id")
-        common = sorted(set(cat.index) & set(act.index))
-        if not common:
-            raise SystemExit(
-                f"No common review_ids between {family} category and action results"
-            )
-
-        correct = (
-            (cat.loc[common, "true_label"] == cat.loc[common, "pred_label"]).to_numpy()
-            & (act.loc[common, "true_label"] == act.loc[common, "pred_label"]).to_numpy()
-        )
-        rate = float(correct.mean())
-        _, ci_low, ci_high = bootstrap_proportion(
-            correct, args.bootstrap, args.seed
-        )
-        print(
-            f"[{family}:both] n={len(common)} exact-match={rate:.4f} "
-            f"95% CI [{ci_low:.4f}, {ci_high:.4f}]"
-        )
-        rows.append(
-            {
-                "dataset": "both",
-                "model_family": family,
-                "task": "both",
-                "n": len(common),
-                "label_count": None,
-                "accuracy": rate,
-                "accuracy_ci_low": ci_low,
-                "accuracy_ci_high": ci_high,
-                "macro_f1": None,
-                "macro_f1_ci_low": None,
-                "macro_f1_ci_high": None,
-                "bootstrap": args.bootstrap,
-                "seed": args.seed,
-                "notes": "exact match of category and action labels",
-            }
-        )
-    return rows
 
 
 # Output
@@ -711,8 +562,6 @@ def write_artifacts(
     out_dir: Path, summary_rows: list, prediction_frames: list, manifest: dict
 ) -> None:
     summary = pd.DataFrame(summary_rows)
-    if "label_count" in summary.columns:
-        summary["label_count"] = summary["label_count"].astype("Int64")
     predictions = pd.concat(prediction_frames, ignore_index=True)
     predictions["fold"] = predictions["fold"].astype("Int64")
     predictions = predictions.sort_values(
@@ -731,46 +580,42 @@ def write_artifacts(
 
 
 def plot_offline_quality(summary: pd.DataFrame, path: Path) -> None:
-    """Plot macro-F1 and accuracy with their bootstrap confidence intervals."""
+    """Plot accuracy and macro F1 per method."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     families = [
-        family for family in ("encoder", "ml", "llm")
+        family for family in ("encoder", "ml", "llm", "claude")
         if family in set(summary["model_family"])
     ]
     datasets = list(dict.fromkeys(summary["dataset"].tolist()))
     if not families or not datasets:
         raise ValueError("Offline quality summary has no model or dataset rows.")
 
-    colors = {"encoder": "#4472C4", "ml": "#ED7D31", "llm": "#70AD47"}
+    colors = {
+        "encoder": "#4472C4",
+        "ml": "#ED7D31",
+        "llm": "#70AD47",
+        "claude": "#7030A0",
+    }
     fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
     positions = np.arange(len(datasets), dtype=float)
     width = min(0.34, 0.72 / len(families))
-    metrics = (
-        ("macro_f1", "Macro F1", "macro_f1_ci_low", "macro_f1_ci_high"),
-        ("accuracy", "Accuracy", "accuracy_ci_low", "accuracy_ci_high"),
-    )
+    metrics = (("macro_f1", "Macro F1"), ("accuracy", "Accuracy"))
 
-    for ax, (metric, title, low_col, high_col) in zip(axes, metrics):
+    for ax, (metric, title) in zip(axes, metrics):
         for family_index, family in enumerate(families):
-            values = []
-            lows = []
-            highs = []
-            xs = []
+            values, xs = [], []
             family_rows = summary[summary["model_family"] == family].set_index("dataset")
             for dataset_index, dataset in enumerate(datasets):
                 if dataset not in family_rows.index:
                     continue
-                row = family_rows.loc[dataset]
-                value = row[metric]
+                value = family_rows.loc[dataset, metric]
                 if pd.isna(value):
                     continue
                 values.append(float(value))
-                lows.append(max(0.0, float(value) - float(row[low_col])))
-                highs.append(max(0.0, float(row[high_col]) - float(value)))
                 xs.append(
                     positions[dataset_index]
                     + (family_index - (len(families) - 1) / 2) * width
@@ -782,8 +627,6 @@ def plot_offline_quality(summary: pd.DataFrame, path: Path) -> None:
                     width,
                     label=family,
                     color=colors.get(family),
-                    yerr=np.array([lows, highs]),
-                    capsize=3,
                 )
         ax.set_title(title)
         ax.set_ylim(0, 1.05)
@@ -798,179 +641,81 @@ def plot_offline_quality(summary: pd.DataFrame, path: Path) -> None:
         ax.set_axisbelow(True)
 
     axes[0].legend(title="Model family")
-    fig.suptitle("Offline quality comparison (95% bootstrap CI)")
+    fig.suptitle("Offline quality comparison")
     fig.tight_layout()
     fig.savefig(path, dpi=160, bbox_inches="tight")
     plt.close(fig)
 
 
 def render_report(summary: pd.DataFrame, manifest: dict) -> str:
-    def ci(value, low, high):
-        return f"{value:.3f} [{low:.3f}, {high:.3f}]"
-
-    if manifest["evaluation_mode"] == "train_test":
-        evaluation_description = "Train/test evaluation"
-        data_description = (
-            f"Training data: {manifest['train_file']} | "
-            f"Test data: {manifest['test_file']}"
-        )
-    elif any(family in manifest["model_families"] for family in ("encoder", "ml")):
-        evaluation_description = f"{manifest['folds']} stratified folds"
-        data_description = f"Review data: {manifest['review_file']}"
-    else:
-        evaluation_description = "LLM inference"
-        data_description = f"Review data: {manifest['review_file']}"
     lines = [
         "Offline quality — held-out / inference predictions",
-        data_description,
-        f"Evaluation: {evaluation_description} | Bootstrap: {manifest['bootstrap']} "
-        f"({manifest['bootstrap_method']}) | Seed: {manifest['seed']}",
+        f"Review data: {manifest['review_file']}",
+        f"Evaluation: {manifest['folds']} stratified folds | Seed: {manifest['seed']}",
         f"Encoders: category={manifest['encoders']['category']}, "
         f"action={manifest['encoders']['action']}",
         f"Model families: {', '.join(manifest['model_families'])}",
-        *(
-            [f"LLM: {manifest['llm_model']}"]
-            if manifest.get("llm_model")
-            else []
-        ),
+        *([f"LLM: {manifest['llm_model']}"] if manifest.get("llm_model") else []),
+        *([f"Claude: {manifest['claude_model']}"] if manifest.get("claude_model") else []),
         f"Synthetic: {manifest['synthetic'] or 'none'}"
         + (f" (tasks: {manifest['synthetic_tasks']})" if manifest["synthetic"] else ""),
         "",
-        f"{'Model':<8} {'Dataset':<24} {'N':>4}  "
-        f"{'Accuracy [95% CI]':<26} {'Macro F1 [95% CI]':<26}",
-        "-" * 84,
+        f"{'Model':<8} {'Dataset':<10} {'N':>4} {'Accuracy':>9} {'Macro F1':>9}",
+        "-" * 46,
     ]
     for _, row in summary.iterrows():
-        acc = ci(row["accuracy"], row["accuracy_ci_low"], row["accuracy_ci_high"])
-        f1 = (
-            "—"
-            if pd.isna(row["macro_f1"])
-            else ci(row["macro_f1"], row["macro_f1_ci_low"], row["macro_f1_ci_high"])
-        )
         lines.append(
-            f"{row['model_family']:<8} {row['dataset']:<24} "
-            f"{int(row['n']):>4}  {acc:<26} {f1:<26}"
+            f"{row['model_family']:<8} {row['dataset']:<10} {int(row['n']):>4} "
+            f"{row['accuracy']:>9.3f} {row['macro_f1']:>9.3f}"
         )
 
     notes = []
     if "category" in manifest["tasks"]:
-        notes.append("- category is classifier-only; Canvas sender-rule emails are excluded.")
-    if manifest["synthetic"]:
-        notes.append(
-            "- Synthetic rows were added to encoder/ML training data only."
-            if manifest["evaluation_mode"] == "train_test"
-            else "- Synthetic rows enter encoder/ML training folds only."
-        )
-    else:
-        notes.append("- No synthetic rows were used.")
-    if manifest["evaluation_mode"] == "train_test":
-        method_note = "- Encoder/ML use the training file."
-        if "llm" in manifest["model_families"]:
-            method_note += " LLM predictions use app inference."
-    else:
-        method_note = "- Encoder/ML predictions are out-of-fold."
-        if "llm" in manifest["model_families"]:
-            method_note += " LLM predictions use app inference."
-    notes.append(method_note)
-    if manifest["task"] == "both":
-        notes.append(
-            "- both requires category and action to be correct; Canvas rule rows are excluded."
-        )
-    notes.append("- ML confidence is unavailable; LLM confidence is not reported.")
+        notes.append("- category excludes Canvas sender-rule emails.")
     notes.append(
-        "- CIs are percentile bootstrap intervals over the held-out labeled rows."
-        if manifest["evaluation_mode"] == "train_test"
-        else "- CIs are percentile bootstrap intervals over the labeled emails, not"
-        "\n  model-training or split variability."
+        "- Synthetic rows enter encoder/ML training folds only."
+        if manifest["synthetic"]
+        else "- No synthetic rows were used."
     )
+    if any(family in manifest["model_families"] for family in ("encoder", "ml")):
+        notes.append("- Encoder/ML predictions are out-of-fold.")
+    inference_families = [
+        family
+        for family in ("llm", "claude")
+        if family in manifest["model_families"]
+    ]
+    if inference_families:
+        notes.append(
+            "- "
+            + " and ".join(inference_families).capitalize()
+            + " predictions use one API call per email."
+        )
+    if "claude" in manifest["model_families"]:
+        notes.append(
+            "- Claude is the inbox-sorter pipeline as configured "
+            "(rules -> Claude -> guardrails)."
+        )
     return "\n".join(lines + ["", "Notes:", *notes]) + "\n"
 
 
-def main() -> None:
-    args = parse_args()
-    has_train_test = bool(args.train_review or args.test_review)
-    if bool(args.train_review) != bool(args.test_review):
-        raise SystemExit("Pass both --train-review and --test-review.")
-    if has_train_test and args.review:
-        raise SystemExit("--review cannot be combined with --train-review/--test-review.")
-    if not has_train_test and args.folds < 2:
+def main(argv=None) -> None:
+    args = parse_args(argv)
+    if args.folds < 2:
         raise SystemExit("--folds must be >= 2")
-    if args.bootstrap < 1:
-        raise SystemExit("--bootstrap must be >= 1")
+    if args.claude_limit < 0:
+        raise SystemExit("--claude-limit must be >= 0")
 
     labels, tax_digest = load_taxonomy()
     tasks = ["category", "action"] if args.task == "both" else [args.task]
 
-    if has_train_test:
-        train_review = load_review(args.train_review)
-        test_review = load_review(args.test_review)
-        for name, review_frame in (
-            ("training", train_review),
-            ("test", test_review),
-        ):
-            if "review_id" not in review_frame:
-                raise SystemExit(f"{name} review file needs a review_id column.")
-            review_frame["review_id"] = (
-                review_frame["review_id"].fillna("").astype(str).str.strip()
-            )
-            ids = review_frame["review_id"]
-            if ids.eq("").any() or ids.duplicated().any():
-                raise SystemExit(
-                    f"{name} review file has empty or duplicate review IDs."
-                )
-        overlap = set(train_review["review_id"].astype(str)) & set(
-            test_review["review_id"].astype(str)
+    review_path = args.review or str(DEFAULT_REVIEW)
+    review = load_review(review_path)
+    datasets, infos = {}, {}
+    for task in tasks:
+        datasets[task], infos[task] = task_dataset(
+            review, task, labels[task], args.allow_missing_labels
         )
-        if overlap:
-            raise SystemExit(
-                f"Training and test files share review IDs: {sorted(overlap)[:5]}"
-            )
 
-        train_datasets, train_infos = {}, {}
-        datasets, infos = {}, {}
-        for task in tasks:
-            train_datasets[task], train_infos[task] = task_dataset(
-                train_review,
-                task,
-                labels[task],
-                args.allow_missing_labels,
-                training=True,
-            )
-            datasets[task], infos[task] = task_dataset(
-                test_review,
-                task,
-                labels[task],
-                allow_missing=True,
-                training=False,
-            )
-            if train_datasets[task].empty or datasets[task].empty:
-                raise SystemExit(f"[{task}] training and test files need usable rows.")
-            train_labels = set(train_datasets[task]["label_key"])
-            test_labels = set(datasets[task]["label_key"])
-            if not test_labels <= train_labels:
-                raise SystemExit(
-                    f"[{task}] test labels have no training examples: "
-                    f"{sorted(test_labels - train_labels)}"
-                )
-            text_overlap = set(train_datasets[task]["text"]) & set(
-                datasets[task]["text"]
-            )
-            if text_overlap:
-                raise SystemExit(
-                    f"[{task}] identical model inputs occur in train and test files."
-                )
-    else:
-        review_path = args.review or str(DEFAULT_REVIEW)
-        review = load_review(review_path)
-        train_datasets = None
-        train_infos = None
-        datasets, infos = {}, {}
-        for task in tasks:
-            datasets[task], infos[task] = task_dataset(
-                review, task, labels[task], args.allow_missing_labels
-            )
-
-    metric_infos = train_infos if has_train_test else infos
     for task in tasks:
         info = infos[task]
         print(
@@ -980,86 +725,91 @@ def main() -> None:
         )
 
     model_families = selected_model_families(args.model)
-    if any(family in model_families for family in ("encoder", "ml")):
-        syn_data, synthetic_path = load_synthetic(
-            args,
-            tasks,
-            labels,
-            train_datasets if has_train_test else datasets,
-            exclude_datasets=datasets if has_train_test else None,
+    if "claude" in model_families:
+        unique = len(
+            {
+                str(review_id)
+                for frame in datasets.values()
+                for review_id in frame["review_id"]
+            }
         )
+        planned = min(unique, args.claude_limit) if args.claude_limit else unique
+        print(
+            f"[claude] about {planned} Anthropic API calls (one per unique email); "
+            "use --claude-limit to cap the sample.",
+            flush=True,
+        )
+    if any(family in model_families for family in ("encoder", "ml")):
+        syn_data, synthetic_path = load_synthetic(args, tasks, labels, datasets)
     else:
         syn_data, synthetic_path = {}, None
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    summary_rows, prediction_frames, eval_frames = [], [], {}
+    summary_rows, prediction_frames = [], []
     for task in tasks:
-        if has_train_test:
-            frames, rows = heldout_predictions(
-                task, train_datasets[task], datasets[task], syn_data.get(task), args
-            )
-        else:
-            frames, rows = evaluate_task(task, datasets, infos, syn_data, args)
-        eval_frames.update(frames)
+        frames, rows = evaluate_task(task, datasets, infos, syn_data, args)
         prediction_frames.extend(frames.values())
         summary_rows.extend(rows)
 
     if "llm" in model_families:
-        llm_frames = llm_predictions(datasets)
-        for task, frame in llm_frames.items():
-            eval_frames[f"llm:{task}"] = frame
+        for task, frame in llm_predictions(datasets).items():
             prediction_frames.append(frame)
             summary_rows.append(
                 evaluate_frame(
                     task,
                     task,
                     frame,
-                    metric_infos[task]["supported_labels"],
-                    args.bootstrap,
-                    args.seed,
+                    infos[task]["supported_labels"],
                     "app LLM inference; no synthetic training data",
                     "llm",
                 )
             )
 
-    summary_rows.extend(both_summary(eval_frames, args))
+    if "claude" in model_families:
+        claude_frames = claude_predictions(datasets, limit=args.claude_limit)
+        for task, frame in claude_frames.items():
+            prediction_frames.append(frame)
+            summary_rows.append(
+                evaluate_frame(
+                    task,
+                    task,
+                    frame,
+                    infos[task]["supported_labels"],
+                    "inbox-sorter pipeline inference (Anthropic API); no synthetic training data",
+                    "claude",
+                )
+            )
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "evaluation_mode": "train_test" if has_train_test else "out_of_fold",
-        "review_file": (
-            display_path(args.review or str(DEFAULT_REVIEW), REPO_ROOT)
-            if not has_train_test
-            else None
-        ),
-        "train_file": (
-            display_path(args.train_review, REPO_ROOT) if has_train_test else None
-        ),
-        "test_file": (
-            display_path(args.test_review, REPO_ROOT) if has_train_test else None
-        ),
+        "review_file": display_path(review_path, REPO_ROOT),
         "taxonomy_sha256_16": tax_digest,
         "task": args.task,
         "tasks": tasks,
-        "folds": None if has_train_test else args.folds,
-        "bootstrap": args.bootstrap,
-        "bootstrap_method": "stratified by true label (percentile CI)",
+        "folds": args.folds,
         "seed": args.seed,
         "model_families": model_families,
-        "prediction_methods": {
-            family: (
-                "stratified out-of-fold"
-                if family in {"encoder", "ml"}
-                else "pretrained app inference"
-            )
-            for family in model_families
-        },
         "ml_estimators": {
             "category": "linear_svm",
             "action": "complement_nb_balanced",
         } if "ml" in model_families else None,
         "llm_model": None,
+        "claude_model": None,
+        "claude_limit": args.claude_limit,
+        "label_mapping": {
+            "FoS General": "general",
+            "Career": "career",
+            "Medical": "medical",
+            "Promotions": "promotional",
+            "Canvas": "canva",
+            "Others": "others",
+            "Needs a reply": "needs_reply",
+            "Needs an action": "needs_action",
+            "Reminder": "reminder",
+            "No action needed": "no_immediate_action",
+            "Further review": "no_immediate_action",
+        },
         "encoders": {
             "category": args.encoder_category,
             "action": args.encoder_action,
@@ -1067,13 +817,11 @@ def main() -> None:
         "synthetic": display_path(synthetic_path, REPO_ROOT) if syn_data else None,
         "synthetic_tasks": ",".join(sorted(syn_data)) if syn_data else None,
         "rows": {task: len(datasets[task]) for task in tasks},
-        "training_rows": (
-            {task: len(train_datasets[task]) for task in tasks}
-            if has_train_test
-            else None
-        ),
         "category_rule_rows": infos.get("category", {}).get("rule_rows_excluded"),
-        "evaluation_rows": {row["dataset"]: int(row["n"]) for row in summary_rows},
+        "evaluation_rows": {
+            f"{row['model_family']}:{row['dataset']}": int(row["n"])
+            for row in summary_rows
+        },
         "versions": {
             pkg: package_version(pkg)
             for pkg in ("numpy", "pandas", "scikit-learn", "torch", "transformers")
@@ -1083,6 +831,10 @@ def main() -> None:
         from app.config import settings
 
         manifest["llm_model"] = settings.ollama_model
+    if "claude" in model_families:
+        from evaluation.performance import _claude_model_name
+
+        manifest["claude_model"] = _claude_model_name()
     write_artifacts(out_dir, summary_rows, prediction_frames, manifest)
 
 

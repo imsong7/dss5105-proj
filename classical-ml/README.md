@@ -1,4 +1,4 @@
-# ML — classical text classifiers
+# Classical ML — text classifiers
 
 This folder contains the classical (non-BERT) email classifiers for the
 DSS5105 project. They are lightweight TF-IDF + linear/Naive Bayes baselines
@@ -12,14 +12,23 @@ Two independent tasks are trained:
 | `email_category` | FoS General, Career Enhancement, Medical (UHC), Others/Out of NUS domain, Promotions | Canvas is handled by the sender rule in `email-sorter/` and is excluded from training. |
 | `required_action` | Needs a reply, Needs an action, Further review, Reminder | Uses synthetic rows **only in training folds**. |
 
-## Evaluation
+## Results (current)
 
-Model selection uses 5x5 repeated stratified CV on the training partition.
-The reserved 20% holdout is used only for a final sanity check. Existing
-comparison, tuning, and ablation reports are in `reports/`; rerun experiments
-to refresh them after changing data or training code.
+Selected models, from `reports/hyperparameter_tuning.md` and
+`reports/model_comparison.md`:
 
-### Balancing
+| Task | Selected model | CV macro-F1 | Holdout macro-F1 / accuracy |
+|------|----------------|------------:|----------------------------:|
+| `email_category` | `linear_svm` (C=10) | **0.906 ± 0.015** | 0.833 / 0.889 |
+| `required_action` | `complement_nb_balanced` (alpha=3) + synthetic | **0.688 ± 0.031** | 0.820 / 0.889 |
+
+Model selection uses 5×5 repeated stratified CV on real training emails only.
+The committed 27-email holdout is a sanity check, not a selection set; with
+2–7 examples per class, read its macro-F1 as a rough signal. Full comparisons
+are in `reports/model_comparison.md`, `reports/hyperparameter_tuning.md` and
+`reports/ablation_synthetic.md`.
+
+## Balancing
 
 No SMOTE or undersampling is used. Class imbalance is handled by:
 
@@ -116,29 +125,17 @@ Tuning and ablation write reports to `reports/`.
 
 ## Compare model quality
 
-Use the shared offline evaluator from the project root to compare encoder,
-classical ML, and LLM models:
+Use the shared offline evaluator from the project root to compare the encoder,
+classical ML, Llama and Claude methods:
 
 ```bash
 .venv/bin/python evaluation/quality.py --model all
 ```
 
-For a separate held-out comparison, pass disjoint shared-label files. Fit
-encoder and ML models on the training file and use the test file only for
-scoring and LLM inference:
-
-```bash
-.venv/bin/python evaluation/quality.py \
-    --model all \
-    --train-review /path/to/train.csv \
-    --test-review /path/to/test.csv \
-    --no-synthetic
-```
-
-Use the same subject/preview fields and app category/action label keys in both
-files. The evaluator rejects overlapping review IDs and identical task inputs
-across the split. Synthetic action rows, if enabled, are added to training
-only.
+Encoder and classical ML are scored with 5-fold out-of-fold predictions on the
+shared `../data/labels.csv`; Llama and Claude are zero-shot. Synthetic action
+rows are added to training folds only. See `../evaluation/README.md` for the
+full protocol and limitations.
 
 ## Evaluation notes
 

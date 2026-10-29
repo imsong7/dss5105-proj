@@ -1,0 +1,74 @@
+# Inbox Sorter v1 configuration (pasted Graph token + Claude API).
+# Labels, definitions and settings live here, not in code.
+# The worker re-reads this file every cycle, so edits apply without a restart.
+
+# Category A: topic. One per email. These definitions are sent to Claude, so make them precise.
+topics:
+  FoS General: "Faculty of Science announcements, or a lecturer or faculty office emailing directly about a course, exams, timetables or admin."
+  Career: "Jobs, internships, recruiters, career fairs and career office events."
+  Medical: "Clinics, hospitals, health insurance, medical appointments, results or bills."
+  Promotions: "Marketing, newsletters, sales and promotional offers, even if job-related."
+  Canvas: "Automated notifications sent by Canvas: announcements, assignment due dates, grades, discussion posts."
+  Others: "Anything that fits none of the other topics."
+
+# Category B: action. One per email. ORDER MATTERS: this is the tie-break priority
+# (an email that fits several actions gets the first one in this list).
+actions:
+  Needs a reply: "The sender expects a written response from me."
+  Needs an action: "I must do something other than reply: submit, register, pay, book, sign."
+  Reminder: "Time-bound information to note (deadline, event, due date), with nothing to do yet."
+  Further review: "Unclear what is needed; I should read it and decide."
+  No action needed: "Purely informational or promotional; safe to read later or skip."
+
+fallback_topic: Others
+fallback_action: Further review   # used whenever Claude is unsure or the call fails
+
+# Optional few-shot examples sent with every request (short, anonymised).
+# Add 2 to 3 per label for labels Claude gets wrong. Each one adds to the cost of every call.
+examples: []
+#  - text: "Subject: Internship interview\n\nHi, are you free for a call on Thursday at 3pm?"
+#    topic: Career
+#    action: Needs a reply
+
+claude:
+  model: claude-haiku-5-5        # small and fast is enough for labelling; override with CLAUDE_MODEL in .env
+  max_tokens: 200
+  timeout_seconds: 30
+  min_confidence: 0.5            # below this, the action becomes Further review
+
+# Guardrails applied after Claude answers (they never call the API).
+rules:
+  noreply_markers: ["noreply", "no-reply", "donotreply", "do-not-reply"]   # these senders can't be Needs a reply
+  # Optional free shortcuts that skip the Claude call for obvious emails. Off by default.
+  use_shortcuts: false
+  canvas_senders: ["@instructure.com"]
+  canvas_reminder_keywords: ["due", "deadline", "reminder", "upcoming"]
+  fos_senders: []
+  medical_senders: []
+  career_senders: []
+  promotion_markers: ["unsubscribe", "manage your preferences", "view this email in your browser"]
+
+# Accuracy targets, checked by `python -m src.evaluate` against your hand labels.
+targets:
+  topic_macro_f1: 0.90
+  action_macro_f1: 0.85
+  recall_needs_reply: 0.95
+  recall_needs_action: 0.95
+  recall_medical: 0.85
+  recall_career: 0.85
+  max_further_review_share: 0.15
+
+worker:
+  poll_seconds: 120
+  backfill_days: 7          # first sync only looks back this far
+  max_per_sync: 200         # cap on Claude calls per sync, to control cost
+  shadow_mode: false        # true = label and log, but hide from the dashboard
+  retention_days: 90        # delete stored metadata older than this
+
+dashboard:
+  timezone: Asia/Singapore
+  default_days: 14
+  max_rows: 500
+
+preprocess:
+  max_chars: 4000           # email text sent to Claude is cut to this length

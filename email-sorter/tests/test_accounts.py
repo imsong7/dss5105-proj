@@ -8,7 +8,7 @@ from unittest.mock import patch
 from flask import Flask, jsonify
 from werkzeug.security import generate_password_hash
 
-SPEC = importlib.util.spec_from_file_location("multiuser_test_target", Path(__file__).resolve().parents[1] / "app" / "multiuser.py")
+SPEC = importlib.util.spec_from_file_location("multiuser_test_target", Path(__file__).resolve().parents[1] / "app" / "accounts.py")
 security = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(security)
 

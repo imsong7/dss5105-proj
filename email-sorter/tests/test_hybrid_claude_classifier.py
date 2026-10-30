@@ -3,9 +3,9 @@
 import unittest
 from types import SimpleNamespace
 
-from app.classifier_base import BACKEND_INFO, list_backends
+from app.backends import BACKEND_INFO, list_backends
 from app.hybrid_classifier import HybridClaudeClassifier
-from app.models import Email
+from app.schemas import Email
 
 
 class HybridClaudeTests(unittest.TestCase):

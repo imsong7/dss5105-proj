@@ -5,10 +5,10 @@ from unittest.mock import patch
 
 import joblib
 
-from app.classifier_base import BACKEND_INFO, create_classifier, list_backends
+from app.backends import BACKEND_INFO, create_classifier, list_backends
 from app.hybrid_classifier import HybridClassifier
 from app.ml_classifier import MLClassifier
-from app.models import Classification, Email
+from app.schemas import Classification, Email
 from app.server import create_app
 
 
@@ -44,7 +44,7 @@ class FakeTaskModel:
 
 
 class HybridClassifierTests(unittest.TestCase):
-    def test_uses_ml_for_category_and_bert_for_action(self):
+    def test_uses_ml_for_category_and_encoder_for_action(self):
         classifier = HybridClassifier.__new__(HybridClassifier)
         classifier._category = FakeTaskModel("category", "promotional")
         classifier._action = FakeTaskModel("action", "needs_reply")
@@ -85,13 +85,13 @@ class HybridClassifierTests(unittest.TestCase):
 
             with (
                 patch("app.hybrid_classifier.MLClassifier", wraps=MLClassifier) as ml_cls,
-                patch("app.hybrid_classifier.BertClassifier") as bert_cls,
+                patch("app.hybrid_classifier.EncoderClassifier") as encoder_cls,
             ):
-                bert_cls.return_value = FakeTaskModel("action", "reminder")
+                encoder_cls.return_value = FakeTaskModel("action", "reminder")
                 classifier = HybridClassifier(models_dir=model_dir)
 
             ml_cls.assert_called_once_with(models_dir=model_dir, tasks=("category",))
-            bert_cls.assert_called_once_with(models_dir=None, tasks=("action",))
+            encoder_cls.assert_called_once_with(models_dir=None, tasks=("action",))
             result = classifier.classify(Email(id="3"))
             self.assertEqual(result.content_category, "general")
             self.assertEqual(result.reply_nature, "reminder")
@@ -101,7 +101,7 @@ class HybridClassifierTests(unittest.TestCase):
         self.assertIn("hybrid", BACKEND_INFO)
         with (
             patch("app.hybrid_classifier.MLClassifier"),
-            patch("app.hybrid_classifier.BertClassifier"),
+            patch("app.hybrid_classifier.EncoderClassifier"),
         ):
             self.assertIsInstance(create_classifier("hybrid"), HybridClassifier)
 
@@ -112,26 +112,26 @@ class HybridClassifierTests(unittest.TestCase):
             for item in client.get("/api/backends").get_json()["backends"]
             if item["id"] == "hybrid"
         )
-        self.assertEqual(backend["label"], "Hybrid (ML + BERT)")
+        self.assertEqual(backend["label"], "Hybrid (ML + text encoder)")
 
         with (
             patch("app.server._ollama_status", return_value=(False, False)),
             patch("app.server._ml_ready", return_value=True) as ml_ready,
-            patch("app.server._bert_ready", return_value=True) as bert_ready,
+            patch("app.server._encoder_ready", return_value=True) as encoder_ready,
         ):
             health = client.get("/api/health?backend=hybrid").get_json()
 
         self.assertTrue(health["backend_ready"])
         self.assertTrue(health["hybrid_ready"])
         ml_ready.assert_any_call(("category",))
-        bert_ready.assert_any_call(("action",))
+        encoder_ready.assert_any_call(("action",))
 
     def test_api_reports_hybrid_not_ready_when_a_model_family_is_missing(self):
         client = create_app(backend="hybrid").test_client()
         with (
             patch("app.server._ollama_status", return_value=(False, False)),
             patch("app.server._ml_ready", return_value=True),
-            patch("app.server._bert_ready", return_value=False),
+            patch("app.server._encoder_ready", return_value=False),
         ):
             health = client.get("/api/health?backend=hybrid").get_json()
 

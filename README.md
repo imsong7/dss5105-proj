@@ -1,202 +1,191 @@
-# dss5105-proj — Email Classification Project
+# DSS5105 — Email Classification Project
 
-**How to work together** 
-```bash
-# 1. Start fresh from updated main
-git clone git@github.com:imsong7/dss5105-proj.git
-cd dss5105-proj
+This repository compares four ways to sort a student's email:
 
-git switch main
-git pull origin main
-git switch -c feature/your-name
+| Method | Folder | What it uses |
+|---|---|---|
+| Text encoders | `text-encoders/` | Frozen BGE / E5 heads, plus DistilBERT fine-tunes |
+| Classical ML | `classical-ml/` | TF-IDF + LinearSVC / ComplementNB |
+| Llama | `email-sorter/` | Llama 3.1 8B through Ollama (built into the app) |
+| Claude | `claude/` | Anthropic Claude with sender rules and guardrails |
 
-# 2. Do work, then save locally
-git add .
-git commit -m "Describe your changes"
-
-# 3. Get latest main updates into your feature branch (Crucial!)
-git fetch origin
-git merge origin/main
-
-# 4. Push to GitHub
-git push -u origin feature/your-name
-```
+`email-sorter/` is the shared Flask app: it hosts the dashboard, the mail
+sources, and every classifier backend. `evaluation/` scores the encoder, ML,
+and Llama families on the same emails; Claude results are in
+[`MODEL_COMPARISON.md`](MODEL_COMPARISON.md).
 
 ---
-
-
-Three parts live in this repo:
-
-| Folder | Purpose |
-|--------|---------|
-| `email-sorter/` | The running Flask app (Sprint 1 prototype). Fetches emails, classifies them with a local Llama model via Ollama, and shows results on a web page. |
-| `bert/` | BERT experiment/training code. Trains and compares DistilBERT fine-tunes and frozen-encoder heads on labeled email data. |
-| `ML/` | Classical ML baselines (TF-IDF + LinearSVC / ComplementNB). Compares 8 models, tunes hyperparameters, and ablates synthetic data. |
-
----
-
-## How to work together
-
-```bash
-# 1. Start fresh from updated main
-git switch main
-git pull origin main
-git switch -c feature/your-name
-
-# 2. Do work, then save locally
-git add .
-git commit -m "Describe your changes"
-
-# 3. Get latest main updates into your feature branch (Crucial!)
-git fetch origin
-git merge origin/main
-
-# 4. Push to GitHub
-git push -u origin feature/your-name
-```
 
 ## Quick start
 
-**Run the email-sorter app** (Windows, VS Code terminal):
+Use one virtual environment at the repo root.
+
 ```bash
-cd email-sorter
 python -m venv .venv
-.venv\Scripts\Activate.ps1   # or: source .venv/bin/activate  (Mac/Linux)
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-copy .env.example .env
-ollama pull llama3.1:8b
-python run.py
-# Open http://127.0.0.1:5000
+
+cp email-sorter/.env.example email-sorter/.env
+python email-sorter/run.py
+# open http://127.0.0.1:5000
 ```
 
-**Train BERT models** (from repo root, `.venv` activated):
+If port 5000 is already in use (macOS Control Center uses it), add
+`--port 5001`:
+
 ```bash
-# Validate labels
-python bert/train.py --review bert/data/labels.csv --check-only
-
-# Train frozen-encoder head (recommended — tiny, fast) -> bert/models/{task}_head/
-python bert/train.py --review bert/data/labels.csv --encoder bge-small-en --task category
-python bert/train.py --review bert/data/labels.csv --encoder e5-small-multi --task action \
-    --synthetic bert/data/synthetic.csv
+python email-sorter/run.py --port 5001
 ```
 
-See `bert/README.md` for full BERT training docs.
+A fresh clone includes the trained encoder heads but not the classical-ML
+artifacts (`classical-ml/artifacts/`, gitignored) or `data/labels.csv`. Until
+you train those, start with `--backend encoder`, or use
+`--backend llama` after `ollama pull llama3.1:8b`.
 
-**Train classical ML baselines** (from repo root):
+### Default behaviour
+
+- **Mail source:** `graphtoken` — paste a Microsoft Graph token in the dashboard
+  popup. No app login is needed.
+- **Backend:** `hybrid_claude` — classical-ML category + Claude action.
+- **Home page:** dashboard v2 (`/dashboard-v2` is also available).
+
+For Power Automate instead:
+
+```bash
+python email-sorter/run.py --port 5001 --provider powerautomate
+```
+
+That mode adds a per-user app login and starts ngrok automatically.
+
+### Requirements for each backend
+
+| Backend | Needs |
+|---|---|
+| `hybrid_claude` (default) | `classical-ml/artifacts/email_category_model.joblib` + `ANTHROPIC_API_KEY` in `claude/.env` |
+| `hybrid` | ML category model + `text-encoders/models/action_head/` |
+| `encoder` | `text-encoders/models/{category,action}_head/` |
+| `ml` | both classical-ML artifacts |
+| `llama` | `ollama pull llama3.1:8b` and Ollama running |
+| `claude` | `ANTHROPIC_API_KEY` in `claude/.env` |
+
+The app shows which backend is ready on the dashboard. If a model is missing,
+train it with the commands below or choose another backend.
+
+---
+
+## Training the methods
+
+### Text encoders
+
+```bash
+python text-encoders/train.py --check-only
+python text-encoders/train.py --task category
+python text-encoders/train.py --task action --synthetic data/synthetic.csv
+```
+
+Models are written to `text-encoders/models/{task}_{head,full}/`. See
+[`text-encoders/README.md`](text-encoders/README.md).
+
+### Classical ML
+
 ```bash
 cd classical-ml
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements-ml.txt
-
-# ../data/labels.csv is not committed (real email data). Convert the team's
-# workbook once, or place labels.csv/labels.xlsx in ../data/ yourself.
-cp "/path/to/labels.xlsx" ../data/labels.xlsx
 PYTHONPATH=src python -m data_tools convert-labels
-
-PYTHONPATH=src python -m train_email_ml       # models + metrics -> artifacts/
-PYTHONPATH=src python -m experiments compare  # model comparison -> reports/
-PYTHONPATH=src python -m experiments tune     # hyperparameter search -> reports/
-PYTHONPATH=src python -m experiments ablation # synthetic vs real-only -> reports/
+PYTHONPATH=src python -m train_email_ml
+PYTHONPATH=src python -m experiments compare
+PYTHONPATH=src python -m experiments tune
+PYTHONPATH=src python -m experiments ablation
 ```
 
-See `classical-ml/README.md` for data format, results, and evaluation caveats.
+Models and reports go to `classical-ml/artifacts/` and `classical-ml/reports/`.
+See [`classical-ml/README.md`](classical-ml/README.md).
+
+### Claude
+
+Add the key to `claude/.env`:
+
+```bash
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > claude/.env
+```
+
+The Claude backend is already wired into the app; no separate dashboard is
+needed. See [`claude/README.md`](claude/README.md).
 
 ---
 
-## Where things are
+## Results
 
-### `email-sorter/` — the app
-```
-email-sorter/
-  app/
-    taxonomy.py    # Category + action label definitions (single source of truth)
-    classifier.py  # Llama/Ollama classification logic
-    config.py      # Settings (model name, port, body char limit)
-    server.py      # Flask app + API routes
-    models.py      # Email / Classification data models
-    providers/     # Email fetchers (IMAP, Microsoft Graph, base)
-    textutil.py    # Text helpers
-  run.py           # Entry point: python run.py
-  rules.py         # Deterministic sender rules (Canvas → category "canva")
-  templates/index.html   # Frontend web page
-  requirements.txt
-  .env.example / .env
-```
+All committed comparison tables are in
+[`MODEL_COMPARISON.md`](MODEL_COMPARISON.md):
 
-### `bert/` — BERT training & experiments
-```
-bert/
-  train.py                 # unified trainer (--mode head|full)
-  src/                     # Python package (data.py, model.py)
-    __init__.py
-    data.py                # data loading, validation, split, synthetic
-    model.py               # Encoder, head training, EmbedPredictor
-  data/                    # data files
-    labels.csv             # Hand-labeled real emails (~80 usable)
-    synthetic.csv          # 91 synthetic emails (seed-fixed)
-    labels_review_provisional.csv
-  make_synthetic.py        # Regenerate synthetic.csv
-  preprocess.py            # Legacy — merges Excel sheets into labels.csv (data_1012.xlsx is gone)
-  label.html               # Browser-based labeling UI
-  README.md                # BERT-specific docs
+- classical-ML model comparison (8 models, category and action),
+- synthetic-data ablation,
+- encoder-head comparison,
+- shared encoder-vs-ML holdout,
+- four-method quality and operational results (older run plus the latest
+  Claude figures).
 
-  models/
-    action_head/           # frozen encoder head for action (recommended)
-    action_full/           # distilbert fine-tune for action (~512MB)
-    category_head/         # frozen encoder head for category (recommended)
-    category_full/         # distilbert fine-tune for category (~512MB)
+For a fresh comparison:
 
-  results/
-    compare_head_summary.txt    # head mode comparison results
-    compare_head_summary.csv
-    compare_head_runs.csv
-    compare_full_summary.txt    # full mode comparison results
-    compare_full_summary.csv
-    compare_full_runs.csv
+```bash
+python evaluation/quality.py --model all
+python evaluation/performance.py --model encoder ml llm
 ```
 
-### `ML/` — classical ML baselines
-```
-ML/
-  train_email_ml.py                # main trainer (repeated CV, metrics, models)
-  compare_models.py                # 8-model comparison + majority baseline
-  tune_models.py                   # TF-IDF / classifier hyperparameter grid
-  ablation_synthetic.py            # synthetic vs real-only for required_action
-  generate_synthetic_action_data.py
-  requirements-ml.txt
-  README.md                        # ML docs, results, caveats
-  synthetic_required_action.csv    # committed synthetic action rows
-  model_comparison.md/.csv
-  hyperparameter_tuning.md/.csv
-  ablation_synthetic.md/.csv
-  ml_outputs/                      # local only (ignored): metrics, plots, joblib models
-```
-
-Selected baselines: `linear_svm` for `email_category` (CV macro-F1 0.906) and
-`complement_nb_balanced` + synthetic for `required_action` (CV macro-F1 0.688).
-`ML/labels.xlsx` and `ml_outputs/` are intentionally not committed because they
-contain real email content.
+These commands cover the encoder, ML, and Llama families. Run either script
+with `--help` to see all options.
 
 ---
 
-## Which model to use in the app
+## Folder map
 
-| Task | Recommended model | Why |
-|------|-------------------|-----|
-| Category | `bert/models/category_head` (bge-small-en) | Best accuracy (0.865 macro-F1), tiny file |
-| Action | `bert/models/action_head` (e5-small-multi + synthetic) | Best accuracy (0.511 macro-F1), tiny file |
+```
+email-sorter/     Flask app, dashboard, auth, mail sources, backends
+text-encoders/    BGE/E5 heads and DistilBERT fine-tunes
+classical-ml/     TF-IDF + LinearSVC / ComplementNB
+claude/           Claude backend (rules -> Claude -> guardrails)
+evaluation/       Shared quality and operational evaluation
+data/             Shared synthetic.csv and local labels.csv (labels gitignored)
+requirements.txt  One dependency file for the whole repo
+```
 
-The app loads models via `EmbedPredictor("bert/models/<task>_head")`. See `bert/README.md`.
-The `ML/` classical baselines are experiments and are not yet wired into the Flask app.
+Details:
+
+- [`email-sorter/README.md`](email-sorter/README.md) — app setup, mail sources,
+  Power Automate, login, dashboard, API.
+- [`text-encoders/README.md`](text-encoders/README.md) — encoder training.
+- [`classical-ml/README.md`](classical-ml/README.md) — classical ML training.
+- [`claude/README.md`](claude/README.md) — Claude backend.
+- [`MODEL_COMPARISON.md`](MODEL_COMPARISON.md) — all result tables.
 
 ---
 
-## Other files at root
+## Tests
 
-| File | Purpose |
-|------|---------|
-| `VERIFICATION.md` | Real-data verification report (bugs found, test results, remaining work) |
-| `CHANGES.md` | Change log for email-sorter |
-| `preprocess_fix.diff` | Patch for `preprocess.py` pandas-3 compatibility |
-| `.gitignore` | Ignores venv, `__pycache__`, `.DS_Store`, `emails.csv`, model outputs |
+```bash
+# app
+(cd email-sorter && pytest -q)
+
+# Claude backend
+(cd claude && pytest -q)
+
+# evaluation
+python -m unittest evaluation.test_evaluation
+```
+
+---
+
+## Working with git
+
+```bash
+git switch main
+git pull origin main
+git switch -c feature/your-name
+
+# after making changes
+git add .
+git commit -m "Describe your changes"
+git fetch origin
+git merge origin/main
+git push -u origin feature/your-name
+```

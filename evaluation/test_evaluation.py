@@ -19,8 +19,8 @@ for _path in (REPO_ROOT, EMAIL_DIR):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from app.bert_classifier import BertClassifier, _model_text  # noqa: E402
-from app.models import Email  # noqa: E402
+from app.encoder_classifier import EncoderClassifier, _model_text  # noqa: E402
+from app.schemas import Email  # noqa: E402
 from evaluation import bootstrap_proportion  # noqa: E402
 from evaluation.quality import (  # noqa: E402
     bootstrap_metrics,
@@ -257,7 +257,7 @@ class EvaluationPlotTests(unittest.TestCase):
         summary = pd.DataFrame(
             [
                 {
-                    "backend": "bert",
+                    "backend": "encoder",
                     "error": "",
                     "load_ms": 100.0,
                     "cold_call_ms": 50.0,
@@ -287,12 +287,12 @@ class EvaluationPlotTests(unittest.TestCase):
 class ModelSelectionTests(unittest.TestCase):
     def test_selected_model_names_map_to_runtime_backends(self):
         self.assertEqual(
-            selected_models(SimpleNamespace(model=["bert", "ml", "llm"], backend=None)),
-            ["bert", "ml", "llm"],
+            selected_models(SimpleNamespace(model=["encoder", "ml", "llm"], backend=None)),
+            ["encoder", "ml", "llm"],
         )
         self.assertEqual(
-            selected_models(SimpleNamespace(model=None, backend="bert-ml")),
-            ["bert", "ml"],
+            selected_models(SimpleNamespace(model=None, backend="encoder-ml")),
+            ["encoder", "ml"],
         )
         self.assertEqual(
             selected_models(SimpleNamespace(model=None, backend="llama")),
@@ -300,12 +300,12 @@ class ModelSelectionTests(unittest.TestCase):
         )
         self.assertEqual(
             selected_models(SimpleNamespace(model=None, backend=None)),
-            ["llm", "bert"],
+            ["llm", "encoder"],
         )
 
     def test_rejects_conflicting_or_repeated_model_selection(self):
         with self.assertRaisesRegex(SystemExit, "either --model or"):
-            selected_models(SimpleNamespace(model=["ml"], backend="bert"))
+            selected_models(SimpleNamespace(model=["ml"], backend="encoder"))
         with self.assertRaisesRegex(SystemExit, "must not be repeated"):
             selected_models(SimpleNamespace(model=["ml", "ml"], backend=None))
 
@@ -401,7 +401,7 @@ class ReportTests(unittest.TestCase):
         summary = pd.DataFrame(
             [
                 {
-                    "backend": "bert",
+                    "backend": "encoder",
                     "error": float("nan"),
                     "sample_n": 1,
                     "load_ms": 100.0,
@@ -430,7 +430,7 @@ class ReportTests(unittest.TestCase):
         }
         report = render_report(summary, manifest)
         self.assertNotIn("ERROR", report)
-        self.assertIn("bert", report)
+        self.assertIn("encoder", report)
 
 
 class FakePredictor:
@@ -443,8 +443,9 @@ class FakePredictor:
         return self.label, 0.9
 
 
-def _classifier() -> BertClassifier:
-    clf = object.__new__(BertClassifier)
+def _classifier() -> EncoderClassifier:
+    clf = object.__new__(EncoderClassifier)
+    clf.tasks = ("category", "action")
     clf._load_error = None
     clf._category_clf = FakePredictor("medical")
     clf._action_clf = FakePredictor("reminder")

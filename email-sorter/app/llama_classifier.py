@@ -1,9 +1,9 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
-from .classifier_base import BaseClassifier
+from .backends import BaseClassifier
 from .config import settings
-from .models import Classification, Email
+from .schemas import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
 
 SYSTEM = """You sort emails for a university student. Read the email and fill in the fields.

@@ -5,7 +5,7 @@ invalid-format rate, 5-run consistency, and short/full agreement.
 
 Usage:
     python evaluation/performance.py
-    python evaluation/performance.py --model bert ml
+    python evaluation/performance.py --model encoder ml
     python evaluation/performance.py --model llm --limit 20
     python evaluation/performance.py --no-energy --no-memory
 """
@@ -37,7 +37,7 @@ for _path in (REPO_ROOT, EMAIL_DIR, ENCODERS_DIR, CLASSICAL_ML_DIR / "src"):
         sys.path.insert(0, str(_path))
 
 from app.config import settings  # noqa: E402
-from app.models import Email  # noqa: E402
+from app.schemas import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
 from evaluation import (  # noqa: E402
     display_path,
@@ -65,12 +65,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument(
         "--model",
         nargs="+",
-        choices=["bert", "ml", "llm"],
-        help="one or more models to benchmark (default: llm bert)",
+        choices=["encoder", "ml", "llm"],
+        help="one or more models to benchmark (default: llm encoder)",
     )
     ap.add_argument(
         "--backend",
-        choices=["both", "bert-ml", "llama", "bert", "ml"],
+        choices=["both", "encoder-ml", "llama", "encoder", "ml"],
         help=argparse.SUPPRESS,
     )
     ap.add_argument(
@@ -101,13 +101,13 @@ def selected_models(args: argparse.Namespace) -> list[str]:
     if args.model:
         selected = args.model
     elif args.backend == "both":
-        selected = ["llm", "bert"]
-    elif args.backend == "bert-ml":
-        selected = ["bert", "ml"]
+        selected = ["llm", "encoder"]
+    elif args.backend == "encoder-ml":
+        selected = ["encoder", "ml"]
     elif args.backend:
         selected = ["llm" if args.backend == "llama" else args.backend]
     else:
-        selected = ["llm", "bert"]
+        selected = ["llm", "encoder"]
 
     if len(set(selected)) != len(selected):
         raise SystemExit("--model values must not be repeated.")
@@ -468,15 +468,15 @@ class LlamaBackend:
         return info
 
 
-class BertBackend:
-    name = "bert"
+class EncoderBackend:
+    name = "encoder"
 
     def __init__(self) -> None:
-        from app.bert_classifier import BertClassifier
+        from app.encoder_classifier import EncoderClassifier
 
-        self.clf = BertClassifier()
+        self.clf = EncoderClassifier()
         if not self.clf.available:
-            raise RuntimeError("BERT models are not available")
+            raise RuntimeError("Text-encoder models are not available")
 
     def predict(self, email: Email) -> Prediction:
         result = self.clf.classify(email)
@@ -491,7 +491,7 @@ class BertBackend:
     def _count_tokens(self, predictor, email: Email) -> int:
         if predictor is None:
             return 0
-        from app.bert_classifier import _model_text
+        from app.encoder_classifier import _model_text
 
         text = predictor.enc.prefix + build_text(
             email.subject, email.sender, _model_text(email)
@@ -502,7 +502,7 @@ class BertBackend:
         return len(ids)
 
     def token_usage(self, email: Email, pred: Prediction) -> tuple:
-        from app.rules import category_by_rule
+        from app.sender_rules import category_by_rule
 
         category_tokens = 0
         if not category_by_rule(email.sender):
@@ -595,11 +595,11 @@ class MLBackend:
         }
 
 
-def make_backend(name: str) -> LlamaBackend | BertBackend | MLBackend:
+def make_backend(name: str) -> LlamaBackend | EncoderBackend | MLBackend:
     if name == "llama":
         return LlamaBackend()
-    if name == "bert":
-        return BertBackend()
+    if name == "encoder":
+        return EncoderBackend()
     if name == "ml":
         return MLBackend()
     raise ValueError(f"unknown backend: {name}")
@@ -634,7 +634,7 @@ def unload_ollama() -> None:
 
 # Running and stats
 def _timed_predict(
-    backend: LlamaBackend | BertBackend | MLBackend, email: Email
+    backend: LlamaBackend | EncoderBackend | MLBackend, email: Email
 ) -> tuple:
     start = time.perf_counter()
     pred = backend.predict(email)
@@ -818,7 +818,7 @@ def _summarise(
     if name == "llama":
         notes.append("cold call includes Ollama load if model was unloaded")
         notes.append("invalid rate uses raw JSON/labels before Pydantic coercion")
-    elif name == "bert":
+    elif name == "encoder":
         notes.append("constructor loads both encoders and heads")
     else:
         notes.append("constructor loads both classical ML pipelines")
@@ -951,7 +951,7 @@ def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
             ax.set_axis_off()
     else:
         labels = {
-            "bert": "Text encoder",
+            "encoder": "Text encoder",
             "ml": "Classical ML",
             "llama": "Llama",
         }
@@ -1081,7 +1081,7 @@ def main() -> None:
         "ollama_model": settings.ollama_model,
         "taxonomy_sha256_16": meta["taxonomy_sha256_16"],
         "input_protocol": {
-            "full": "body/Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
+            "full": "body/Preview; Llama truncated to body_char_limit, text encoder to MAX_LEN tokens",
             "short": f"first {args.short_chars} characters of body/Preview",
         },
         "energy_scope": "CodeCarbon machine-wide; may include Ollama server",

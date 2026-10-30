@@ -7,11 +7,10 @@ on ``(owner, message id)`` so Power Automate retries do not create copies.
 """
 
 from collections import OrderedDict
-from datetime import datetime, timezone
 from threading import Lock
 
 from .config import settings
-from .models import Email
+from .schemas import Email
 
 
 def normalize_owner(value) -> str:
@@ -19,15 +18,7 @@ def normalize_owner(value) -> str:
     return str(value or "").strip().lower()
 
 
-def _received_at(email: Email) -> datetime | None:
-    try:
-        received = datetime.fromisoformat(email.received.replace("Z", "+00:00"))
-    except (AttributeError, TypeError, ValueError):
-        return None
-    return received if received.tzinfo else received.replace(tzinfo=timezone.utc)
-
-
-class InboundStore:
+class PushedStore:
     def __init__(self, max_items: int = 500):
         self.max_items = max(1, int(max_items))
         self._items: OrderedDict[tuple[str, str], Email] = OrderedDict()
@@ -51,7 +42,7 @@ class InboundStore:
         oldest_key = next(iter(self._items))
         oldest = None
         for key, email in self._items.items():
-            received = _received_at(email)
+            received = email.received_at
             if received is not None and (oldest is None or received < oldest):
                 oldest = received
                 oldest_key = key
@@ -82,4 +73,4 @@ class InboundStore:
             return len(self._items)
 
 
-inbound_store = InboundStore(settings.inbound_max_emails)
+pushed_store = PushedStore(settings.inbound_max_emails)

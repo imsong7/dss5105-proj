@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app.models import Email
+from app.schemas import Email
 from app.server import create_app
 
 

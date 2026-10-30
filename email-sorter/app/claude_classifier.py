@@ -1,12 +1,12 @@
-"""Claude backend through the inbox-sorter pipeline.
+"""Claude backend through the ``claude/`` pipeline.
 
-The inbox-sorter is a separate project with its own ``src`` package, so it is
-loaded under an alias (``inbox_sorter``) instead of being put on ``sys.path``.
-Its ``src`` name would otherwise shadow other packages in this repo.
+The Claude backend is a separate project with its own ``src`` package, so it
+is loaded under an alias instead of being put on ``sys.path``. Its ``src``
+name would otherwise shadow other packages in this repo.
 
 The pipeline is kept intact: sender rules -> Claude API -> guardrails ->
-fallback. This wrapper only translates the inbox-sorter labels into the
-email-sorter taxonomy.
+fallback. This wrapper only translates the Claude labels into the email-sorter
+taxonomy.
 """
 
 from __future__ import annotations
@@ -19,12 +19,12 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-from .classifier_base import BaseClassifier
-from .models import Classification, Email
+from .backends import BaseClassifier
+from .schemas import Classification, Email
 
-INBOX_SORTER_DIR = Path(__file__).resolve().parents[2] / "inbox-sorter"
-INBOX_ENV_PATH = INBOX_SORTER_DIR / ".env"
-PACKAGE_ALIAS = "inbox_sorter"
+CLAUDE_DIR = Path(__file__).resolve().parents[2] / "claude"
+CLAUDE_ENV_PATH = CLAUDE_DIR / ".env"
+PACKAGE_ALIAS = "claude_backend"
 
 TOPIC_ALIASES = {
     "fos general": "general",
@@ -58,11 +58,11 @@ def _normalise(value: object) -> str:
 
 
 def _load_package(alias: str = PACKAGE_ALIAS):
-    """Import inbox-sorter/src under ``alias`` so its package names stay local."""
-    package_dir = INBOX_SORTER_DIR / "src"
+    """Import claude/src under ``alias`` so its package names stay local."""
+    package_dir = CLAUDE_DIR / "src"
     init_file = package_dir / "__init__.py"
     if not init_file.is_file():
-        raise RuntimeError(f"inbox-sorter package not found: {package_dir}")
+        raise RuntimeError(f"claude package not found: {package_dir}")
     if alias in sys.modules:
         return sys.modules[alias]
 
@@ -81,8 +81,8 @@ def _load_package(alias: str = PACKAGE_ALIAS):
     return module
 
 
-def load_inbox_modules() -> SimpleNamespace:
-    """Return the inbox-sorter modules this backend needs."""
+def load_claude_modules() -> SimpleNamespace:
+    """Return the Claude backend modules this backend needs."""
     _load_package()
     return SimpleNamespace(
         config=importlib.import_module(f"{PACKAGE_ALIAS}.config"),
@@ -103,18 +103,18 @@ def claude_ready() -> bool:
     try:
         from dotenv import dotenv_values
 
-        return bool(dotenv_values(INBOX_ENV_PATH).get("ANTHROPIC_API_KEY"))
+        return bool(dotenv_values(CLAUDE_ENV_PATH).get("ANTHROPIC_API_KEY"))
     except Exception:
         return False
 
 
 class ClaudeClassifier(BaseClassifier):
-    """Claude through the inbox-sorter pipeline (Anthropic API)."""
+    """Claude through the ``claude/`` pipeline (Anthropic API)."""
 
     name = "claude"
 
     def __init__(self, config_path: str | None = None, my_address: str = "") -> None:
-        self.modules = load_inbox_modules()
+        self.modules = load_claude_modules()
         self.cfg = self.modules.config.get_config(config_path)
         self.my_address = my_address
 
@@ -130,7 +130,7 @@ class ClaudeClassifier(BaseClassifier):
         if not self.clf.enabled:
             raise RuntimeError(
                 "ANTHROPIC_API_KEY is not set for the Claude backend. "
-                f"Add it to {INBOX_ENV_PATH} (or export it) and retry."
+                f"Add it to {CLAUDE_ENV_PATH} (or export it) and retry."
             )
 
         self.mapping_notes = self._mapping_notes()
@@ -161,7 +161,7 @@ class ClaudeClassifier(BaseClassifier):
         return ACTION_ALIASES.get(_normalise(action), DEFAULT_ACTION)
 
     def _record(self, email: Email):
-        """Build the inbox-sorter record for an email-sorter Email."""
+        """Build the Claude backend record for an email-sorter Email."""
         body = email.body or email.preview or ""
         message = {
             "id": str(email.id),
@@ -177,11 +177,11 @@ class ClaudeClassifier(BaseClassifier):
         return self.modules.preprocess.to_record(message, self.my_address, self.cfg)
 
     def classify(self, email: Email) -> Classification:
-        """Classify one email with the full inbox-sorter pipeline."""
+        """Classify one email with the full Claude backend pipeline."""
         record = self._record(email)
         result = self.modules.pipeline.classify(record, self.cfg, self.clf)
 
-        reason = result.reason or "inbox-sorter"
+        reason = result.reason or "claude"
         if result.source == "fallback":
             error = getattr(self.clf, "last_error", None)
             if error:

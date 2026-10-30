@@ -1,4 +1,4 @@
-# Inbox Sorter — Claude backend
+# Claude backend
 
 This folder is the Claude method used by `email-sorter` as the `claude` and
 `hybrid_claude` backends. It keeps the original pipeline:
@@ -8,8 +8,8 @@ sender rules -> Claude API -> guardrails -> fallback
 ```
 
 The standalone Streamlit dashboard, Graph token fetcher, sync worker and
-dataset/evaluation tools were removed. Use `email-sorter` for the UI and the
-root `evaluation/` folder for scoring.
+dataset/evaluation tools were removed. Use `email-sorter` for the UI; Claude
+results are collected in [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md).
 
 ## Files
 
@@ -26,9 +26,10 @@ root `evaluation/` folder for scoring.
 
 ## Setup
 
+From `claude/` (the root requirements file covers all methods):
+
 ```bash
-cd inbox-sorter
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 ```
 
@@ -47,6 +48,6 @@ category model and Claude for the action.
 ## Tests
 
 ```bash
-cd inbox-sorter
+cd claude
 pytest -q
 ```

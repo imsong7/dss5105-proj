@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from app.models import Email
+from app.schemas import Email
 from app.providers.graph import GRAPH_URL, GraphProvider
 from app.providers.base import MailQuery, ProviderError
 

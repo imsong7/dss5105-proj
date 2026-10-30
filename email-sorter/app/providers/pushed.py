@@ -2,20 +2,13 @@
 
 from datetime import datetime, timezone
 
-from ..inbound_store import inbound_store
-from ..models import Email
+from ..pushed_store import pushed_store
+from ..schemas import Email
 from .base import EmailProvider, MailQuery
 
 
 def _aware(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-
-
-def _received_at(email: Email) -> datetime | None:
-    try:
-        return _aware(datetime.fromisoformat(email.received.replace("Z", "+00:00")))
-    except (AttributeError, TypeError, ValueError):
-        return None
 
 
 class PushedProvider(EmailProvider):
@@ -32,8 +25,8 @@ class PushedProvider(EmailProvider):
         before = _aware(query.before) if query.before else None
 
         matches: list[tuple[datetime, Email]] = []
-        for email in inbound_store.all(self.owner):
-            received = _received_at(email)
+        for email in pushed_store.all(self.owner):
+            received = email.received_at
             if received is None:
                 # Keep mail with an unparseable date rather than silently hiding it.
                 matches.append((datetime.min.replace(tzinfo=timezone.utc), email))

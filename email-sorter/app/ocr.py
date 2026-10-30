@@ -20,9 +20,9 @@ from io import BytesIO
 
 from PIL import Image, ImageOps
 
-from .models import Email
 from .providers.base import EmailProvider, ProviderError
-from .textutil import clean
+from .schemas import Email
+from .text_utils import clean
 
 log = logging.getLogger(__name__)
 

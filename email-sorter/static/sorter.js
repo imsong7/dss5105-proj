@@ -72,8 +72,8 @@
   function renderHealth(h) {
     const dot = $("#dot");
     let ok = false, text = "", unknown = false;
-    if (h.backend === "bert") {
-      ok = !!h.bert_ready;
+    if (h.backend === "encoder") {
+      ok = !!h.encoder_ready;
       text = ok ? "Text-encoder models ready." : "Text-encoder models not found. Train them with: python text-encoders/train.py";
     } else if (h.backend === "ml") {
       ok = !!h.ml_ready;
@@ -81,8 +81,8 @@
     } else if (h.backend === "hybrid") {
       ok = !!h.hybrid_ready;
       text = ok
-        ? "Hybrid ready: ML category + BERT action."
-        : "Hybrid needs the classical-ML category model and the BERT action head. See README: Choosing a backend.";
+        ? "Hybrid ready: ML category + text-encoder action."
+        : "Hybrid needs the classical-ML category model and the text-encoder action head. See README: Choosing a backend.";
     } else if (h.backend === "hybrid_claude") {
       ok = !!h.hybrid_claude_ready;
       text = ok

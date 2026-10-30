@@ -4,9 +4,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.classifier_base import BACKEND_INFO, list_backends
+from app.backends import BACKEND_INFO, list_backends
 from app.claude_classifier import ClaudeClassifier
-from app.models import Email
+from app.schemas import Email
 from app.server import create_app
 
 

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from ..models import Email
+from ..schemas import Email
 
 
 @dataclass(frozen=True)

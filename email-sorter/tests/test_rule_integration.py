@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from app.classifier_base import BaseClassifier
-from app.models import Classification, Email
+from app.backends import BaseClassifier
+from app.schemas import Classification, Email
 from app.server import create_app
 
 
@@ -31,7 +31,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         )
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.client = create_app(backend="llama", provider="powerautomate").test_client()
+        self.client = create_app(backend="llama", provider="graphtoken").test_client()
 
     def test_dashboard_v2_page_loads(self):
         response = self.client.get("/dashboard-v2")
@@ -39,18 +39,17 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Inbox sorter", response.data)
         self.assertIn(b'class="v2-bar"', response.data)
-        self.assertIn(b'<body class="no-sidebar">', response.data)
+        self.assertIn(b'class="no-sidebar"', response.data)
         self.assertIn(b'<dialog class="email-detail-dialog"', response.data)
-        self.assertIn(b"dashboard_v2.js?v=74", response.data)
+        self.assertIn(b"dashboard_v2.js?v=77", response.data)
         self.assertIn(b'id="calendar-panel"', response.data)
         self.assertIn(b'id="calendar-tab"', response.data)
         self.assertIn(b'id="calendar-grid"', response.data)
         self.assertIn(b'id="calendar-course-legend"', response.data)
         self.assertIn(b'id="email-detail-dialog"', response.data)
-        self.assertIn(b'value="powerautomate"', response.data)
-        self.assertIn(b'id="webhook-diag"', response.data)
+        self.assertIn(b'value="outlook"', response.data)
+        self.assertIn(b'id="graph-token-dialog"', response.data)
         self.assertIn(b'id="user-gate"', response.data)
-        self.assertIn(b'id="user-chip"', response.data)
         # Load and classification are separate steps, and the app loads 100 by
         # default before the person narrows the window locally.
         self.assertIn(b'<input id="count" type="number" min="1" value="100">', response.data)

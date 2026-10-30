@@ -16,7 +16,7 @@ load_dotenv(ROOT / ".env")
 @lru_cache(maxsize=1)
 def get_config(path: str | None = None) -> dict:
     """Read and validate config.yaml. Call get_config.cache_clear() to reload."""
-    p = Path(path or os.environ.get("INBOX_SORTER_CONFIG", ROOT / "config.yaml"))
+    p = Path(path or os.environ.get("CLAUDE_CONFIG", ROOT / "config.yaml"))
     with open(p, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     validate(cfg)

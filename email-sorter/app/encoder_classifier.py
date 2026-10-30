@@ -1,4 +1,8 @@
-"""Text-encoder classifier wrapper for the trained encoder heads."""
+"""Text-encoder classifier wrapper for the trained encoder heads.
+
+The heads are trained on frozen BGE, E5, or DistilBERT embeddings, so this
+backend is called ``encoder`` rather than ``bert``.
+"""
 
 from __future__ import annotations
 
@@ -12,8 +16,8 @@ ENCODERS_DIR = os.path.join(REPO_ROOT, "text-encoders")
 if ENCODERS_DIR not in sys.path:
     sys.path.insert(0, ENCODERS_DIR)
 
-from .classifier_base import BaseClassifier
-from .models import Classification, Email
+from .backends import BaseClassifier
+from .schemas import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_CONTENT, DEFAULT_REPLY, REPLY_NATURE
 
 ENCODER_MODELS_DIR = os.path.join(ENCODERS_DIR, "models")
@@ -31,10 +35,10 @@ def _model_text(email: Email) -> str:
     return body or preview
 
 
-class BertClassifier(BaseClassifier):
+class EncoderClassifier(BaseClassifier):
     """Load the trained category and action heads."""
 
-    name = "bert"
+    name = "encoder"
 
     def __init__(
         self,
@@ -55,7 +59,7 @@ class BertClassifier(BaseClassifier):
             from src.model import EmbedPredictor  # noqa: E402
         except ImportError as exc:
             self._load_error = f"Missing dependency: {exc}"
-            print(f"[bert] {self._load_error}")
+            print(f"[encoder] {self._load_error}")
             return
 
         for task in self.tasks:
@@ -66,7 +70,7 @@ class BertClassifier(BaseClassifier):
             model_dir = os.path.join(self.models_dir, os.path.basename(default_dir))
             if not os.path.isdir(model_dir):
                 self._load_errors[task] = f"model dir not found: {model_dir}"
-                print(f"[bert] {self._load_errors[task]}")
+                print(f"[encoder] {self._load_errors[task]}")
                 continue
             try:
                 predictor = EmbedPredictor(model_dir)
@@ -74,10 +78,10 @@ class BertClassifier(BaseClassifier):
                     self._category_clf = predictor
                 else:
                     self._action_clf = predictor
-                print(f"[bert] loaded {task} model from {model_dir}")
+                print(f"[encoder] loaded {task} model from {model_dir}")
             except Exception as exc:  # pragma: no cover - runtime loading
                 self._load_errors[task] = str(exc)
-                print(f"[bert] failed to load {task} model: {exc}")
+                print(f"[encoder] failed to load {task} model: {exc}")
 
         if self._load_errors:
             self._load_error = "; ".join(
@@ -109,7 +113,7 @@ class BertClassifier(BaseClassifier):
         predictor = self._category_clf if task == "category" else self._action_clf
         if predictor is None:
             raise RuntimeError(
-                f"BERT {task} head could not be loaded: "
+                f"Text-encoder {task} head could not be loaded: "
                 f"{self._load_errors.get(task, self._load_error or 'not loaded')}"
             )
         label, _conf = predictor.predict(
@@ -129,12 +133,12 @@ class BertClassifier(BaseClassifier):
         """Predict category and reply nature for one email."""
         if self._load_error:
             raise RuntimeError(
-                f"BERT model could not be loaded: {self._load_error}"
+                f"Text-encoder model could not be loaded: {self._load_error}"
             )
 
         return Classification(
             content_category=self.predict_category(email),
             reply_nature=self.predict_action(email),
             deadline=None,
-            reason="bert frozen-encoder head",
+            reason="text-encoder head",
         )

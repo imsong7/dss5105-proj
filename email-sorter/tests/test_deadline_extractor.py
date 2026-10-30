@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from app.deadline_extractor import extract_deadline
-from app.models import Email
+from app.calendar import extract_deadline
+from app.schemas import Email
 from app.server import create_app
 
 

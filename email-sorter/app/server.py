@@ -4,7 +4,7 @@ Usage::
 
     from app.server import create_app
 
-    app = create_app(backend="bert")   # encoder backend; or "llama", or None
+    app = create_app(backend="encoder")   # text-encoder backend; or "llama", or None
 """
 
 import hashlib
@@ -20,34 +20,33 @@ from urllib.parse import urlparse
 import requests
 from flask import Flask, abort, jsonify, render_template, request
 
-from .academic_calendar import (
-    ACADEMIC_CALENDAR_LABEL,
-    load_academic_calendar,
-)
-from .classifier_base import (
-    BACKEND_INFO,
-    BaseClassifier,
-    create_classifier,
-    list_backends,
-)
-from .claude_classifier import claude_ready
-from .config import ROOT, settings
-from .deadline_extractor import extract_deadline
-from .inbound_store import inbound_store
-from .ml_classifier import models_ready as _ml_ready
-from .models import Classification, Email
-from .ocr_pipeline import ocr_status, prepare_text
-from .providers import AuthError, MailQuery, ProviderError, build_provider
-from .rules import category_by_rule
-from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
-from .textutil import clean, strip_html
-
-from .multiuser import (
+from .accounts import (
     install_multiuser,
     authenticated_owner,
     webhook_owner,
     refresh_url,
 )
+from .backends import (
+    BACKEND_INFO,
+    BaseClassifier,
+    create_classifier,
+    list_backends,
+)
+from .calendar import (
+    ACADEMIC_CALENDAR_LABEL,
+    extract_deadline,
+    load_academic_calendar,
+)
+from .claude_classifier import claude_ready
+from .config import ROOT, settings
+from .ml_classifier import models_ready as _ml_ready
+from .ocr import ocr_status, prepare_text
+from .providers import AuthError, MailQuery, ProviderError, build_provider
+from .pushed_store import pushed_store
+from .schemas import Classification, Email
+from .sender_rules import category_by_rule
+from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
+from .text_utils import clean, strip_html
 
 logging.basicConfig(level=logging.INFO)
 
@@ -212,7 +211,7 @@ def _ollama_status() -> tuple[bool, bool]:
         return True, False
 
 
-def _bert_ready(tasks: tuple[str, ...] | str = ("category", "action")) -> bool:
+def _encoder_ready(tasks: tuple[str, ...] | str = ("category", "action")) -> bool:
     """Encoder heads are usable when the requested head files and manifests exist."""
     if isinstance(tasks, str):
         tasks = (tasks,)
@@ -228,12 +227,12 @@ def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bo
     """Return readiness for a backend, or ``None`` when it cannot be checked cheaply."""
     if name == "llama":
         return ollama_ready
-    if name == "bert":
-        return _bert_ready()
+    if name == "encoder":
+        return _encoder_ready()
     if name == "ml":
         return _ml_ready()
     if name == "hybrid":
-        return _ml_ready(("category",)) and _bert_ready(("action",))
+        return _ml_ready(("category",)) and _encoder_ready(("action",))
     if name == "hybrid_claude":
         return _ml_ready(("category",)) and claude_ready()
     if name == "claude":
@@ -289,7 +288,10 @@ def create_app(backend: str | None = None, version: int = 2, provider: str | Non
         template_folder=str(ROOT / "templates"),
         static_folder=str(ROOT / "static"),
     )
-    install_multiuser(app)
+    # Only pushed mail is filed per account. A Graph token is a single mailbox
+    # and needs no app login, so do not show the Basic auth prompt for it.
+    if mail_provider == "powerautomate":
+        install_multiuser(app)
 
     @app.context_processor
     def inject_authenticated_user():
@@ -491,13 +493,13 @@ def create_app(backend: str | None = None, version: int = 2, provider: str | Non
             }), 403
 
         email = _inbound_email(data)
-        stored, duplicate = inbound_store.add(email, owner)
+        stored, duplicate = pushed_store.add(email, owner)
 
         return jsonify({
             "status": "duplicate" if duplicate else "stored",
             "id": stored.id,
             "owner": owner,
-            "stored": len(inbound_store.all(owner)),
+            "stored": len(pushed_store.all(owner)),
         })
 
     @app.post("/api/inbound/outlook")
@@ -556,9 +558,9 @@ def create_app(backend: str | None = None, version: int = 2, provider: str | Non
         # The UI polls readiness for whichever backend it has selected.
         requested = request.args.get("backend") or backend or settings.model_backend
         ollama_up, ollama_ready = _ollama_status()
-        bert_ready = _bert_ready()
+        encoder_ready = _encoder_ready()
         ml_ready = _ml_ready()
-        hybrid_ready = _ml_ready(("category",)) and _bert_ready(("action",))
+        hybrid_ready = _ml_ready(("category",)) and _encoder_ready(("action",))
         hybrid_claude_ready = _ml_ready(("category",)) and claude_ready()
         claude_backend_ready = claude_ready()
         backend_ready = _backend_ready(
@@ -577,7 +579,7 @@ def create_app(backend: str | None = None, version: int = 2, provider: str | Non
                 "ollama_ready": ollama_ready,
                 "model": settings.ollama_model,
                 "model_ready": ollama_ready,
-                "bert_ready": bert_ready,
+                "encoder_ready": encoder_ready,
                 "ml_ready": ml_ready,
                 "hybrid_ready": hybrid_ready,
                 "hybrid_claude_ready": hybrid_claude_ready,

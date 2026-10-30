@@ -1,9 +1,9 @@
-# ML — classical text classifiers
+# Classical ML — text classifiers
 
-This folder contains the classical (non-BERT) email classifiers for the
-DSS5105 project. They are lightweight TF-IDF + linear/Naive Bayes baselines
-that are fast to train on a laptop and easy to compare against the encoder
-models in `../text-encoders/`.
+This folder contains the classical (TF-IDF + linear/Naive Bayes) email
+classifiers for the DSS5105 project. They are lightweight baselines that are
+fast to train on a laptop and easy to compare against the text-encoder models
+in `../text-encoders/`.
 
 Two independent tasks are trained:
 
@@ -39,7 +39,8 @@ for production selection.
 
 See `reports/model_comparison.md`, `reports/hyperparameter_tuning.md`, and
 `reports/ablation_synthetic.md` for model comparisons, tuning results, and the
-synthetic-data ablation.
+synthetic-data ablation. [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md)
+collects these with the encoder and end-to-end results.
 
 ### Balancing
 
@@ -56,29 +57,30 @@ always contain real emails only.
 
 ## Structure
 
-- `src/`: trainer, shared comparison utilities, experiment runner, data tools,
-  and evaluation adapter.
+- `src/`: trainer, shared comparison utilities, experiment runner, and data
+  tools.
 - `tests/`: ML unit tests.
 - `../data/`: shared labels and synthetic action data for both model families.
 - `reports/`: committed aggregate experiment reports.
 - `artifacts/`: ignored models and generated evaluation files; includes real
   email text and should not be committed.
-- `requirements-ml.txt`: Python dependencies.
+- `../requirements.txt`: shared Python dependencies for the whole repo.
 
 ## Data
 
 The trainer uses `../data/labels.csv` as the shared dataset. It is **not
-committed** because it contains real, personal email content. Convert the
-team's workbook with:
+committed** because it contains real, personal email content. From
+`classical-ml/`, convert the team's workbook with:
 
 ```bash
 cp "/path/to/labels.xlsx" ../data/labels.xlsx
 PYTHONPATH=src python -m data_tools convert-labels
 ```
 
-The converter writes `../data/labels.csv`; classical ML, text encoders, and evaluation use
-this same CSV by default. Keep the workbook as the editable source if that's
-your team's workflow, and rerun the converter whenever it changes.
+The converter writes `../data/labels.csv`; classical ML, text encoders, and
+evaluation use this same CSV by default. Keep the workbook as the editable
+source if that's your team's workflow, and rerun the converter whenever it
+changes.
 
 The source workbook must contain a `labels` worksheet with these columns:
 
@@ -95,13 +97,12 @@ PYTHONPATH=src python -m data_tools generate-synthetic
 
 ## Setup
 
-Python 3.10+ is recommended.
+Python 3.10+ is recommended. From the repo root:
 
 ```bash
-cd classical-ml
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-ml.txt
+pip install -r requirements.txt
 ```
 
 On macOS, XGBoost needs `libomp` (e.g. `brew install libomp`). If it is
@@ -112,6 +113,7 @@ missing, the comparison skips XGBoost instead of crashing.
 Run from inside `classical-ml/`:
 
 ```bash
+cd classical-ml
 PYTHONPATH=src python -m train_email_ml
 PYTHONPATH=src python -m experiments compare
 PYTHONPATH=src python -m experiments tune
@@ -142,7 +144,7 @@ Use the shared offline evaluator from the project root to compare encoder,
 classical ML, and LLM models:
 
 ```bash
-.venv/bin/python evaluation/quality.py --model all
+python evaluation/quality.py --model all
 ```
 
 For a separate held-out comparison, pass disjoint shared-label files. Fit
@@ -150,7 +152,7 @@ encoder and ML models on the training file and use the test file only for
 scoring and LLM inference:
 
 ```bash
-.venv/bin/python evaluation/quality.py \
+python evaluation/quality.py \
     --model all \
     --train-review /path/to/train.csv \
     --test-review /path/to/test.csv \
@@ -164,9 +166,9 @@ only.
 
 ## Evaluation notes
 
-- The dataset is small (~132 category rows and ~134 action rows), so any
-  held-out test subset may have only a few examples per class. Interpret its
-  scores cautiously and prefer collecting more independently labeled emails.
+- The dataset is small (~132 category rows and ~134 action rows). The committed
+  27-email holdout has only 2–7 examples per class, so treat its macro-F1 as a
+  rough sanity check and prefer the CV mean ± std for model selection.
 - Hyperparameters were tuned on the training split, but the same CV split is
   also reported in the summary tables. For a stricter estimate, use nested CV
   or collect a fresh external test set.

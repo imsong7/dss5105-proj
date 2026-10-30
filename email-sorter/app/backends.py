@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .models import Classification, Email
+from .schemas import Classification, Email
 
 
 class BaseClassifier(ABC):
@@ -25,16 +25,16 @@ BACKEND_INFO: dict[str, dict[str, str]] = {
         "description": "TF-IDF category model with Claude for the action.",
     },
     "hybrid": {
-        "label": "Hybrid (ML + BERT)",
+        "label": "Hybrid (ML + text encoder)",
         "kind": "hybrid",
-        "description": "TF-IDF category model with the BERT action head.",
+        "description": "TF-IDF category model with the text-encoder action head.",
     },
     "llama": {
         "label": "Llama (Ollama)",
         "kind": "llm",
         "description": "Local LLM served through Ollama.",
     },
-    "bert": {
+    "encoder": {
         "label": "Text encoders",
         "kind": "encoder",
         "description": "Frozen BGE, E5, or DistilBERT encoders with classification heads.",
@@ -47,7 +47,7 @@ BACKEND_INFO: dict[str, dict[str, str]] = {
     "claude": {
         "label": "Claude",
         "kind": "llm",
-        "description": "Anthropic Claude through the inbox-sorter pipeline (rules, guardrails).",
+        "description": "Anthropic Claude with sender rules and guardrails.",
     },
 }
 
@@ -63,9 +63,9 @@ def create_classifier(backend: str | None = None) -> BaseClassifier:
     if name == "llama":
         from .llama_classifier import EmailClassifier  # noqa: PLC0415
         return EmailClassifier()
-    if name == "bert":
-        from .bert_classifier import BertClassifier  # noqa: PLC0415
-        return BertClassifier()
+    if name == "encoder":
+        from .encoder_classifier import EncoderClassifier  # noqa: PLC0415
+        return EncoderClassifier()
     if name == "ml":
         from .ml_classifier import MLClassifier  # noqa: PLC0415
         return MLClassifier()

@@ -1,12 +1,41 @@
-# Repo-wide dependencies for the app, BERT training, and evaluation.
--r email-sorter/requirements.txt
+# Repo-wide dependencies for the app, all four methods, and evaluation.
+# Install once from the repo root:
+#     pip install -r requirements.txt
 
-# Operational benchmark
+# Core app (Flask, mail providers, models)
+flask>=3.0
+requests>=2.31
+python-dotenv>=1.0
+pydantic>=2.6
+
+# Llama backend (Ollama)
+langchain-core>=0.3
+langchain-ollama>=0.2
+
+# Text-encoder backend (frozen BGE/E5 heads and DistilBERT fine-tunes)
+torch>=2.0
+transformers>=5.0
+joblib>=1.3
+scikit-learn>=1.3
+pandas>=2.0
+numpy>=1.26
+Pillow>=10.0
+
+# Classical ML
+openpyxl>=3.1
+seaborn>=0.12
+xgboost>=2.0
+
+# Claude backend
+anthropic>=0.40
+pyyaml>=6.0
+beautifulsoup4>=4.12
+
+# Evaluation and plots
 psutil>=5.9
 codecarbon>=2.5
-
-# Evaluation plots
 matplotlib>=3.7
-
-# Label auditing
 cleanlab>=2.7
+
+# Tests
+pytest>=8.0

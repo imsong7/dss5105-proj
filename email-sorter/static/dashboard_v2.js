@@ -1185,7 +1185,7 @@
         : isReady === false && backend === "ml"
           ? "Classical ML models not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml"
           : isReady === false && backend === "hybrid"
-            ? "Hybrid needs the classical-ML category model and the BERT action head. See README: Choosing a backend."
+            ? "Hybrid needs the classical-ML category model and the text-encoder action head. See README: Choosing a backend."
             : isReady === false && backend === "hybrid_claude"
               ? "Hybrid (ML + Claude) needs the classical-ML category model and ANTHROPIC_API_KEY in inbox-sorter/.env."
               : isReady === false ? `${backendLabel(backend)} is not ready.` : "Backend readiness unknown.";

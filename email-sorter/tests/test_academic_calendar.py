@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.academic_calendar import load_academic_calendar
+from app.calendar import load_academic_calendar
 from app.server import create_app
 
 

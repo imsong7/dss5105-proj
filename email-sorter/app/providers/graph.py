@@ -3,8 +3,8 @@ from urllib.parse import quote
 
 import requests
 
-from ..models import Email
-from ..textutil import clean, strip_html
+from ..schemas import Email
+from ..text_utils import clean, strip_html
 from .base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
 
 GRAPH_URL = "https://graph.microsoft.com/v1.0/me/messages"

@@ -416,7 +416,7 @@ def ml_oof_for_task(
 
 def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
     """Classify each unique review once with the app's LLM backend."""
-    from app.models import Email
+    from app.schemas import Email
 
     if predictor is None:
         from app.llama_classifier import EmailClassifier

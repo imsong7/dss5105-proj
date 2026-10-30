@@ -6,9 +6,9 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from app.classifier_base import list_backends
+from app.backends import list_backends
 from app.compare_cli import compare_emails, parse_backends, print_report, run_compare, write_csv
-from app.models import Classification, Email
+from app.schemas import Classification, Email
 
 
 def make_email(index: int, subject: str = "Hello") -> Email:
@@ -79,15 +79,15 @@ class CompareEmailsTests(unittest.TestCase):
 
     def test_classifier_failure_marks_backend_unavailable(self):
         def factory(name):
-            if name == "bert":
+            if name == "encoder":
                 raise RuntimeError("weights missing")
             return FakeClassifier("general")
 
-        results, _, errors, unavailable = compare_emails(self.emails, ["llama", "bert"], factory=factory)
+        results, _, errors, unavailable = compare_emails(self.emails, ["llama", "encoder"], factory=factory)
 
-        self.assertEqual(unavailable, {"bert": "weights missing"})
-        self.assertEqual(errors["bert"], {})
-        self.assertEqual(len(results["bert"]), 0)
+        self.assertEqual(unavailable, {"encoder": "weights missing"})
+        self.assertEqual(errors["encoder"], {})
+        self.assertEqual(len(results["encoder"]), 0)
         self.assertEqual(len(results["llama"]), 2)
 
     def test_per_email_error_does_not_stop_the_batch(self):
@@ -121,7 +121,7 @@ class ReportTests(unittest.TestCase):
             self.results,
             self.latencies,
             self.errors,
-            {"bert": "not installed"},
+            {"encoder": "not installed"},
             "pushed inbox · owner a@b.c",
         )
         # Nothing to assert beyond "does not raise"; coverage matters more.

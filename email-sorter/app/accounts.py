@@ -31,6 +31,9 @@ def refresh_url():
 
 
 def install_multiuser(app):
+    # Browsers cache Basic auth per realm. A fresh realm per app start means
+    # the browser asks again instead of silently reusing an old login.
+    realm = f"Email Sorter {secrets.token_hex(4)}"
     configured = os.getenv("MULTIUSER_CONFIG_FILE", "").strip()
     if not configured:
         raise RuntimeError("Set MULTIUSER_CONFIG_FILE to your private accounts JSON file.")
@@ -75,7 +78,7 @@ def install_multiuser(app):
                      check_password_hash(record["password_hash"], auth.password or ""))
         if not valid:
             return Response("Authentication required.", 401, {
-                "WWW-Authenticate": 'Basic realm="Email Sorter", charset="UTF-8"',
+                "WWW-Authenticate": f'Basic realm="{realm}", charset="UTF-8"',
                 "Cache-Control": "no-store",
             })
         g.mail_owner = owner

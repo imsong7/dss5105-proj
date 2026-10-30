@@ -1,21 +1,22 @@
-"""Hybrid backends: classical-ML category plus BERT or Claude action."""
+"""Hybrid backends: classical-ML category plus text-encoder or Claude action."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from .bert_classifier import BertClassifier
-from .classifier_base import BaseClassifier
+from .encoder_classifier import EncoderClassifier
+from .backends import BaseClassifier
 from .claude_classifier import ClaudeClassifier
 from .ml_classifier import MLClassifier
-from .models import Classification, Email
+from .schemas import Classification, Email
 
 
 class HybridClassifier(BaseClassifier):
-    """Content category from the classical TF-IDF model, reply nature from BERT.
+    """Content category from the classical TF-IDF model, reply nature from an encoder.
 
-    Loading is per task, so the unused halves (ML action pipeline, BERT category
-    head) are never loaded and the hybrid only pays for the models it uses.
+    Loading is per task, so the unused halves (ML action pipeline, encoder
+    category head) are never loaded and the hybrid only pays for the models it
+    uses.
     """
 
     name = "hybrid"
@@ -26,7 +27,7 @@ class HybridClassifier(BaseClassifier):
         encoder_models_dir: str | None = None,
     ):
         self._category = MLClassifier(models_dir=models_dir, tasks=("category",))
-        self._action = BertClassifier(
+        self._action = EncoderClassifier(
             models_dir=encoder_models_dir, tasks=("action",)
         )
 
@@ -45,7 +46,7 @@ class HybridClassifier(BaseClassifier):
             content_category=category,
             reply_nature=action,
             deadline=None,
-            reason="Hybrid: ML category + BERT action head.",
+            reason="Hybrid: ML category + text-encoder action head.",
         )
 
 

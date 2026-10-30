@@ -4,10 +4,10 @@ Usage::
 
     python run.py                           # dashboard v2 (default)
     python run.py -version 1                # use the older sorter page
-    python run.py --backend bert            # category + action from BERT heads
+    python run.py --backend encoder         # category + action from text-encoder heads
     python run.py --backend hybrid_claude   # ML category + Claude action (default)
-    python run.py --backend hybrid          # ML category + BERT action
-    python run.py --backend claude          # Claude via the inbox-sorter
+    python run.py --backend hybrid          # ML category + text-encoder action
+    python run.py --backend claude          # Claude backend
     python run.py --backend llama --port 8080
     python run.py --provider graphtoken     # read mail with an Outlook Graph token (default)
     python run.py --provider powerautomate  # pushed mail; ngrok starts automatically
@@ -23,11 +23,11 @@ import argparse
 import os
 import signal
 
-from app.classifier_base import list_backends
+from app.backends import list_backends
 from app.config import settings
+from app.ngrok import start as start_tunnel
+from app.ngrok import stop as stop_tunnel
 from app.server import create_app, normalize_provider
-from app.tunnel import start as start_tunnel
-from app.tunnel import stop as stop_tunnel
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the email-sorter Flask app.")

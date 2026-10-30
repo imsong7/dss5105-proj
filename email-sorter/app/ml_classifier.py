@@ -9,8 +9,8 @@ from pathlib import Path
 import pandas as pd
 from sklearn.naive_bayes import ComplementNB
 
-from .classifier_base import BaseClassifier
-from .models import Classification, Email
+from .backends import BaseClassifier
+from .schemas import Classification, Email
 
 ML_DIR = Path(__file__).resolve().parents[2] / "classical-ml"
 ML_SOURCE_DIR = ML_DIR / "src"

@@ -1,3 +1,7 @@
+"""Pydantic schemas shared by the app and the evaluation scripts."""
+
+from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field, field_validator
 
 from .taxonomy import (
@@ -18,6 +22,15 @@ class Email(BaseModel):
     text_source: str = "body"
     ocr_confidence: float | None = None
     ocr_notes: list[str] = Field(default_factory=list)
+
+    @property
+    def received_at(self) -> datetime | None:
+        """Return ``received`` as an aware UTC datetime, or ``None``."""
+        try:
+            value = datetime.fromisoformat(self.received.replace("Z", "+00:00"))
+        except (AttributeError, TypeError, ValueError):
+            return None
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
 class Classification(BaseModel):

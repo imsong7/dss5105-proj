@@ -20,8 +20,8 @@ from textwrap import shorten
 
 import requests
 
-from .classifier_base import BACKEND_INFO, create_classifier, list_backends
-from .models import Classification, Email
+from .backends import BACKEND_INFO, create_classifier, list_backends
+from .schemas import Classification, Email
 from .taxonomy import CONTENT_CATEGORIES
 
 def parse_backends(value: str | None) -> list[str]:

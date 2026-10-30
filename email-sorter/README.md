@@ -38,12 +38,6 @@ python email-sorter/run.py
 # open http://127.0.0.1:5000
 ```
 
-If port 5000 is busy (macOS Control Center uses it):
-
-```bash
-python email-sorter/run.py --port 5001
-```
-
 Dashboard v2 is the default home page. The older page is still available:
 
 ```bash

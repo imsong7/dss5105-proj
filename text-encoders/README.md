@@ -98,10 +98,3 @@ real `needs_reply`, `needs_action`, and `reminder` examples.
 ## App integration
 
 The app loads these models through `email-sorter/app/encoder_classifier.py`:
-
-```bash
-python email-sorter/run.py --backend encoder   # both tasks from the heads
-python email-sorter/run.py --backend hybrid    # ML category + encoder action
-```
-
-Canvas emails are handled by the sender rule in `email-sorter/app/sender_rules.py`.

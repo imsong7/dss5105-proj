@@ -1,100 +1,149 @@
 # Text encoders
 
-Train the encoder-based email classifiers used by the app's `encoder` and
-`hybrid` backends.
+Train encoder-based email classifiers for the app's `encoder` and `hybrid`
+backends.
 
-- **Head mode (default):** frozen encoder + logistic-regression head. Small and fast.
-- **Full mode:** DistilBERT fine-tuning baseline.
+## Approach
 
-The app calls this backend `encoder` because the frozen encoder supplies the
-features; the head is only a small classifier on top.
+- Head mode (default): freeze a pretrained encoder and train a
+  logistic-regression classification head.
+- Full mode: fine-tune DistilBERT as a separate baseline.
+
+Head mode follows this pipeline:
+
+```text
+Email text → Frozen encoder → Pooling → Text embedding → Classification head
+```
+
+Category and action use separate models. Only the classification head is
+trained in head mode; the encoder remains unchanged.
+
+## Models
+
+| Name | Pretrained model | Pooling | Default role |
+|---|---|---|---|
+| `bge-small-en` | `BAAI/bge-small-en-v1.5` | CLS | Category |
+| `e5-small-multi` | `intfloat/multilingual-e5-small` | Mean | Action |
+| `distilbert-mean` | `distilbert-base-uncased` | Mean | Comparison |
+
+CLS pooling uses the first token's final representation. Mean pooling
+averages token representations, excluding padding. Both produce one vector
+for the classifier.
+
+`distilbert-mean` is a frozen-encoder configuration, not the full-mode
+DistilBERT fine-tuning experiment.
 
 ## Files
 
 | Path | Purpose |
 |---|---|
-| `train.py` | Unified trainer (`--mode head\|full`) |
-| `src/data.py` | Data loading, validation, splits, synthetic checks |
-| `src/model.py` | Encoders, head training, `EmbedPredictor` |
-| `../data/labels.csv` | Shared labelled emails (private, local-only) |
-| `../data/synthetic.csv` | Shared 200-row action synthetic dataset |
-| `models/{task}_{head\|full}/` | Trained models |
-| `results/compare_*` | Comparison summaries and run records |
+| `train.py` | Training, validation, and comparison commands |
+| `src/data.py` | Data preparation, splits, encoder settings, and synthetic checks |
+| `src/model.py` | Encoding, pooling, training, and prediction |
+| `../data/labels.csv` | Private, team-labelled real emails |
+| `../data/synthetic.csv` | Shared 200-row synthetic dataset |
+| `models/` | Saved models, manifests, and metrics |
+| `results/` | Comparison summaries and run records |
 
-## Train
+## Training
 
-Run from the repo root with the shared `.venv`. Training needs the shared
-`data/labels.csv`; see [`../classical-ml/README.md`](../classical-ml/README.md)
-for how to create it from the team workbook.
+Run from the repository root using the shared `.venv`.
+
+Training requires `data/labels.csv`. See
+[`../classical-ml/README.md`](../classical-ml/README.md) for data preparation.
 
 ```bash
 # Validate labels
 python text-encoders/train.py --check-only
 
-# Frozen heads for the app (recommended)
+# Train the default category head
 python text-encoders/train.py --task category
-python text-encoders/train.py --task action --synthetic data/synthetic.csv
 
-# Optional DistilBERT fine-tune
+# Train the default action head with synthetic examples
+python text-encoders/train.py \
+    --task action \
+    --synthetic data/synthetic.csv
+
+# Optional: fine-tune DistilBERT for both tasks
 python text-encoders/train.py --mode full --task both
-
-# Compare head encoders (no model saved)
-python text-encoders/train.py --synthetic data/synthetic.csv \
-    --compare-seeds 1,2,3,4,5
-cat text-encoders/results/compare_head_summary.txt
-
-# Compare full fine-tune vs TF-IDF (no model saved)
-python text-encoders/train.py --synthetic data/synthetic.csv \
-    --mode full --task action --compare-seeds 1,2,3,4,5
-cat text-encoders/results/compare_full_summary.txt
 ```
 
-`--review` defaults to the shared `data/labels.csv`. Models go to
-`text-encoders/models`, results to `text-encoders/results`.
+`--review` defaults to `data/labels.csv`. Models are saved under
+`text-encoders/models/{task}_{head|full}/`.
 
-## Models
+## Comparison
 
-| Name | Model | Size | Default task |
-|---|---|---|---|
-| `bge-small-en` | BAAI/bge-small-en-v1.5 | 33M | category |
-| `e5-small-multi` | intfloat/multilingual-e5-small | 118M | action |
-| `distilbert-mean` | distilbert-base-uncased (mean pooling) | — | comparison |
+```bash
+# Compare frozen encoders across seeds
+python text-encoders/train.py \
+    --task action \
+    --synthetic data/synthetic.csv \
+    --compare-seeds 1,2,3,4,5
 
-## Scores
+# Compare full DistilBERT fine-tuning with TF-IDF
+python text-encoders/train.py \
+    --mode full \
+    --task action \
+    --synthetic data/synthetic.csv \
+    --compare-seeds 1,2,3,4,5
+```
 
-Single 27-email test split, one run per model (`models/*/metrics.json`):
+Summaries and run records are written to `text-encoders/results/`.
+Comparison runs do not retain deployable model weights.
 
-| Model | Task | Accuracy | Macro F1 |
+## Recorded results
+
+### Single 27-email test split
+
+One run per model, from `models/*/metrics.json`:
+
+| Model | Task | Accuracy | Macro-F1 |
 |---|---|---:|---:|
-| `category_head` (bge-small-en) | category | 0.889 | 0.865 |
-| `category_full` (DistilBERT) | category | 0.889 | 0.860 |
-| `action_head` (e5-small-multi) | action | 0.778 | 0.511 |
-| `action_full` (DistilBERT) | action | 0.815 | 0.675 |
+| BGE head | Category | 0.889 | 0.865 |
+| DistilBERT full | Category | 0.889 | 0.860 |
+| E5 head | Action | 0.778 | 0.511 |
+| DistilBERT full | Action | 0.815 | 0.675 |
 
-Action head comparison over 2 seeds, real vs real + synthetic:
+### Action heads: effect of synthetic training data
 
-| Encoder | Real F1 | Real acc | + Synthetic F1 | + Synthetic acc |
-|---|---:|---:|---:|---:|
-| `bge-small-en` | 0.542 ± 0.123 | 0.741 | 0.714 ± 0.188 | 0.833 |
-| `e5-small-multi` | 0.601 ± 0.009 | 0.815 | **0.774 ± 0.047** | **0.870** |
-| `distilbert-mean` | **0.654 ± 0.093** | 0.759 | 0.690 ± 0.001 | 0.796 |
+Two-seed comparison, tested on real emails only.
+Macro-F1 is mean ± sample standard deviation.
 
-Two seeds is a small sample. See [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md)
-for the full tables.
+| Encoder | Real-only Macro-F1 | With synthetic Macro-F1 |
+|---|---:|---:|
+| BGE-small | 0.542 ± 0.123 | 0.714 ± 0.188 |
+| E5-small-multi | 0.601 ± 0.009 | 0.774 ± 0.047 |
+| DistilBERT-mean | 0.654 ± 0.093 | 0.690 ± 0.001 |
+
+These tables describe different experiments and should not be compared
+directly. The recorded head comparison uses two seeds, while the example
+commands above use five.
+
+Results are preliminary because the dataset and number of runs are small.
+See [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md) for full comparisons
+and evaluation details.
 
 ## Synthetic data
 
-`PYTHONPATH=classical-ml/src python -m data_tools generate-synthetic` regenerates
-the shared 200-row action dataset. `src/data.py` ensures:
+Synthetic examples are used for training only. Validation and test sets
+remain real-only.
 
-- synthetic rows enter the training split only;
-- duplicates and exact real rows are removed;
-- near-duplicates with TF-IDF cosine ≥ 0.8 are removed;
-- default `--synthetic-tasks action`; use `both` only for category.
+The data pipeline removes duplicates, exact matches to real inputs, and
+near-duplicates with TF-IDF cosine similarity ≥ 0.8.
 
-Synthetic data helps the frozen action head; it is not a substitute for more
-real `needs_reply`, `needs_action`, and `reminder` examples.
+The default is `--synthetic-tasks action`. Category augmentation requires
+valid category labels and an explicit `category` or `both` setting.
+
+Synthetic examples supplement, but do not replace, more real labelled emails.
 
 ## App integration
 
-The app loads these models through `email-sorter/app/encoder_classifier.py`:
+```bash
+python email-sorter/run.py --backend encoder
+python email-sorter/run.py --backend hybrid
+```
+
+| Backend | Category | Action |
+|---|---|---|
+| `encoder` | Encoder head | Encoder head |
+| `hybrid` | Classical ML | Encoder head |

@@ -140,12 +140,14 @@ Tuning and ablation write reports to `reports/`.
 
 ## Compare model quality
 
-Use the shared offline evaluator from the project root to compare encoder,
-classical ML, and LLM models:
+Use the shared offline evaluator from the project root to compare the encoder,
+classical ML, Llama, and Claude methods:
 
 ```bash
 python evaluation/quality.py --model all
 ```
+
+Claude calls cost money; add `--claude-limit N` to cap them.
 
 For a separate held-out comparison, pass disjoint shared-label files. Fit
 encoder and ML models on the training file and use the test file only for

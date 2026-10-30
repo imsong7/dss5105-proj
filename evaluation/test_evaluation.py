@@ -26,6 +26,7 @@ from evaluation.quality import (  # noqa: E402
     bootstrap_metrics,
     both_summary,
     evaluate_frame,
+    inference_predictions,
     llm_predictions,
     plot_offline_quality,
     selected_model_families,
@@ -147,11 +148,53 @@ class LlmPredictionTests(unittest.TestCase):
         self.assertTrue((frames["action"]["model_family"] == "llm").all())
 
 
+class ClaudePredictionTests(unittest.TestCase):
+    def test_claude_shape_and_limit(self):
+        shared = {
+            "review_id": "a",
+            "Subject": "Clinic",
+            "From": "clinic@example.com",
+            "Preview": "Appointment notice",
+            "Received DateTime": "2026-01-01",
+        }
+        category = pd.DataFrame([{**shared, "label_key": "medical"}])
+        action = pd.DataFrame(
+            [
+                {**shared, "label_key": "reminder"},
+                {**shared, "review_id": "b", "label_key": "reminder"},
+            ]
+        )
+
+        class Predictor:
+            def __init__(self):
+                self.emails = []
+
+            def classify(self, email):
+                self.emails.append(email)
+                return SimpleNamespace(category="medical", action="reminder")
+
+        predictor = Predictor()
+        frames = inference_predictions(
+            {"category": category, "action": action},
+            predictor,
+            "claude",
+            limit=1,
+        )
+
+        self.assertEqual([email.id for email in predictor.emails], ["a"])
+        self.assertEqual(frames["category"]["pred_label"].tolist(), ["medical"])
+        self.assertEqual(frames["action"]["pred_label"].tolist(), ["reminder"])
+        self.assertTrue((frames["action"]["model_family"] == "claude").all())
+
+
 class ModelFamilySelectionTests(unittest.TestCase):
     def test_model_families(self):
         self.assertEqual(selected_model_families("both"), ["encoder", "ml"])
-        self.assertEqual(selected_model_families("all"), ["encoder", "ml", "llm"])
+        self.assertEqual(
+            selected_model_families("all"), ["encoder", "ml", "llm", "claude"]
+        )
         self.assertEqual(selected_model_families("llm"), ["llm"])
+        self.assertEqual(selected_model_families("claude"), ["claude"])
 
 
 class EvaluateFrameTests(unittest.TestCase):
@@ -245,6 +288,8 @@ class EvaluationPlotTests(unittest.TestCase):
                 for family, accuracy, f1 in (
                     ("encoder", 0.8, 0.7),
                     ("ml", 0.75, 0.65),
+                    ("llm", 0.7, 0.6),
+                    ("claude", 0.85, 0.75),
                 )
             ]
         )
@@ -289,6 +334,14 @@ class ModelSelectionTests(unittest.TestCase):
         self.assertEqual(
             selected_models(SimpleNamespace(model=["encoder", "ml", "llm"], backend=None)),
             ["encoder", "ml", "llm"],
+        )
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=["all"], backend=None)),
+            ["llama", "encoder", "ml", "claude"],
+        )
+        self.assertEqual(
+            selected_models(SimpleNamespace(model=["claude"], backend=None)),
+            ["claude"],
         )
         self.assertEqual(
             selected_models(SimpleNamespace(model=None, backend="encoder-ml")),

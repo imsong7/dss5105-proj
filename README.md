@@ -10,9 +10,8 @@ This repository compares four ways to sort a student's email:
 | Claude | `claude/` | Anthropic Claude with sender rules and guardrails |
 
 `email-sorter/` is the shared Flask app: it hosts the dashboard, the mail
-sources, and every classifier backend. `evaluation/` scores the encoder, ML,
-and Llama families on the same emails; Claude results are in
-[`MODEL_COMPARISON.md`](MODEL_COMPARISON.md).
+sources, and every classifier backend. `evaluation/` scores all four methods
+on the same emails.
 
 ---
 
@@ -129,11 +128,12 @@ For a fresh comparison:
 
 ```bash
 python evaluation/quality.py --model all
-python evaluation/performance.py --model encoder ml llm
+python evaluation/performance.py --model all
 ```
 
-These commands cover the encoder, ML, and Llama families. Run either script
-with `--help` to see all options.
+These commands cover all four families. Claude calls cost money, so use
+`--claude-limit N` to cap them. Run either script with `--help` to see all
+options.
 
 ---
 
@@ -156,6 +156,8 @@ Details:
 - [`text-encoders/README.md`](text-encoders/README.md) — encoder training.
 - [`classical-ml/README.md`](classical-ml/README.md) — classical ML training.
 - [`claude/README.md`](claude/README.md) — Claude backend.
+- [`evaluation/README.md`](evaluation/README.md) — quality and performance
+  evaluation for all four methods.
 - [`MODEL_COMPARISON.md`](MODEL_COMPARISON.md) — all result tables.
 
 ---

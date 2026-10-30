@@ -173,7 +173,8 @@ Source: `evaluation/results/performance_summary.csv`
 | ml | 1.06 ms | 797 MB | — | 1.000 |
 | llama | 12,622 ms | 6321 MB | 0.000 | 1.000 |
 
-Claude is not in these old artifacts.
+Claude is not in these old artifacts. The current evaluator supports
+`--model claude`, so rerun the scripts for a fresh four-method comparison.
 
 ### Latest known Claude run (integration branch)
 
@@ -201,8 +202,8 @@ memory are not directly comparable to the 30-email backends.
 | All classical-ML models under the same CV | section 2 |
 | Effect of synthetic data on action | section 4 |
 | Best encoder head for action | section 5 |
-| App backend quality | section 8, but rerun it after the Claude integration |
-| Operational latency/memory | section 8, same caveat |
+| App backend quality | section 8, then rerun `python evaluation/quality.py --model all` to include Claude |
+| Operational latency/memory | section 8, then rerun `python evaluation/performance.py --model all` |
 
 The cleanest like-for-like comparison is the `evaluation/` run: same emails,
 same metrics, same protocol. The model reports in sections 2–7 are useful for

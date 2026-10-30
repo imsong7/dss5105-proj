@@ -1,12 +1,13 @@
 """Offline quality evaluation with bootstrap confidence intervals.
 
 Encoder and ML use out-of-fold predictions or an explicit train/test split.
-The LLM is evaluated by app inference.
+Llama and Claude are evaluated by inference on the labelled emails.
 
 Usage:
     python evaluation/quality.py
     python evaluation/quality.py --model both
     python evaluation/quality.py --model all
+    python evaluation/quality.py --model claude --claude-limit 50
     python evaluation/quality.py --model all --train-review train.csv --test-review test.csv
     python evaluation/quality.py --task action --no-synthetic
 """
@@ -61,12 +62,18 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--task", choices=["both", "category", "action"], default="both")
     ap.add_argument(
         "--model",
-        choices=["encoder", "ml", "both", "llm", "all"],
+        choices=["encoder", "ml", "both", "llm", "claude", "all"],
         default="encoder",
         help=(
             "model family to evaluate; both compares encoder and ML, "
-            "all compares encoder, ML, and LLM"
+            "all compares encoder, ML, Llama, and Claude"
         ),
+    )
+    ap.add_argument(
+        "--claude-limit",
+        type=int,
+        default=0,
+        help="max unique emails sent to the Claude API; 0 = all (API calls cost money)",
     )
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--bootstrap", type=int, default=2000)
@@ -87,7 +94,7 @@ def selected_model_families(model: str) -> list[str]:
     if model == "both":
         return ["encoder", "ml"]
     if model == "all":
-        return ["encoder", "ml", "llm"]
+        return ["encoder", "ml", "llm", "claude"]
     return [model]
 
 
@@ -414,8 +421,13 @@ def ml_oof_for_task(
     return out
 
 
-def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
-    """Classify each unique review once with the app's LLM backend."""
+def inference_predictions(
+    datasets: dict,
+    predictor=None,
+    family: str = "llm",
+    limit: int = 0,
+) -> dict[str, pd.DataFrame]:
+    """Classify each unique review once with an inference backend."""
     from app.schemas import Email
 
     if predictor is None:
@@ -426,7 +438,7 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
     input_columns = ["review_id", "Subject", "From", "Preview", "Received DateTime"]
     available_columns = ["review_id", "Subject", "From", "Preview"]
     if any(not set(available_columns) <= set(frame.columns) for frame in datasets.values()):
-        raise ValueError("LLM evaluation requires review_id, Subject, From, and Preview.")
+        raise ValueError(f"{family} evaluation requires review_id, Subject, From, and Preview.")
 
     inputs = pd.concat(
         [frame.reindex(columns=input_columns) for frame in datasets.values()],
@@ -443,8 +455,10 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
         ids = conflicting[conflicting].index.tolist()[:5]
         raise ValueError(f"Conflicting email inputs across evaluation tasks: {ids}")
     inputs = inputs.drop_duplicates("review_id").sort_values("review_id")
+    if limit and limit > 0:
+        inputs = inputs.head(limit)
 
-    print(f"[llm] classifying {len(inputs)} unique labeled emails ...", flush=True)
+    print(f"[{family}] classifying {len(inputs)} unique labeled emails ...", flush=True)
     predictions = {}
     for index, row in enumerate(inputs.itertuples(index=False), 1):
         result = predictor.classify(
@@ -456,30 +470,38 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
                 preview=row.Preview,
             )
         )
+        if hasattr(result, "content_category"):
+            category = result.content_category
+            action = result.reply_nature
+        else:
+            category = result.category
+            action = result.action
         predictions[row.review_id] = {
-            "category": str(result.content_category).strip().lower().replace(" ", "_"),
-            "action": str(result.reply_nature).strip().lower().replace(" ", "_"),
+            "category": str(category).strip().lower().replace(" ", "_"),
+            "action": str(action).strip().lower().replace(" ", "_"),
         }
         if index == 1 or index % 10 == 0 or index == len(inputs):
-            print(f"[llm] completed {index}/{len(inputs)}", flush=True)
+            print(f"[{family}] completed {index}/{len(inputs)}", flush=True)
 
+    predicted_ids = set(predictions)
     frames = {}
     for task, dataset in datasets.items():
         frame = dataset[["review_id", "label_key"]].rename(
             columns={"label_key": "true_label"}
         ).copy()
         frame["review_id"] = frame["review_id"].astype(str)
+        frame = frame[frame["review_id"].isin(predicted_ids)].copy()
         frame["dataset"] = task
         frame["task"] = task
         frame["pred_label"] = frame["review_id"].map(
             {review_id: pred[task] for review_id, pred in predictions.items()}
         )
         if frame["pred_label"].isna().any():
-            raise ValueError(f"Missing LLM predictions for {task} evaluation rows.")
+            raise ValueError(f"Missing {family} predictions for {task} evaluation rows.")
         frame["confidence"] = np.nan
-        frame["source"] = "llm"
+        frame["source"] = family
         frame["fold"] = pd.NA
-        frame["model_family"] = "llm"
+        frame["model_family"] = family
         frames[task] = frame[
             [
                 "dataset",
@@ -494,6 +516,18 @@ def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
             ]
         ]
     return frames
+
+
+def llm_predictions(datasets: dict, predictor=None) -> dict[str, pd.DataFrame]:
+    """Classify each unique review once with the app's Llama backend."""
+    return inference_predictions(datasets, predictor, "llm")
+
+
+def claude_predictions(datasets: dict, limit: int = 0) -> dict[str, pd.DataFrame]:
+    """Classify each unique review once with the Claude backend."""
+    from evaluation.claude_backend import ClaudeEvalBackend
+
+    return inference_predictions(datasets, ClaudeEvalBackend(), "claude", limit)
 
 
 # Metrics and bootstrap
@@ -602,7 +636,9 @@ def evaluate_task(
 ) -> tuple:
     frames, rows = {}, []
     model_families = [
-        family for family in selected_model_families(args.model) if family != "llm"
+        family
+        for family in selected_model_families(args.model)
+        if family not in {"llm", "claude"}
     ]
     for family_index, family in enumerate(model_families):
         if family == "encoder":
@@ -660,7 +696,7 @@ def both_summary(eval_frames: dict, args: argparse.Namespace) -> list[dict]:
     rows = []
     families = [
         family
-        for family in ("encoder", "ml", "llm")
+        for family in ("encoder", "ml", "llm", "claude")
         if f"{family}:category" in eval_frames
     ]
     for family in families:
@@ -743,14 +779,19 @@ def plot_offline_quality(summary: pd.DataFrame, path: Path) -> None:
     import matplotlib.pyplot as plt
 
     families = [
-        family for family in ("encoder", "ml", "llm")
+        family for family in ("encoder", "ml", "llm", "claude")
         if family in set(summary["model_family"])
     ]
     datasets = list(dict.fromkeys(summary["dataset"].tolist()))
     if not families or not datasets:
         raise ValueError("Offline quality summary has no model or dataset rows.")
 
-    colors = {"encoder": "#4472C4", "ml": "#ED7D31", "llm": "#70AD47"}
+    colors = {
+        "encoder": "#4472C4",
+        "ml": "#ED7D31",
+        "llm": "#70AD47",
+        "claude": "#7030A0",
+    }
     fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
     positions = np.arange(len(datasets), dtype=float)
     width = min(0.34, 0.72 / len(families))
@@ -902,6 +943,8 @@ def main() -> None:
         raise SystemExit("--folds must be >= 2")
     if args.bootstrap < 1:
         raise SystemExit("--bootstrap must be >= 1")
+    if args.claude_limit < 0:
+        raise SystemExit("--claude-limit must be >= 0")
 
     labels, tax_digest = load_taxonomy()
     tasks = ["category", "action"] if args.task == "both" else [args.task]
@@ -1028,6 +1071,24 @@ def main() -> None:
                 )
             )
 
+    if "claude" in model_families:
+        claude_frames = claude_predictions(datasets, limit=args.claude_limit)
+        for task, frame in claude_frames.items():
+            eval_frames[f"claude:{task}"] = frame
+            prediction_frames.append(frame)
+            summary_rows.append(
+                evaluate_frame(
+                    task,
+                    task,
+                    frame,
+                    metric_infos[task]["supported_labels"],
+                    args.bootstrap,
+                    args.seed,
+                    "Claude inference; no synthetic training data",
+                    "claude",
+                )
+            )
+
     summary_rows.extend(both_summary(eval_frames, args))
 
     manifest = {
@@ -1065,6 +1126,8 @@ def main() -> None:
             "action": "complement_nb_balanced",
         } if "ml" in model_families else None,
         "llm_model": None,
+        "claude_limit": args.claude_limit,
+        "claude_model": None,
         "encoders": {
             "category": args.encoder_category,
             "action": args.encoder_action,
@@ -1081,13 +1144,20 @@ def main() -> None:
         "evaluation_rows": {row["dataset"]: int(row["n"]) for row in summary_rows},
         "versions": {
             pkg: package_version(pkg)
-            for pkg in ("numpy", "pandas", "scikit-learn", "torch", "transformers")
+            for pkg in ("numpy", "pandas", "scikit-learn", "torch", "transformers", "anthropic")
         },
     }
     if "llm" in model_families:
         from app.config import settings
 
         manifest["llm_model"] = settings.ollama_model
+    if "claude" in model_families:
+        try:
+            from evaluation.claude_backend import ClaudeEvalBackend
+
+            manifest["claude_model"] = ClaudeEvalBackend().model_name
+        except Exception as exc:
+            manifest["claude_model"] = f"unavailable: {type(exc).__name__}: {exc}"
     write_artifacts(out_dir, summary_rows, prediction_frames, manifest)
 
 

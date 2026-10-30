@@ -3,10 +3,18 @@
 Measures load/cold/warm latency, peak memory, model size, token use, energy,
 invalid-format rate, 5-run consistency, and short/full agreement.
 
+Four methods can be benchmarked:
+    llama   - Ollama LLM
+    encoder - frozen text-encoder heads
+    ml      - classical TF-IDF pipelines
+    claude  - Anthropic Claude through the ``claude/`` pipeline
+
 Usage:
     python evaluation/performance.py
     python evaluation/performance.py --model encoder ml
+    python evaluation/performance.py --model all
     python evaluation/performance.py --model llm --limit 20
+    python evaluation/performance.py --model claude --claude-limit 10
     python evaluation/performance.py --no-energy --no-memory
 """
 
@@ -50,6 +58,9 @@ from src.data import MAX_LEN, build_text, load_review, load_taxonomy, task_datas
 DEFAULT_REVIEW = REPO_ROOT / "data" / "labels.csv"
 DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
 
+# Every method the benchmark can compare, in report order.
+ALL_MODELS = ["llama", "encoder", "ml", "claude"]
+
 try:
     import psutil
 except ImportError:  # pragma: no cover - optional
@@ -65,12 +76,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument(
         "--model",
         nargs="+",
-        choices=["encoder", "ml", "llm"],
+        choices=["llama", "encoder", "ml", "claude", "all"],
         help="one or more models to benchmark (default: llm encoder)",
     )
     ap.add_argument(
         "--backend",
-        choices=["both", "encoder-ml", "llama", "encoder", "ml"],
+        choices=["both", "encoder-ml", "llama", "encoder", "ml", "claude"],
         help=argparse.SUPPRESS,
     )
     ap.add_argument(
@@ -78,6 +89,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=30,
         help="sample size; 0 = all usable emails",
+    )
+    ap.add_argument(
+        "--claude-limit",
+        type=int,
+        default=0,
+        help="max emails for the Claude backend; 0 = use the full sample (API calls cost money)",
     )
     ap.add_argument("--runs", type=int, default=5, help="calls per email")
     ap.add_argument("--warmup", type=int, default=2, help="warm-up calls (not measured)")
@@ -99,7 +116,9 @@ def selected_models(args: argparse.Namespace) -> list[str]:
     if args.model and args.backend:
         raise SystemExit("Use either --model or the legacy --backend option, not both.")
     if args.model:
-        selected = args.model
+        selected = []
+        for value in args.model:
+            selected.extend(ALL_MODELS if value == "all" else [value])
     elif args.backend == "both":
         selected = ["llm", "encoder"]
     elif args.backend == "encoder-ml":
@@ -595,13 +614,61 @@ class MLBackend:
         }
 
 
-def make_backend(name: str) -> LlamaBackend | EncoderBackend | MLBackend:
+class ClaudeBackend:
+    """Anthropic Claude through the ``claude/`` pipeline.
+
+    The Claude project owns the taxonomy, sender rules, and guardrails; the
+    adapter only maps its labels onto the email-sorter taxonomy so the four
+    methods can be compared in one table.
+    """
+
+    name = "claude"
+
+    def __init__(self) -> None:
+        from evaluation.claude_backend import ClaudeEvalBackend
+
+        self.inner = ClaudeEvalBackend()
+
+    def predict(self, email: Email) -> Prediction:
+        result = self.inner.predict(email)
+        return Prediction(
+            category=result.category,
+            action=result.action,
+            raw_valid=result.raw_valid,
+            invalid_reason=result.invalid_reason,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            raw_excerpt=result.raw_excerpt,
+        )
+
+    def token_usage(self, email: Email, pred: Prediction) -> tuple:
+        return pred.input_tokens, pred.output_tokens
+
+    def backend_notes(self) -> list[str]:
+        """Warnings about labels that could not be mapped."""
+        return list(getattr(self.inner, "mapping_notes", []))
+
+    def check_health(self) -> None:
+        """Abort the run when the API call itself failed."""
+        classifier = self.inner.clf
+        if getattr(classifier, "api_failed", False):
+            raise RuntimeError(
+                f"Claude API call failed: {getattr(classifier, 'last_error', 'unknown error')}"
+            )
+
+    def model_info(self) -> dict:
+        return {"model": f"claude ({self.inner.model_name})"}
+
+
+def make_backend(name: str) -> LlamaBackend | EncoderBackend | MLBackend | ClaudeBackend:
     if name == "llama":
         return LlamaBackend()
     if name == "encoder":
         return EncoderBackend()
     if name == "ml":
         return MLBackend()
+    if name == "claude":
+        return ClaudeBackend()
     raise ValueError(f"unknown backend: {name}")
 
 
@@ -634,7 +701,7 @@ def unload_ollama() -> None:
 
 # Running and stats
 def _timed_predict(
-    backend: LlamaBackend | EncoderBackend | MLBackend, email: Email
+    backend: LlamaBackend | EncoderBackend | MLBackend | ClaudeBackend, email: Email
 ) -> tuple:
     start = time.perf_counter()
     pred = backend.predict(email)
@@ -689,6 +756,8 @@ def run_backend(name: str, rows: pd.DataFrame, args: argparse.Namespace) -> tupl
         init_start = time.perf_counter()
         backend = make_backend(name)
         init_ms = (time.perf_counter() - init_start) * 1000
+        if hasattr(backend, "check_health"):
+            backend.check_health()
 
         first = rows.iloc[0]
         full_text = str(first.get("Preview", ""))
@@ -802,9 +871,15 @@ def _summarise(
 
     invalid = [r for r in scored if r.raw_valid is False]
     invalid_main = [r for r in main if r.raw_valid is False]
-    invalid_rate = len(invalid) / len(scored) if scored and name == "llama" else None
+    invalid_rate = (
+        len(invalid) / len(scored)
+        if scored and name in {"llama", "claude"}
+        else None
+    )
     invalid_main_rate = (
-        len(invalid_main) / len(main) if main and name == "llama" else None
+        len(invalid_main) / len(main)
+        if main and name in {"llama", "claude"}
+        else None
     )
     reasons = Counter(r.invalid_reason or "unknown" for r in invalid)
 
@@ -818,6 +893,9 @@ def _summarise(
     if name == "llama":
         notes.append("cold call includes Ollama load if model was unloaded")
         notes.append("invalid rate uses raw JSON/labels before Pydantic coercion")
+    elif name == "claude":
+        notes.append("Claude API; tokens come from the response usage")
+        notes.append("invalid rate uses raw JSON/labels before mapping")
     elif name == "encoder":
         notes.append("constructor loads both encoders and heads")
     else:
@@ -826,6 +904,8 @@ def _summarise(
         notes.append(f"energy: {energy['error']}")
     if model_info.get("error"):
         notes.append(f"model_info: {model_info['error']}")
+    if backend is not None and hasattr(backend, "backend_notes"):
+        notes.extend(backend.backend_notes())
     if reasons:
         notes.append(
             "invalid reasons: "
@@ -872,8 +952,7 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
         f"Sample: {manifest['sample_n']} of {manifest['total_rows']} action-usable emails "
         f"| runs/email: {manifest['runs']} | seed: {manifest['seed']}",
         f"Input: full = body/Preview (Llama cap {manifest['body_char_limit']} chars); "
-        f"short = first {manifest['short_chars']} chars",
-        "",
+        f"short = first {manifest['short_chars']} chars",        "",
     ]
     header = (
         f"{'Backend':<8} {'N':>3} {'Load ms':>8} {'Cold ms':>8} "
@@ -905,10 +984,11 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
             "- Cold = first call after construction; warm stats exclude cold/warm-up.",
             "- Peak MB is benchmark process + Ollama server RSS (Llama); model MB is on-disk size.",
             "- Llama tokens include the system prompt; encoder tokens are head inputs; ML has no tokens.",
-            "- Invalid-format checks apply only to Llama's raw JSON output.",
+            "- Invalid-format checks apply to Llama and Claude raw JSON output.",
             f"- Consistency = all runs identical; Short/full = first full run vs first "
             f"{manifest['short_chars']} chars.",
             "- Energy is CodeCarbon machine-wide; it may include the Ollama server.",
+            "- Claude calls cost money; the Claude sample is capped separately.",
             "- This is an operational benchmark, not the offline quality evaluation.",
         ]
     )
@@ -954,6 +1034,7 @@ def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
             "encoder": "Text encoder",
             "ml": "Classical ML",
             "llama": "Llama",
+            "claude": "Claude",
         }
         model_names = [
             labels.get(str(name), str(name)) for name in successful["backend"]
@@ -1034,6 +1115,8 @@ def main() -> None:
         raise SystemExit("--short-chars must be >= 1")
     if args.warmup < 0:
         raise SystemExit("--warmup must be >= 0")
+    if args.claude_limit < 0:
+        raise SystemExit("--claude-limit must be >= 0")
 
     rows, meta = load_benchmark_rows(args)
     models = selected_models(args)
@@ -1047,7 +1130,17 @@ def main() -> None:
     all_records = []
     for name in backends:
         print(f"\n=== {name} ===", flush=True)
-        summary, records = run_backend(name, rows, args)
+        backend_rows = (
+            rows.head(args.claude_limit)
+            if name == "claude" and args.claude_limit
+            else rows
+        )
+        if name == "claude" and args.claude_limit:
+            print(
+                f"[claude] benchmarking {len(backend_rows)} of {len(rows)} emails "
+                f"(--claude-limit {args.claude_limit})"
+            )
+        summary, records = run_backend(name, backend_rows, args)
         summary_rows.append(summary)
         all_records.extend(records)
         if summary.get("error"):
@@ -1068,6 +1161,7 @@ def main() -> None:
         "review_file": display_path(args.review, REPO_ROOT),
         "model": models,
         "limit": args.limit,
+        "claude_limit": args.claude_limit,
         "total_rows": meta["total_rows"],
         "sample_n": meta["sample_n"],
         "sample_action_counts": meta["sample_action_counts"],
@@ -1083,6 +1177,11 @@ def main() -> None:
         "input_protocol": {
             "full": "body/Preview; Llama truncated to body_char_limit, text encoder to MAX_LEN tokens",
             "short": f"first {args.short_chars} characters of body/Preview",
+            "claude_cap": (
+                f"first {args.claude_limit} sampled emails"
+                if args.claude_limit
+                else "full sample"
+            ),
         },
         "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
         "versions": {
@@ -1095,6 +1194,7 @@ def main() -> None:
                 "transformers",
                 "langchain-core",
                 "langchain-ollama",
+                "anthropic",
                 "psutil",
                 "codecarbon",
             )

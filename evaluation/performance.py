@@ -1,29 +1,34 @@
 """Benchmark the deployed email-sorter backends.
 
-Measures warm latency, peak memory, token use and invalid-format rate.
+Measures load/cold/warm latency, peak memory, model size, token use, energy,
+invalid-format rate, 5-run consistency, and short/full agreement.
 
-Four methods can be compared in one table:
-    llama  - Ollama LLM (email-sorter)
-    bert   - frozen text-encoder heads (email-sorter)
-    ml     - classical TF-IDF pipelines (email-sorter)
-    claude - Anthropic Claude API through the inbox-sorter pipeline
+Four methods can be benchmarked:
+    llama   - Ollama LLM
+    encoder - frozen text-encoder heads
+    ml      - classical TF-IDF pipelines
+    claude  - Anthropic Claude through the ``claude/`` pipeline
 
 Usage:
     python evaluation/performance.py
-    python evaluation/performance.py --model bert ml
+    python evaluation/performance.py --model encoder ml
     python evaluation/performance.py --model all
     python evaluation/performance.py --model llm --limit 20
+    python evaluation/performance.py --model claude --claude-limit 10
+    python evaluation/performance.py --no-energy --no-memory
 """
 
 import argparse
 import gc
 import json
+import os
 import statistics
+import subprocess
 import sys
 import threading
 import time
 import traceback
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,12 +39,13 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EMAIL_DIR = REPO_ROOT / "email-sorter"
 ENCODERS_DIR = REPO_ROOT / "text-encoders"
-for _path in (REPO_ROOT, EMAIL_DIR, ENCODERS_DIR):
+CLASSICAL_ML_DIR = REPO_ROOT / "classical-ml"
+for _path in (REPO_ROOT, EMAIL_DIR, ENCODERS_DIR, CLASSICAL_ML_DIR / "src"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
 from app.config import settings  # noqa: E402
-from app.models import Email  # noqa: E402
+from app.schemas import Email  # noqa: E402
 from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE  # noqa: E402
 from evaluation import (  # noqa: E402
     display_path,
@@ -53,9 +59,7 @@ DEFAULT_REVIEW = REPO_ROOT / "data" / "labels.csv"
 DEFAULT_OUT = REPO_ROOT / "evaluation" / "results"
 
 # Every method the benchmark can compare, in report order.
-ALL_MODELS = ["llama", "bert", "ml", "claude"]
-# Backends whose output is a free-form JSON answer that can fail validation.
-JSON_BACKENDS = {"llama", "claude"}
+ALL_MODELS = ["llama", "encoder", "ml", "claude"]
 
 try:
     import psutil
@@ -64,7 +68,7 @@ except ImportError:  # pragma: no cover - optional
 
 
 # Arguments and data
-def parse_args(argv=None) -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -72,8 +76,13 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument(
         "--model",
         nargs="+",
-        choices=["bert", "ml", "llm", "claude", "all"],
-        help="one or more models to benchmark (default: llm bert)",
+        choices=["llama", "encoder", "ml", "claude", "all"],
+        help="one or more models to benchmark (default: llm encoder)",
+    )
+    ap.add_argument(
+        "--backend",
+        choices=["both", "encoder-ml", "llama", "encoder", "ml", "claude"],
+        help=argparse.SUPPRESS,
     )
     ap.add_argument(
         "--limit",
@@ -89,18 +98,35 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     ap.add_argument("--runs", type=int, default=5, help="calls per email")
     ap.add_argument("--warmup", type=int, default=2, help="warm-up calls (not measured)")
+    ap.add_argument("--short-chars", type=int, default=200, help="short-input characters")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--country", default="SGP", help="CodeCarbon country code")
+    ap.add_argument(
+        "--unload-ollama",
+        action="store_true",
+        help="unload Ollama first so the cold call includes model load",
+    )
+    ap.add_argument("--no-energy", action="store_true", help="disable energy tracking")
+    ap.add_argument("--no-memory", action="store_true", help="disable memory sampling")
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT))
-    return ap.parse_args(argv)
+    return ap.parse_args()
 
 
 def selected_models(args: argparse.Namespace) -> list[str]:
+    if args.model and args.backend:
+        raise SystemExit("Use either --model or the legacy --backend option, not both.")
     if args.model:
         selected = []
         for value in args.model:
             selected.extend(ALL_MODELS if value == "all" else [value])
+    elif args.backend == "both":
+        selected = ["llm", "encoder"]
+    elif args.backend == "encoder-ml":
+        selected = ["encoder", "ml"]
+    elif args.backend:
+        selected = ["llm" if args.backend == "llama" else args.backend]
     else:
-        selected = ["llm", "bert"]
+        selected = ["llm", "encoder"]
 
     if len(set(selected)) != len(selected):
         raise SystemExit("--model values must not be repeated.")
@@ -158,7 +184,7 @@ def email_for(row: pd.Series, text: str) -> Email:
     )
 
 
-# Memory
+# Memory and energy
 class MemorySampler:
     """Sample benchmark-process RSS and (optionally) Ollama server RSS."""
 
@@ -240,6 +266,59 @@ class MemorySampler:
         }
 
 
+class EnergyMeter:
+    """Optional CodeCarbon wrapper. The tracker is machine-wide."""
+
+    def __init__(self, country: str, enabled: bool = True):
+        self.enabled = enabled
+        self.country = country
+        self.tracker = None
+        self.error = None
+        if not enabled:
+            return
+        try:
+            from codecarbon import OfflineEmissionsTracker
+
+            self.tracker = OfflineEmissionsTracker(
+                project_name="email-sorter-operational",
+                country_iso_code=country,
+                measure_power_secs=1,
+                save_to_file=False,
+                log_level="error",
+            )
+        except Exception as exc:  # pragma: no cover - optional dependency
+            self.error = f"{type(exc).__name__}: {exc}"
+
+    def start(self) -> None:
+        if self.tracker is None:
+            return
+        try:
+            self.tracker.start()
+        except Exception as exc:  # pragma: no cover
+            self.error = f"{type(exc).__name__}: {exc}"
+            self.tracker = None
+
+    def stop(self) -> dict:
+        if self.tracker is None:
+            return {"enabled": False, "error": self.error}
+        try:
+            self.tracker.stop()
+            data = getattr(self.tracker, "final_emissions_data", None)
+            return {
+                "enabled": True,
+                "energy_kwh": getattr(data, "energy_consumed", None),
+                "co2_kg": getattr(data, "emissions", None),
+                "duration_s": getattr(data, "duration", None),
+                "cpu_power_w": getattr(data, "cpu_power", None),
+                "ram_power_w": getattr(data, "ram_power", None),
+                "tracking_mode": getattr(data, "tracking_mode", None),
+                "country": getattr(data, "country_iso_code", self.country),
+                "error": None,
+            }
+        except Exception as exc:  # pragma: no cover
+            return {"enabled": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
 # Backends
 @dataclass
 class Prediction:
@@ -249,6 +328,7 @@ class Prediction:
     invalid_reason: str | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    server_load_ms: float | None = None
     raw_excerpt: str = ""
 
 
@@ -258,6 +338,8 @@ class CallRecord:
     review_id: str
     phase: str
     run: int
+    input_mode: str
+    input_chars: int
     latency_ms: float
     category: str
     action: str
@@ -265,6 +347,7 @@ class CallRecord:
     invalid_reason: str | None
     input_tokens: int | None
     output_tokens: int | None
+    server_load_ms: float | None
     true_action: str
     true_category: str
     raw_excerpt: str
@@ -338,6 +421,8 @@ class LlamaBackend:
         meta = getattr(raw, "response_metadata", None) or {}
         input_tokens = usage.get("input_tokens") or meta.get("prompt_eval_count")
         output_tokens = usage.get("output_tokens") or meta.get("eval_count")
+        load_ns = meta.get("load_duration")
+        server_load_ms = float(load_ns) / 1_000_000 if load_ns is not None else None
         return Prediction(
             category=category,
             action=action,
@@ -345,6 +430,7 @@ class LlamaBackend:
             invalid_reason=reason,
             input_tokens=int(input_tokens) if input_tokens is not None else None,
             output_tokens=int(output_tokens) if output_tokens is not None else None,
+            server_load_ms=server_load_ms,
             raw_excerpt=excerpt,
         )
 
@@ -352,18 +438,64 @@ class LlamaBackend:
         return pred.input_tokens, pred.output_tokens
 
     def model_info(self) -> dict:
-        return {"model": settings.ollama_model}
+        import requests
+
+        base = settings.ollama_base_url.rstrip("/")
+        info = {
+            "model": settings.ollama_model,
+            "model_size_mb": None,
+            "loaded_size_mb": None,
+            "model_detail": "",
+        }
+        try:
+            tags = requests.get(base + "/api/tags", timeout=15).json()
+            models = tags.get("models", [])
+            match = next(
+                (
+                    m
+                    for m in models
+                    if m.get("name") == settings.ollama_model
+                    or m.get("model") == settings.ollama_model
+                    or str(m.get("name", "")).startswith(settings.ollama_model)
+                ),
+                None,
+            )
+            if match:
+                info["model_size_mb"] = float(match.get("size", 0)) / (1024 * 1024)
+                details = match.get("details") or {}
+                info["model_detail"] = ", ".join(
+                    f"{k}={v}" for k, v in details.items() if v
+                )
+        except Exception as exc:
+            info["error"] = f"tags: {type(exc).__name__}: {exc}"
+
+        try:
+            ps = requests.get(base + "/api/ps", timeout=15).json()
+            loaded = next(
+                (
+                    m
+                    for m in ps.get("models", [])
+                    if m.get("name") == settings.ollama_model
+                    or m.get("model") == settings.ollama_model
+                ),
+                None,
+            )
+            if loaded:
+                info["loaded_size_mb"] = float(loaded.get("size", 0)) / (1024 * 1024)
+        except Exception as exc:
+            info.setdefault("error", f"ps: {type(exc).__name__}: {exc}")
+        return info
 
 
-class BertBackend:
-    name = "bert"
+class EncoderBackend:
+    name = "encoder"
 
     def __init__(self) -> None:
-        from app.bert_classifier import BertClassifier
+        from app.encoder_classifier import EncoderClassifier
 
-        self.clf = BertClassifier()
+        self.clf = EncoderClassifier()
         if not self.clf.available:
-            raise RuntimeError("BERT models are not available")
+            raise RuntimeError("Text-encoder models are not available")
 
     def predict(self, email: Email) -> Prediction:
         result = self.clf.classify(email)
@@ -378,7 +510,7 @@ class BertBackend:
     def _count_tokens(self, predictor, email: Email) -> int:
         if predictor is None:
             return 0
-        from app.bert_classifier import _model_text
+        from app.encoder_classifier import _model_text
 
         text = predictor.enc.prefix + build_text(
             email.subject, email.sender, _model_text(email)
@@ -389,7 +521,7 @@ class BertBackend:
         return len(ids)
 
     def token_usage(self, email: Email, pred: Prediction) -> tuple:
-        from app.rules import category_by_rule
+        from app.sender_rules import category_by_rule
 
         category_tokens = 0
         if not category_by_rule(email.sender):
@@ -398,7 +530,53 @@ class BertBackend:
         return category_tokens + action_tokens, 0
 
     def model_info(self) -> dict:
-        return {"model": "bge-small-en + e5-small-multi"}
+        head_dirs = [
+            ENCODERS_DIR / "models" / "category_head",
+            ENCODERS_DIR / "models" / "action_head",
+        ]
+        head_size = sum(_dir_size_mb(d) for d in head_dirs if d.exists())
+        encoder_ids = set()
+        for d in head_dirs:
+            manifest = d / "manifest.json"
+            if manifest.exists():
+                try:
+                    encoder_ids.add(json.loads(manifest.read_text())["encoder_model_id"])
+                except Exception:
+                    pass
+
+        encoder_size = 0.0
+        found_encoder = False
+        try:
+            from huggingface_hub.constants import HF_HUB_CACHE
+
+            cache = Path(HF_HUB_CACHE)
+            for model_id in sorted(encoder_ids):
+                folder = cache / ("models--" + model_id.replace("/", "--"))
+                if not folder.exists():
+                    continue
+                ref = folder / "refs" / "main"
+                snapshot = folder
+                if ref.exists():
+                    commit = ref.read_text(encoding="utf-8").strip()
+                    candidate = folder / "snapshots" / commit
+                    if candidate.exists():
+                        snapshot = candidate
+                size = _dir_size_mb(snapshot)
+                if size:
+                    encoder_size += size
+                    found_encoder = True
+        except Exception:
+            pass
+
+        total = head_size + (encoder_size if found_encoder else 0)
+        return {
+            "model": "bge-small-en + e5-small-multi",
+            "model_size_mb": total if (head_size or found_encoder) else None,
+            "head_size_mb": head_size if head_size else None,
+            "encoder_size_mb": encoder_size if found_encoder else None,
+            "loaded_size_mb": None,
+            "model_detail": ", ".join(sorted(encoder_ids)),
+        }
 
 
 class MLBackend:
@@ -423,23 +601,33 @@ class MLBackend:
         return None, 0
 
     def model_info(self) -> dict:
-        return {"model": "TF-IDF LinearSVC + ComplementNB"}
+        models = [
+            CLASSICAL_ML_DIR / "artifacts" / "email_category_model.joblib",
+            CLASSICAL_ML_DIR / "artifacts" / "required_action_model.joblib",
+        ]
+        size = sum(path.stat().st_size for path in models if path.is_file())
+        return {
+            "model": "TF-IDF LinearSVC + ComplementNB",
+            "model_size_mb": size / (1024 * 1024) if size else None,
+            "loaded_size_mb": None,
+            "model_detail": "production pipelines",
+        }
 
 
 class ClaudeBackend:
-    """Anthropic Claude through the inbox-sorter pipeline.
+    """Anthropic Claude through the ``claude/`` pipeline.
 
-    The inbox-sorter owns the taxonomy, the sender rules and the guardrails;
-    the adapter only maps its labels onto the email-sorter taxonomy so the
-    four methods can be compared in one table.
+    The Claude project owns the taxonomy, sender rules, and guardrails; the
+    adapter only maps its labels onto the email-sorter taxonomy so the four
+    methods can be compared in one table.
     """
 
     name = "claude"
 
     def __init__(self) -> None:
-        from evaluation.inbox_sorter import InboxSorterBackend
+        from evaluation.claude_backend import ClaudeEvalBackend
 
-        self.inner = InboxSorterBackend()
+        self.inner = ClaudeEvalBackend()
 
     def predict(self, email: Email) -> Prediction:
         result = self.inner.predict(email)
@@ -457,11 +645,11 @@ class ClaudeBackend:
         return pred.input_tokens, pred.output_tokens
 
     def backend_notes(self) -> list[str]:
-        """Warnings about labels that could not be mapped (renamed in config.yaml)."""
+        """Warnings about labels that could not be mapped."""
         return list(getattr(self.inner, "mapping_notes", []))
 
     def check_health(self) -> None:
-        """Abort the run when the API call itself failed (key, quota, network)."""
+        """Abort the run when the API call itself failed."""
         classifier = self.inner.clf
         if getattr(classifier, "api_failed", False):
             raise RuntimeError(
@@ -472,13 +660,11 @@ class ClaudeBackend:
         return {"model": f"claude ({self.inner.model_name})"}
 
 
-def make_backend(
-    name: str,
-) -> LlamaBackend | BertBackend | MLBackend | ClaudeBackend:
+def make_backend(name: str) -> LlamaBackend | EncoderBackend | MLBackend | ClaudeBackend:
     if name == "llama":
         return LlamaBackend()
-    if name == "bert":
-        return BertBackend()
+    if name == "encoder":
+        return EncoderBackend()
     if name == "ml":
         return MLBackend()
     if name == "claude":
@@ -486,52 +672,57 @@ def make_backend(
     raise ValueError(f"unknown backend: {name}")
 
 
-def _claude_model_name() -> str | None:
-    """Read the inbox-sorter's Claude model name without calling the API."""
+def _dir_size_mb(path: Path) -> float:
     try:
-        from evaluation.inbox_sorter import load_inbox_modules
-
-        modules = load_inbox_modules()
-        classifier = modules.llm.ClaudeClassifier(modules.config.get_config())
-        return classifier.model or None
+        files = {p.resolve() for p in path.rglob("*") if p.is_file()}
+        return sum(p.stat().st_size for p in files) / (1024 * 1024)
     except Exception:
-        return None
+        return 0.0
 
 
-def _claude_input_cap() -> int | None:
-    """The inbox-sorter's per-email character cap for the text sent to Claude."""
+def unload_ollama() -> None:
+    env = os.environ.copy()
+    host = settings.ollama_base_url.replace("http://", "").replace("https://", "")
+    env["OLLAMA_HOST"] = host.rstrip("/")
     try:
-        from evaluation.inbox_sorter import load_inbox_modules
-
-        modules = load_inbox_modules()
-        cfg = modules.config.get_config()
-        return int((cfg.get("preprocess") or {}).get("max_chars", 4000))
-    except Exception:
-        return None
+        subprocess.run(
+            ["ollama", "stop", settings.ollama_model],
+            env=env,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        time.sleep(0.5)
+        print(f"[llama] requested unload of {settings.ollama_model}")
+    except Exception as exc:
+        print(f"[llama] could not unload model: {type(exc).__name__}: {exc}")
 
 
 # Running and stats
 def _timed_predict(
-    backend: LlamaBackend | BertBackend | MLBackend | ClaudeBackend, email: Email
+    backend: LlamaBackend | EncoderBackend | MLBackend | ClaudeBackend, email: Email
 ) -> tuple:
     start = time.perf_counter()
     pred = backend.predict(email)
     return pred, (time.perf_counter() - start) * 1000
 
 
-def _call(backend, name, row, phase, run, text) -> CallRecord:
+def _call(backend, name, row, phase, run, mode, text) -> CallRecord:
     email = email_for(row, text)
     pred, latency = _timed_predict(backend, email)
     pred.input_tokens, pred.output_tokens = backend.token_usage(email, pred)
-    return _record(name, row, pred, latency, phase, run)
+    return _record(name, row, pred, latency, phase, run, mode, text)
 
 
-def _record(backend, row, pred, latency_ms, phase, run) -> CallRecord:
+def _record(backend, row, pred, latency_ms, phase, run, input_mode, text) -> CallRecord:
     return CallRecord(
         backend=backend,
         review_id=str(row["review_id"]),
         phase=phase,
         run=run,
+        input_mode=input_mode,
+        input_chars=len(text),
         latency_ms=latency_ms,
         category=pred.category,
         action=pred.action,
@@ -539,6 +730,7 @@ def _record(backend, row, pred, latency_ms, phase, run) -> CallRecord:
         invalid_reason=pred.invalid_reason,
         input_tokens=pred.input_tokens,
         output_tokens=pred.output_tokens,
+        server_load_ms=pred.server_load_ms,
         true_action=str(row["label_key"]),
         true_category=str(row.get("category", "")),
         raw_excerpt=pred.raw_excerpt,
@@ -547,43 +739,93 @@ def _record(backend, row, pred, latency_ms, phase, run) -> CallRecord:
 
 def run_backend(name: str, rows: pd.DataFrame, args: argparse.Namespace) -> tuple:
     records = []
-    sampler = MemorySampler(include_ollama=(name == "llama"))
+    sampler = MemorySampler(include_ollama=(name == "llama"), enabled=not args.no_memory)
+    energy = EnergyMeter(country=args.country, enabled=not args.no_energy)
     backend = None
+    init_ms = None
+    cold = None
     error = None
 
+    if name == "llama" and args.unload_ollama:
+        unload_ollama()
     gc.collect()
     sampler.start()
+    energy.start()
+
     try:
+        init_start = time.perf_counter()
         backend = make_backend(name)
+        init_ms = (time.perf_counter() - init_start) * 1000
+        if hasattr(backend, "check_health"):
+            backend.check_health()
+
+        first = rows.iloc[0]
+        full_text = str(first.get("Preview", ""))
+        cold = _call(backend, name, first, "cold", 0, "full", full_text)
+        records.append(cold)
 
         for _, row in rows.head(args.warmup).iterrows():
             text = str(row.get("Preview", ""))
-            records.append(_call(backend, name, row, "warmup", 0, text))
-        if records and hasattr(backend, "check_health"):
-            backend.check_health()
+            records.append(_call(backend, name, row, "warmup", 0, "full", text))
 
         for run in range(1, args.runs + 1):
             print(f"[{name}] run {run}/{args.runs} ({len(rows)} emails) ...", flush=True)
             for _, row in rows.iterrows():
                 text = str(row.get("Preview", ""))
-                records.append(_call(backend, name, row, "main", run, text))
+                records.append(_call(backend, name, row, "main", run, "full", text))
+
+        print(f"[{name}] short-input pass ({len(rows)} emails) ...", flush=True)
+        for _, row in rows.iterrows():
+            text = str(row.get("Preview", ""))[: args.short_chars]
+            records.append(_call(backend, name, row, "length_short", 0, "short", text))
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         print(f"[{name}] benchmark failed: {error}")
         traceback.print_exc()
     finally:
+        energy_data = energy.stop()
         memory = sampler.stop()
 
+    consistency, length = _agreement(records, args)
     summary = _summarise(
         name=name,
         backend=backend,
         rows=rows,
         records=records,
+        consistency=consistency,
+        length=length,
+        init_ms=init_ms,
+        cold=cold,
+        energy=energy_data,
         memory=memory,
         error=error,
         args=args,
     )
     return summary, records
+
+
+def _agreement(records: list[CallRecord], args: argparse.Namespace) -> tuple:
+    main = [r for r in records if r.phase == "main"]
+    by_id = defaultdict(list)
+    for r in main:
+        by_id[r.review_id].append(r)
+
+    consistency = []
+    for group in by_id.values():
+        if len(group) != args.runs:
+            continue
+        cats = {r.category for r in group}
+        acts = {r.action for r in group}
+        consistency.append(len(cats) == 1 and len(acts) == 1)
+
+    full = {r.review_id: r for r in main if r.run == 1}
+    short = {r.review_id: r for r in records if r.phase == "length_short"}
+    length = [
+        full[rid].category == short[rid].category
+        and full[rid].action == short[rid].action
+        for rid in sorted(set(full) & set(short))
+    ]
+    return consistency, length
 
 
 def _pct(values: list[float], q: float) -> float | None:
@@ -600,36 +842,68 @@ def _summarise(
     backend,
     rows,
     records,
+    consistency,
+    length,
+    init_ms,
+    cold,
+    energy,
     memory,
     error,
     args,
 ) -> dict:
     main = [r for r in records if r.phase == "main"]
+    scored = [r for r in records if r.phase in {"main", "length_short"}]
     latencies = [r.latency_ms for r in main]
     warm_p50 = _pct(latencies, 50)
+    warm_p95 = _pct(latencies, 95)
+
+    cold_ms = cold.latency_ms if cold else None
+    server_load_ms = cold.server_load_ms if cold else None
+    if name == "llama":
+        load_ms = (
+            (init_ms or 0) + (server_load_ms or 0) if init_ms is not None else None
+        )
+    else:
+        load_ms = init_ms
 
     input_tokens = [r.input_tokens for r in main if r.input_tokens is not None]
     output_tokens = [r.output_tokens for r in main if r.output_tokens is not None]
 
-    invalid = [r for r in main if r.raw_valid is False]
-    checks_format = name in JSON_BACKENDS
-    invalid_rate = len(invalid) / len(main) if main and checks_format else None
+    invalid = [r for r in scored if r.raw_valid is False]
+    invalid_main = [r for r in main if r.raw_valid is False]
+    invalid_rate = (
+        len(invalid) / len(scored)
+        if scored and name in {"llama", "claude"}
+        else None
+    )
+    invalid_main_rate = (
+        len(invalid_main) / len(main)
+        if main and name in {"llama", "claude"}
+        else None
+    )
     reasons = Counter(r.invalid_reason or "unknown" for r in invalid)
+
+    consistency_rate = _mean(consistency) if args.runs > 1 else None
+    length_rate = _mean(length)
 
     model_info = backend.model_info() if backend is not None else {}
     notes = []
     if error:
         notes.append(f"error: {error}")
     if name == "llama":
+        notes.append("cold call includes Ollama load if model was unloaded")
         notes.append("invalid rate uses raw JSON/labels before Pydantic coercion")
-    elif name == "bert":
-        notes.append("constructor loads both encoders and heads")
     elif name == "claude":
-        notes.append("inbox-sorter pipeline: sender rules -> Claude API -> guardrails")
-        notes.append("remote API: latency includes network round-trips")
-        notes.append("invalid rate uses the raw JSON before label validation")
+        notes.append("Claude API; tokens come from the response usage")
+        notes.append("invalid rate uses raw JSON/labels before mapping")
+    elif name == "encoder":
+        notes.append("constructor loads both encoders and heads")
     else:
         notes.append("constructor loads both classical ML pipelines")
+    if energy.get("error"):
+        notes.append(f"energy: {energy['error']}")
+    if model_info.get("error"):
+        notes.append(f"model_info: {model_info['error']}")
     if backend is not None and hasattr(backend, "backend_notes"):
         notes.extend(backend.backend_notes())
     if reasons:
@@ -644,11 +918,20 @@ def _summarise(
         "model": model_info.get("model", ""),
         "sample_n": len(rows),
         "runs": args.runs,
+        "load_ms": load_ms,
+        "cold_call_ms": cold_ms,
         "warm_p50_ms": warm_p50,
+        "warm_p95_ms": warm_p95,
         "peak_total_mb": memory.get("peak_total_mb"),
+        "model_size_mb": model_info.get("model_size_mb"),
         "input_tokens_mean": _mean(input_tokens),
         "output_tokens_mean": _mean(output_tokens),
+        "energy_kwh": energy.get("energy_kwh"),
+        "co2_kg": energy.get("co2_kg"),
         "invalid_format_rate": invalid_rate,
+        "invalid_format_rate_main": invalid_main_rate,
+        "consistency_exact": consistency_rate,
+        "length_both": length_rate,
         "notes": "; ".join(notes),
     }
 
@@ -668,12 +951,14 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
         "Operational performance — email-sorter backends",
         f"Sample: {manifest['sample_n']} of {manifest['total_rows']} action-usable emails "
         f"| runs/email: {manifest['runs']} | seed: {manifest['seed']}",
-        f"Input: body/Preview (Llama cap {manifest['body_char_limit']} chars)",
-        "",
+        f"Input: full = body/Preview (Llama cap {manifest['body_char_limit']} chars); "
+        f"short = first {manifest['short_chars']} chars",        "",
     ]
     header = (
-        f"{'Backend':<8} {'N':>3} {'Warm p50 ms':>12} {'Peak MB':>8} "
-        f"{'In tok':>7} {'Out tok':>7} {'Invalid':>7}"
+        f"{'Backend':<8} {'N':>3} {'Load ms':>8} {'Cold ms':>8} "
+        f"{'Warm p50':>9} {'Warm p95':>9} {'Peak MB':>8} {'Model MB':>9} "
+        f"{'In tok':>7} {'Out tok':>7} {'Energy kWh':>10} {'Invalid':>7} "
+        f"{'Consist.':>8} {'Short/full':>10}"
     )
     lines.append(header)
     lines.append("-" * len(header))
@@ -684,32 +969,31 @@ def render_report(summary: pd.DataFrame, manifest: dict) -> str:
             continue
         lines.append(
             f"{row['backend']:<8} {int(row['sample_n']):>3} "
-            f"{fmt(row['warm_p50_ms']):>12} {fmt(row['peak_total_mb']):>8} "
+            f"{fmt(row['load_ms']):>8} {fmt(row['cold_call_ms']):>8} "
+            f"{fmt(row['warm_p50_ms']):>9} {fmt(row['warm_p95_ms']):>9} "
+            f"{fmt(row['peak_total_mb']):>8} {fmt(row['model_size_mb']):>9} "
             f"{fmt(row['input_tokens_mean']):>7} {fmt(row['output_tokens_mean']):>7} "
-            f"{fmt(row['invalid_format_rate'], 3):>7}"
+            f"{fmt(row['energy_kwh'], 6):>10} {fmt(row['invalid_format_rate'], 3):>7} "
+            f"{fmt(row['consistency_exact'], 3):>8} {fmt(row['length_both'], 3):>10}"
         )
     lines.extend(
         [
             "",
             "Notes:",
-            "- Warm latency excludes warm-up calls.",
-            "- Peak MB is benchmark process + Ollama server RSS (Llama).",
+            "- Load = classifier construction + Ollama model load (Llama).",
+            "- Cold = first call after construction; warm stats exclude cold/warm-up.",
+            "- Peak MB is benchmark process + Ollama server RSS (Llama); model MB is on-disk size.",
             "- Llama tokens include the system prompt; encoder tokens are head inputs; ML has no tokens.",
-            "- Invalid-format checks apply to Llama's and Claude's raw JSON output.",
+            "- Invalid-format checks apply to Llama and Claude raw JSON output.",
+            f"- Consistency = all runs identical; Short/full = first full run vs first "
+            f"{manifest['short_chars']} chars.",
+            "- Energy is CodeCarbon machine-wide; it may include the Ollama server.",
+            "- Claude calls cost money; the Claude sample is capped separately.",
             "- This is an operational benchmark, not the offline quality evaluation.",
         ]
     )
     if manifest.get("sample_action_counts"):
         lines.append(f"- Sample action counts: {manifest['sample_action_counts']}")
-    subsets = [
-        f"{row['backend']}={int(row['sample_n'])}"
-        for _, row in summary.iterrows()
-        if int(row.get("sample_n") or 0) != int(manifest.get("sample_n") or 0)
-    ]
-    if subsets:
-        lines.append(
-            f"- Backends benchmarked on a smaller sample: {', '.join(subsets)}"
-        )
     return "\n".join(lines) + "\n"
 
 
@@ -717,12 +1001,12 @@ def write_artifacts(
     out_dir: Path, summary: pd.DataFrame, runs: pd.DataFrame, manifest: dict
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    write_csv(summary, out_dir / "operational_performance_summary.csv")
-    write_csv(runs, out_dir / "operational_performance_runs.csv")
+    write_csv(summary, out_dir / "performance_summary.csv")
+    write_csv(runs, out_dir / "performance_runs.csv")
     plot_operational_performance(
-        summary, out_dir / "operational_performance_comparison.png"
+        summary, out_dir / "performance_comparison.png"
     )
-    write_json(manifest, out_dir / "operational_performance_manifest.json")
+    write_json(manifest, out_dir / "performance_manifest.json")
     report = render_report(summary, manifest)
     print("\n" + "=" * 100)
     print(report)
@@ -731,7 +1015,7 @@ def write_artifacts(
 
 
 def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
-    """Plot warm latency and peak memory for successful model runs."""
+    """Plot latency, model size, and peak memory for successful model runs."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -747,34 +1031,75 @@ def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
             ax.set_axis_off()
     else:
         labels = {
-            "bert": "Text encoder",
+            "encoder": "Text encoder",
             "ml": "Classical ML",
             "llama": "Llama",
-            "claude": "Claude (API)",
+            "claude": "Claude",
         }
         model_names = [
             labels.get(str(name), str(name)) for name in successful["backend"]
         ]
         positions = np.arange(len(successful), dtype=float)
-        for ax, column, title, ylabel in (
-            (axes[0], "warm_p50_ms", "Warm latency", "Milliseconds"),
-            (axes[1], "peak_total_mb", "Peak memory", "Megabytes"),
-        ):
+        latency_metrics = [
+            ("load_ms", "Load"),
+            ("cold_call_ms", "Cold call"),
+            ("warm_p50_ms", "Warm p50"),
+            ("warm_p95_ms", "Warm p95"),
+        ]
+        width = 0.18
+        plotted_latency = False
+        for index, (column, label) in enumerate(latency_metrics):
             values = pd.to_numeric(successful[column], errors="coerce").to_numpy()
             valid = np.isfinite(values)
-            if valid.any():
-                ax.bar(positions[valid], values[valid], 0.55)
-            else:
-                ax.text(
-                    0.5, 0.5, "Measurement unavailable",
-                    ha="center", va="center", transform=ax.transAxes,
-                )
-            ax.set_title(title)
-            ax.set_ylabel(ylabel)
-            ax.set_xticks(positions)
-            ax.set_xticklabels(model_names, rotation=15, ha="right")
-            ax.grid(axis="y", alpha=0.25)
-            ax.set_axisbelow(True)
+            if not valid.any():
+                continue
+            plotted_latency = True
+            axes[0].bar(
+                positions[valid] + (index - 1.5) * width,
+                values[valid],
+                width,
+                label=label,
+            )
+        axes[0].set_title("Latency")
+        axes[0].set_ylabel("Milliseconds")
+        axes[0].set_xticks(positions)
+        axes[0].set_xticklabels(model_names, rotation=15, ha="right")
+        axes[0].grid(axis="y", alpha=0.25)
+        axes[0].set_axisbelow(True)
+        if plotted_latency:
+            axes[0].legend()
+
+        resource_metrics = [
+            ("model_size_mb", "Model size"),
+            ("peak_total_mb", "Peak memory"),
+        ]
+        plotted_resources = False
+        resource_width = 0.34
+        for index, (column, label) in enumerate(resource_metrics):
+            values = pd.to_numeric(successful[column], errors="coerce").to_numpy()
+            valid = np.isfinite(values)
+            if not valid.any():
+                continue
+            plotted_resources = True
+            axes[1].bar(
+                positions[valid] + (index - 0.5) * resource_width,
+                values[valid],
+                resource_width,
+                label=label,
+            )
+        axes[1].set_title("Memory and model size")
+        axes[1].set_ylabel("Megabytes")
+        axes[1].set_xticks(positions)
+        axes[1].set_xticklabels(model_names, rotation=15, ha="right")
+        axes[1].grid(axis="y", alpha=0.25)
+        axes[1].set_axisbelow(True)
+        if plotted_resources:
+            axes[1].legend()
+        else:
+            axes[1].text(
+                0.5, 0.5, "Resource measurements unavailable",
+                ha="center", va="center", transform=axes[1].transAxes,
+            )
 
     fig.suptitle("Operational performance comparison")
     fig.tight_layout()
@@ -782,10 +1107,12 @@ def plot_operational_performance(summary: pd.DataFrame, path: Path) -> None:
     plt.close(fig)
 
 
-def main(argv=None) -> None:
-    args = parse_args(argv)
+def main() -> None:
+    args = parse_args()
     if args.runs < 1:
         raise SystemExit("--runs must be >= 1")
+    if args.short_chars < 1:
+        raise SystemExit("--short-chars must be >= 1")
     if args.warmup < 0:
         raise SystemExit("--warmup must be >= 0")
     if args.claude_limit < 0:
@@ -798,25 +1125,20 @@ def main(argv=None) -> None:
         f"Benchmarking {len(rows)} emails x {args.runs} runs "
         f"({', '.join(backends)}) | counts={meta['sample_action_counts']}"
     )
-    if "claude" in backends:
-        calls = len(rows) * (args.runs + args.warmup)
-        print(
-            f"[claude] about {calls} Anthropic API calls "
-            f"({args.runs} runs + {args.warmup} warm-up per email); "
-            "use --claude-limit to cap the sample."
-        )
 
     summary_rows = []
     all_records = []
     for name in backends:
         print(f"\n=== {name} ===", flush=True)
-        backend_rows = rows
+        backend_rows = (
+            rows.head(args.claude_limit)
+            if name == "claude" and args.claude_limit
+            else rows
+        )
         if name == "claude" and args.claude_limit:
-            backend_rows = rows.head(args.claude_limit)
             print(
                 f"[claude] benchmarking {len(backend_rows)} of {len(rows)} emails "
-                "(API calls are capped for cost)",
-                flush=True,
+                f"(--claude-limit {args.claude_limit})"
             )
         summary, records = run_backend(name, backend_rows, args)
         summary_rows.append(summary)
@@ -826,9 +1148,11 @@ def main(argv=None) -> None:
         else:
             peak = summary.get("peak_total_mb")
             peak_s = f"{peak:.1f}" if peak is not None else "n/a"
-            p50 = summary["warm_p50_ms"]
-            p50_s = f"{p50:.1f}" if p50 is not None else "n/a"
-            print(f"[{name}] warm p50={p50_s} ms peak={peak_s} MB")
+            print(
+                f"[{name}] warm p50={summary['warm_p50_ms']:.1f} ms "
+                f"p95={summary['warm_p95_ms']:.1f} ms "
+                f"peak={peak_s} MB"
+            )
 
     summary = pd.DataFrame(summary_rows)
     runs = pd.DataFrame([r.__dict__ for r in all_records])
@@ -844,13 +1168,22 @@ def main(argv=None) -> None:
         "sample_review_ids": meta["sample_review_ids"],
         "runs": args.runs,
         "warmup": args.warmup,
+        "short_chars": args.short_chars,
         "seed": args.seed,
+        "country": args.country,
         "body_char_limit": settings.body_char_limit,
         "ollama_model": settings.ollama_model,
         "taxonomy_sha256_16": meta["taxonomy_sha256_16"],
         "input_protocol": {
-            "full": "body/Preview; Llama truncated to body_char_limit, BERT to MAX_LEN tokens",
+            "full": "body/Preview; Llama truncated to body_char_limit, text encoder to MAX_LEN tokens",
+            "short": f"first {args.short_chars} characters of body/Preview",
+            "claude_cap": (
+                f"first {args.claude_limit} sampled emails"
+                if args.claude_limit
+                else "full sample"
+            ),
         },
+        "energy_scope": "CodeCarbon machine-wide; may include Ollama server",
         "versions": {
             pkg: package_version(pkg)
             for pkg in (
@@ -861,20 +1194,12 @@ def main(argv=None) -> None:
                 "transformers",
                 "langchain-core",
                 "langchain-ollama",
-                "psutil",
                 "anthropic",
+                "psutil",
+                "codecarbon",
             )
         },
     }
-    if "claude" in backends:
-        manifest["claude_model"] = _claude_model_name()
-        cap = _claude_input_cap()
-        manifest["input_protocol"]["claude"] = (
-            "inbox-sorter pipeline text: 'Subject: ...' + body, "
-            f"capped at {cap} chars"
-            if cap
-            else "inbox-sorter pipeline text"
-        )
     write_artifacts(Path(args.out_dir), summary, runs, manifest)
 
 

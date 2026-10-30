@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from app.classifier_base import BaseClassifier
-from app.models import Classification, Email
+from app.backends import BaseClassifier
+from app.schemas import Classification, Email
 from app.server import create_app
 
 
@@ -31,24 +31,54 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         )
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.client = create_app(backend="llama").test_client()
+        self.client = create_app(backend="llama", provider="graphtoken").test_client()
 
     def test_dashboard_v2_page_loads(self):
         response = self.client.get("/dashboard-v2")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Inbox dashboard", response.data)
-        self.assertIn(b'id="mailbox-settings" open', response.data)
+        self.assertIn(b"Inbox sorter", response.data)
+        self.assertIn(b'class="v2-bar"', response.data)
+        self.assertIn(b'class="no-sidebar"', response.data)
         self.assertIn(b'<dialog class="email-detail-dialog"', response.data)
-        self.assertIn(b"dashboard_v2.js?v=7", response.data)
+        self.assertIn(b"dashboard_v2.js?v=77", response.data)
+        self.assertIn(b'id="calendar-panel"', response.data)
+        self.assertIn(b'id="calendar-tab"', response.data)
+        self.assertIn(b'id="calendar-grid"', response.data)
+        self.assertIn(b'id="calendar-course-legend"', response.data)
+        self.assertIn(b'id="email-detail-dialog"', response.data)
+        self.assertIn(b'value="outlook"', response.data)
+        self.assertIn(b'id="graph-token-dialog"', response.data)
+        self.assertIn(b'id="user-gate"', response.data)
+        # Load and classification are separate steps, and the app loads 100 by
+        # default before the person narrows the window locally.
+        self.assertIn(b'<input id="count" type="number" min="1" value="100">', response.data)
+        self.assertIn(b'>Load emails</button>', response.data)
+
+    def test_graph_provider_renders_a_token_field(self):
+        response = create_app(
+            backend="llama", version=2, provider="graphtoken"
+        ).test_client().get("/dashboard-v2")
+
+        self.assertIn(b'value="outlook"', response.data)
+        self.assertIn(b'id="graph-token-dialog"', response.data)
+        self.assertIn(b'id="token"', response.data)
+        self.assertNotIn(b'id="webhook-diag"', response.data)
+
+    def test_compare_page_is_gone(self):
+        self.assertEqual(self.client.get("/compare").status_code, 404)
+
+    def test_unknown_provider_is_rejected(self):
+        with self.assertRaises(ValueError):
+            create_app(backend="llama", provider="imap")
 
     def test_root_selects_dashboard_by_version(self):
         v1 = create_app(backend="llama", version=1).test_client().get("/")
         v2 = create_app(backend="llama", version=2).test_client().get("/")
 
         self.assertIn(b"Your emails", v1.data)
-        self.assertNotIn(b"Inbox dashboard", v1.data)
-        self.assertIn(b"Inbox dashboard", v2.data)
+        self.assertNotIn(b'class="v2-bar"', v1.data)
+        self.assertIn(b'class="v2-bar"', v2.data)
         self.assertNotIn(b'href="/dashboard-v2"', v2.data)
 
     def test_sender_rule_overrides_category_for_selected_backend(self):

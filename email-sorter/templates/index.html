@@ -3,7 +3,7 @@
 
 {% block sidebar %}
 <section>
-  <h2>Connect a mailbox</h2>
+  <h2>{{ 'Graph token' if mail_provider == 'outlook' else 'Pushed mail' }}</h2>
   {{ mailbox_fields() }}
   <button id="go">Fetch and sort emails</button>
   <button id="cancel" class="btn-secondary" hidden>Cancel</button>
@@ -33,9 +33,9 @@
 </div>
 <div class="progress" id="progress" hidden><div></div></div>
 <div id="notice"></div>
-<div id="list"><p class="empty">Connect a mailbox on the left to see your emails sorted into content type and reply type.</p></div>
+<div id="list"><p class="empty">{% if mail_provider == 'outlook' %}Paste a Graph token on the left and fetch emails to see them here.{% else %}No pushed mail yet. The Power Automate flow fills this list; press Fetch and sort emails to check again.{% endif %}</p></div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='sorter.js', v='7') }}"></script>
+<script src="{{ url_for('static', filename='sorter.js', v='11') }}"></script>
 {% endblock %}

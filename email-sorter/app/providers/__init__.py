@@ -1,17 +1,22 @@
-from .base import AuthError, EmailProvider, InlineImage, ProviderError
+from .base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
 from .graph import GraphProvider
-from .imap import ImapProvider
+from .pushed import PushedProvider
 
 
 def build_provider(kind: str, creds: dict) -> EmailProvider:
     """Add new mail sources here: one line per provider."""
     if kind == "outlook":
         return GraphProvider(creds.get("token", ""))
-    if kind == "imap":
-        return ImapProvider(
-            creds.get("host", ""), creds.get("user", ""), creds.get("password", "")
-        )
+    if kind == "powerautomate":
+        return PushedProvider(creds.get("owner") or creds.get("user") or "")
     raise ProviderError(f"Unknown provider: {kind}")
 
 
-__all__ = ["build_provider", "AuthError", "InlineImage", "ProviderError", "EmailProvider"]
+__all__ = [
+    "build_provider",
+    "AuthError",
+    "EmailProvider",
+    "InlineImage",
+    "MailQuery",
+    "ProviderError",
+]

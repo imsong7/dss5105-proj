@@ -1,0 +1,29 @@
+category,event,start_date,end_date,scope,mark,notes
+Orientation,Semester 1 Orientation,2026-08-03,2026-08-08,University,1,
+Public Holiday,National Day,2026-08-09,2026-08-09,Public Holiday,,Sunday; following Monday is a public holiday
+Semester,Semester 1,2026-08-10,2026-12-05,Regular Semester,,"18 weeks including recess, reading and exams"
+Reading Week,Reading Week,2026-09-19,2026-09-27,Mini Semester,1,
+Exam Week,Examination Week,2026-09-28,2026-10-03,Mini Semester,1,
+Public Holiday,NUS Well-Being Day,2026-10-09,2026-10-09,University Holiday,,University holiday
+Public Holiday,Deepavali,2026-11-08,2026-11-08,Public Holiday,,Sunday; following Monday is a public holiday
+Reading Week,Reading Week,2026-11-14,2026-11-20,Mini Semester,1,
+Exam Week,Examination Week,2026-11-21,2026-12-05,Mini Semester,1,
+Vacation,Semester 1 Vacation,2026-12-06,2027-01-10,University,1,
+Public Holiday,Christmas Day,2026-12-25,2026-12-25,Public Holiday,,
+Public Holiday,New Year’s Day,2027-01-01,2027-01-01,Public Holiday,,
+Semester,Semester 2,2027-01-11,2027-05-08,Regular Semester,,"17 weeks including recess, reading and exams"
+Public Holiday,Chinese New Year Day 1,2027-02-06,2027-02-06,Public Holiday,,Saturday
+Public Holiday,Chinese New Year Day 2,2027-02-07,2027-02-07,Public Holiday,,Sunday; following Monday is a public holiday
+Reading Week,Reading Week,2027-02-20,2027-02-28,Mini Semester,1,
+Exam Week,Examination Week,2027-03-01,2027-03-06,Mini Semester,1,
+Public Holiday,Hari Raya Puasa,2027-03-10,2027-03-10,Public Holiday,,
+Public Holiday,NUS Well-Being Day,2027-03-11,2027-03-11,University Holiday,,University holiday
+Public Holiday,Good Friday,2027-03-26,2027-03-26,Public Holiday,,
+Reading Week,Reading Week,2027-04-17,2027-04-23,Mini Semester,1,
+Exam Week,Examination Week,2027-04-24,2027-05-08,Mini Semester,1,
+Public Holiday,Labour Day,2027-05-01,2027-05-01,Public Holiday,,Saturday
+Vacation,Semester 2 Vacation,2027-05-09,2027-08-01,University,1,Overlaps with Special Term
+Special Term,Special Term Part 1,2027-05-10,2027-06-19,University,1,
+Public Holiday,Hari Raya Haji,2027-05-17,2027-05-17,Public Holiday,,
+Public Holiday,Vesak Day,2027-05-20,2027-05-20,Public Holiday,,
+Special Term,Special Term Part 2,2027-06-21,2027-07-31,University,1,

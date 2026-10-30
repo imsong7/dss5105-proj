@@ -1,30 +1,31 @@
-# Text-encoder email classification
+# Text encoders
 
-Train the email-sorter encoder-based backends here.
+Train the encoder-based email classifiers used by the app's `encoder` and
+`hybrid` backends.
 
-- **Head mode** (default): frozen encoder plus logistic-regression head; small and fast.
-- **Full mode**: DistilBERT fine-tuning baseline.
+- **Head mode (default):** frozen encoder + logistic-regression head. Small and fast.
+- **Full mode:** DistilBERT fine-tuning baseline.
+
+The app calls this backend `encoder` because the frozen encoder supplies the
+features; the head is only a small classifier on top.
 
 ## Files
 
 | Path | Purpose |
-|------|---------|
+|---|---|
 | `train.py` | Unified trainer (`--mode head\|full`) |
 | `src/data.py` | Data loading, validation, splits, synthetic checks |
 | `src/model.py` | Encoders, head training, `EmbedPredictor` |
-| `../data/labels.csv` | Shared labeled emails for both model families (private, local-only) |
+| `../data/labels.csv` | Shared labelled emails (private, local-only) |
 | `../data/synthetic.csv` | Shared 200-row action synthetic dataset |
 | `models/{task}_{head\|full}/` | Trained models |
 | `results/compare_*` | Comparison summaries and run records |
 
-## Quick start
+## Train
 
-Run training from the project root with `text-encoders/train.py`. By default, `--review`
-uses the shared `data/labels.csv`; outputs go to `text-encoders/models` and
-`text-encoders/results`. Both model families therefore train from the same labeled rows.
-The CSV is converted from the private workbook with
-`PYTHONPATH=classical-ml/src python -m data_tools convert-labels`.
-The default head encoders are `bge-small-en` (category) and `e5-small-multi` (action).
+Run from the repo root with the shared `.venv`. Training needs the shared
+`data/labels.csv`; see [`../classical-ml/README.md`](../classical-ml/README.md)
+for how to create it from the team workbook.
 
 ```bash
 # Validate labels
@@ -48,50 +49,59 @@ python text-encoders/train.py --synthetic data/synthetic.csv \
 cat text-encoders/results/compare_full_summary.txt
 ```
 
-The app loads these models through `email-sorter/app/bert_classifier.py`.
-The app currently retains `bert` as the backend key for compatibility.
-Canvas emails are handled by the sender rule in `email-sorter/app/rules.py`.
+`--review` defaults to the shared `data/labels.csv`. Models go to
+`text-encoders/models`, results to `text-encoders/results`.
 
-## Model recommendation
+## Models
 
-| Task | Model | OOF macro-F1 (95% CI) | Notes |
-|------|-------|-----------------------|-------|
-| action | `text-encoders/models/action_head` (e5-small-multi + synthetic) | **0.795** [0.707, 0.871] | Real+synthetic; tiny (`head.joblib` only) |
-| category | `text-encoders/models/category_head` (bge-small-en, real only) | **0.844** [0.780, 0.905] model-only; **0.870** [0.813, 0.919] end-to-end | Tiny; end-to-end includes the Canvas sender rule |
+| Name | Model | Size | Default task |
+|---|---|---|---|
+| `bge-small-en` | BAAI/bge-small-en-v1.5 | 33M | category |
+| `e5-small-multi` | intfloat/multilingual-e5-small | 118M | action |
+| `distilbert-mean` | distilbert-base-uncased (mean pooling) | — | comparison |
 
-Scores are 5-fold out-of-fold estimates from `evaluation/quality.py`.
-These are historical runs: the action result used the retired encoder-specific
-synthetic set, not the new shared 200-row file. Retrain and reevaluate before
-using the score as evidence for the shared synthetic data.
+## Scores
 
-## Head encoders
+Single 27-email test split, one run per model (`models/*/metrics.json`):
 
-| Name | Model | Size | Notes |
-|------|-------|------|-------|
-| bge-small-en | BAAI/bge-small-en-v1.5 | 33M | English sentence embeddings; default for category |
-| e5-small-multi | intfloat/multilingual-e5-small | 118M | Multilingual (Korean/Chinese); default for action |
-| distilbert-mean | distilbert-base-uncased (mean pooling) | — | Existing backbone, frozen |
+| Model | Task | Accuracy | Macro F1 |
+|---|---|---:|---:|
+| `category_head` (bge-small-en) | category | 0.889 | 0.865 |
+| `category_full` (DistilBERT) | category | 0.889 | 0.860 |
+| `action_head` (e5-small-multi) | action | 0.778 | 0.511 |
+| `action_full` (DistilBERT) | action | 0.815 | 0.675 |
 
-Earlier 10-seed comparisons are in `text-encoders/results/compare_head_*`.
+Action head comparison over 2 seeds, real vs real + synthetic:
 
-## Full fine-tune
+| Encoder | Real F1 | Real acc | + Synthetic F1 | + Synthetic acc |
+|---|---:|---:|---:|---:|
+| `bge-small-en` | 0.542 ± 0.123 | 0.741 | 0.714 ± 0.188 | 0.833 |
+| `e5-small-multi` | 0.601 ± 0.009 | 0.815 | **0.774 ± 0.047** | **0.870** |
+| `distilbert-mean` | **0.654 ± 0.093** | 0.759 | 0.690 ± 0.001 | 0.796 |
 
-`--mode full` fine-tunes `distilbert-base-uncased`. Synthetic rows are added
-only to training; validation and test rows remain real. On an older real-only
-split (seed 42), full-mode action scored 0.484 and category 0.860; synthetic
-data reduced full-mode action to 0.351.
+Two seeds is a small sample. See [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md)
+for the full tables.
 
 ## Synthetic data
 
-`PYTHONPATH=classical-ml/src python -m data_tools generate-synthetic`
-regenerates the shared 200-row action dataset. `text-encoders/src/data.py` ensures:
+`PYTHONPATH=classical-ml/src python -m data_tools generate-synthetic` regenerates
+the shared 200-row action dataset. `src/data.py` ensures:
 
-- synthetic rows go to the training split only;
+- synthetic rows enter the training split only;
 - duplicates and exact real rows are removed;
 - near-duplicates with TF-IDF cosine ≥ 0.8 are removed;
-- default `--synthetic-tasks action`; use `both` for category.
+- default `--synthetic-tasks action`; use `both` only for category.
 
-Synthetic data helped the frozen action head but hurt full-mode action results.
-The shared file contains action labels only; use it with the default action
-augmentation (`--synthetic-tasks action`), not `--synthetic-tasks both`.
-More real `needs_reply`, `needs_action`, and `reminder` examples are preferable.
+Synthetic data helps the frozen action head; it is not a substitute for more
+real `needs_reply`, `needs_action`, and `reminder` examples.
+
+## App integration
+
+The app loads these models through `email-sorter/app/encoder_classifier.py`:
+
+```bash
+python email-sorter/run.py --backend encoder   # both tasks from the heads
+python email-sorter/run.py --backend hybrid    # ML category + encoder action
+```
+
+Canvas emails are handled by the sender rule in `email-sorter/app/sender_rules.py`.

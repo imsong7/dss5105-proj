@@ -72,12 +72,22 @@
   function renderHealth(h) {
     const dot = $("#dot");
     let ok = false, text = "", unknown = false;
-    if (h.backend === "bert") {
-      ok = !!h.bert_ready;
+    if (h.backend === "encoder") {
+      ok = !!h.encoder_ready;
       text = ok ? "Text-encoder models ready." : "Text-encoder models not found. Train them with: python text-encoders/train.py";
     } else if (h.backend === "ml") {
       ok = !!h.ml_ready;
       text = ok ? "Classical ML models ready." : "Classical ML model files not found. Train them with: PYTHONPATH=../classical-ml/src .venv/bin/python -m train_email_ml";
+    } else if (h.backend === "hybrid") {
+      ok = !!h.hybrid_ready;
+      text = ok
+        ? "Hybrid ready: ML category + text-encoder action."
+        : "Hybrid needs the classical-ML category model and the text-encoder action head. See README: Choosing a backend.";
+    } else if (h.backend === "hybrid_claude") {
+      ok = !!h.hybrid_claude_ready;
+      text = ok
+        ? "Hybrid ready: ML category + Claude action."
+        : "Hybrid needs the classical-ML category model and ANTHROPIC_API_KEY in inbox-sorter/.env.";
     } else if (h.backend === "claude") {
       ok = !!h.claude_ready;
       text = ok ? "Claude ready." : "Claude is not ready. Add ANTHROPIC_API_KEY to inbox-sorter/.env and install the anthropic package.";
@@ -333,13 +343,16 @@
     try {
       const data = await api(
         "/api/emails",
-        { provider, credentials, count },
+        { provider, credentials, count, ...readWindow() },
         { signal: controller.signal, timeoutMs: 60000 },
       );
       state.emails = data.emails;
       if (!state.emails.length) {
-        $("#list").replaceChildren(el("p", { class: "empty" }, "No emails found in that mailbox."));
-        notice("No emails found in that mailbox.");
+        const empty = provider === "powerautomate"
+          ? "No pushed mail in that window."
+          : "No emails found in that window.";
+        $("#list").replaceChildren(el("p", { class: "empty" }, empty));
+        notice(empty);
         return;
       }
       $("#filters").hidden = false;

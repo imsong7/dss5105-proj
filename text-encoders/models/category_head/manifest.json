@@ -36,7 +36,7 @@
   "head_trained_on": "train+val",
   "n_head_rows": 105,
   "synthetic": null,
-  "taxonomy_sha256_16": "660fa0365a5d3cab",
+  "taxonomy_sha256_16": "99e9c2be07f026dd",
   "review_csv": "labels.csv",
   "seed": 42
 }

@@ -1,5 +1,0 @@
-﻿backend,error,model,sample_n,runs,warm_p50_ms,peak_total_mb,input_tokens_mean,output_tokens_mean,invalid_format_rate,notes
-llama,,llama3.1:8b,30,5,12113.726187497377,891.75,649.5333333333333,55.2,0.0,invalid rate uses raw JSON/labels before Pydantic coercion
-bert,,bge-small-en + e5-small-multi,30,5,74.1814374923706,862.359375,351.8333333333333,0.0,,constructor loads both encoders and heads
-ml,,TF-IDF LinearSVC + ComplementNB,30,5,2.101000485708937,679.140625,,0.0,,constructor loads both classical ML pipelines
-claude,,claude (claude-haiku-5-5),10,5,1148.8321869983338,677.546875,991.8,60.14,0.0,inbox-sorter pipeline: sender rules -> Claude API -> guardrails; remote API: latency includes network round-trips; invalid rate uses the raw JSON before label validation

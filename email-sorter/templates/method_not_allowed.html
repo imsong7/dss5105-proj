@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wrong request method</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='50') }}">
+</head>
+<body>
+<main>
+  <section class="card" style="max-width:640px">
+    <span class="version-mark">405</span>
+    <h1>Wrong request method</h1>
+    <p class="sub">{{ message }}</p>
+    <p class="sub">Requested: <code>{{ path }}</code></p>
+    <p><a class="tab" href="{{ url_for('dashboard_v2') }}">Open the dashboard</a></p>
+  </section>
+</main>
+</body>
+</html>

@@ -8,9 +8,9 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 
-from app.classifier_base import create_classifier, list_backends
+from app.backends import create_classifier, list_backends
 from app.ml_classifier import BalancedComplementNB, MLClassifier
-from app.models import Email
+from app.schemas import Email
 from app.server import create_app
 
 

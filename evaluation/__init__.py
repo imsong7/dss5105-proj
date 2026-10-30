@@ -4,6 +4,8 @@ import importlib.metadata
 import json
 from pathlib import Path
 
+import numpy as np
+
 
 def package_version(package: str) -> str | None:
     """Return an installed package version, or ``None`` when unavailable."""
@@ -30,3 +32,14 @@ def write_csv(frame, path: Path) -> None:
 def write_json(data: dict, path: Path) -> None:
     """Write a JSON artifact."""
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def bootstrap_proportion(flags, n_boot: int, seed: int) -> tuple:
+    """Return point estimate and percentile 95% CI for a proportion."""
+    values = np.asarray(flags, dtype=float)
+    if not len(values):
+        return float("nan"), float("nan"), float("nan")
+    rng = np.random.default_rng(seed)
+    boots = [rng.choice(values, len(values), replace=True).mean() for _ in range(n_boot)]
+    lo, hi = np.percentile(boots, [2.5, 97.5])
+    return float(values.mean()), float(lo), float(hi)

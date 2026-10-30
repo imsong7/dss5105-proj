@@ -12,10 +12,12 @@ load_dotenv(ROOT / ".env")
 class Settings:
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    max_emails: int = int(os.getenv("MAX_EMAILS", "50"))
+    max_emails: int = int(os.getenv("MAX_EMAILS", "100"))
     port: int = int(os.getenv("PORT", "5000"))
+    inbound_max_emails: int = int(os.getenv("INBOUND_MAX_EMAILS", "500"))
+    mail_provider: str = os.getenv("MAIL_PROVIDER", "graphtoken")
     body_char_limit: int = 3000  # how much of each email the model reads
-    model_backend: str = os.getenv("MODEL_BACKEND", "llama")  # llama | bert | ml | claude
+    model_backend: str = os.getenv("MODEL_BACKEND", "hybrid_claude")  # hybrid_claude | hybrid | llama | encoder | ml | claude
 
 
 settings = Settings()

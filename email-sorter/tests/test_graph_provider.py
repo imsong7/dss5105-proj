@@ -1,9 +1,10 @@
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from app.models import Email
+from app.schemas import Email
 from app.providers.graph import GRAPH_URL, GraphProvider
-from app.providers.base import ProviderError
+from app.providers.base import MailQuery, ProviderError
 
 
 class GraphProviderTests(unittest.TestCase):
@@ -24,6 +25,39 @@ class GraphProviderTests(unittest.TestCase):
         provider = GraphProvider("Bearer test-token")
 
         self.assertEqual(provider.token, "test-token")
+
+    @patch("app.providers.graph.requests.get")
+    def test_fetch_applies_inclusive_received_window(self, get):
+        get.return_value.ok = True
+        get.return_value.json.return_value = {"value": []}
+        provider = GraphProvider("test-token")
+
+        provider.fetch_emails(
+            MailQuery(
+                limit=5,
+                since=datetime(2026, 9, 1, tzinfo=timezone.utc),
+                before=datetime(2026, 11, 13, 23, 59, 59, tzinfo=timezone.utc),
+            )
+        )
+
+        params = get.call_args.kwargs["params"]
+        self.assertEqual(params["$top"], 5)
+        self.assertEqual(
+            params["$filter"],
+            "receivedDateTime ge 2026-09-01T00:00:00Z and "
+            "receivedDateTime le 2026-11-13T23:59:59Z",
+        )
+
+    @patch("app.providers.graph.requests.get")
+    def test_fetch_without_window_omits_filter(self, get):
+        get.return_value.ok = True
+        get.return_value.json.return_value = {"value": []}
+
+        GraphProvider("test-token").fetch_emails()
+
+        params = get.call_args.kwargs["params"]
+        self.assertNotIn("$filter", params)
+        self.assertEqual(params["$top"], 15)
 
     @patch("app.providers.graph.requests.get")
     def test_fetches_only_small_inline_images(self, get):

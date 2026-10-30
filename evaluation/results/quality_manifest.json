@@ -1,8 +1,15 @@
 {
-  "created_utc": "2026-10-27T04:48:59.290379+00:00",
+  "created_utc": "2026-10-30T03:24:37.780151+00:00",
+  "evaluation_mode": "out_of_fold",
   "review_file": "data/labels.csv",
-  "taxonomy_sha256_16": "99e9c2be07f026dd",
+  "train_file": null,
+  "test_file": null,
+  "taxonomy_sha256_16": "660fa0365a5d3cab",
   "task": "both",
+  "tasks": [
+    "category",
+    "action"
+  ],
   "folds": 5,
   "bootstrap": 2000,
   "bootstrap_method": "stratified by true label (percentile CI)",
@@ -22,16 +29,19 @@
     "action": "complement_nb_balanced"
   },
   "llm_model": "llama3.1:8b",
+  "claude_limit": 0,
+  "claude_model": null,
   "encoders": {
     "category": "bge-small-en",
     "action": "e5-small-multi"
   },
-  "synthetic": null,
-  "synthetic_tasks": null,
+  "synthetic": "data/synthetic.csv",
+  "synthetic_tasks": "action",
   "rows": {
     "category": 132,
     "action": 134
   },
+  "training_rows": null,
   "category_rule_rows": 68,
   "evaluation_rows": {
     "category": 132,
@@ -43,6 +53,7 @@
     "pandas": "3.1.0",
     "scikit-learn": "1.9.1",
     "torch": "2.14.1",
-    "transformers": "5.20.2"
+    "transformers": "5.20.2",
+    "anthropic": "2.3.0"
   }
 }

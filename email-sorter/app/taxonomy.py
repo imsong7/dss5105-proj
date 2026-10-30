@@ -43,7 +43,7 @@ REPLY_NATURE = {
         "desc": "Contains a date or time limit but asks for no specific action or reply (for example a reminder or notice).",
     },
     "no_immediate_action": {
-        "label": "No immediate action",
+        "label": "Further review",
         "desc": "Purely informational, automated or promotional. Nothing needs to be done.",
     },
 }

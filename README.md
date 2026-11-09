@@ -11,7 +11,8 @@ This repository compares four ways to sort a student's email:
 
 `email-sorter/` is the shared Flask app: it hosts the dashboard, the mail
 sources, and every classifier backend. `evaluation/` scores all four methods
-on the same emails.
+on the same emails. `llm-reply/` is an optional utility that drafts replies for
+emails the Claude action classifier marks as `Needs a reply`; it never sends.
 
 ---
 
@@ -110,6 +111,15 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > claude/.env
 The Claude backend is already wired into the app; no separate dashboard is
 needed. See [`claude/README.md`](claude/README.md).
 
+### Reply drafts
+
+`llm-reply/` drafts replies for emails classified as `Needs a reply` and writes
+local `.json` / `.eml` drafts only. It filters offline by default (local ML or
+keywords) and uses an LLM only to generate the draft; the Claude action
+classifier is optional. It needs `ANTHROPIC_API_KEY` in `llm-reply/.env` unless
+you use Ollama. It never sends or modifies the mailbox. See
+[`llm-reply/README.md`](llm-reply/README.md).
+
 ---
 
 ## Results
@@ -144,6 +154,7 @@ email-sorter/     Flask app, dashboard, auth, mail sources, backends
 text-encoders/    BGE/E5 heads and DistilBERT fine-tunes
 classical-ml/     TF-IDF + LinearSVC / ComplementNB
 claude/           Claude backend (rules -> Claude -> guardrails)
+llm-reply/        Optional reply-draft generator (no sending)
 evaluation/       Shared quality and operational evaluation
 data/             Shared synthetic.csv and local labels.csv (labels gitignored)
 requirements.txt  One dependency file for the whole repo
@@ -170,6 +181,9 @@ Details:
 
 # Claude backend
 (cd claude && pytest -q)
+
+# reply drafts
+(cd llm-reply && python -m unittest discover -s tests)
 
 # evaluation
 python -m unittest evaluation.test_evaluation

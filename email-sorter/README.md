@@ -77,7 +77,7 @@ python email-sorter/run.py --port 5001 --provider powerautomate
 - Adds a per-user login page at `/login` (sign in with the account email and
   the app-only password; no browser Basic-auth popup).
 - Starts ngrok by default (every mail source) for the app port using
-  `chive-suitably-slingshot.ngrok-free.dev`.
+  `tubular-colony-caboose.ngrok-free.dev`.
 - Use `--no-tunnel` to skip ngrok, or
   `--ngrok-domain other.ngrok-free.dev` for another reserved domain.
 

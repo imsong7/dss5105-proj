@@ -108,7 +108,7 @@ if __name__ == "__main__":
         default=None,
         metavar="DOMAIN",
         help="ngrok static domain (default: NGROK_DOMAIN env or "
-             "chive-suitably-slingshot.ngrok-free.dev).",
+             "tubular-colony-caboose.ngrok-free.dev).",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()

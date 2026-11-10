@@ -43,10 +43,11 @@ python email-sorter/run.py
 # open the ngrok link it prints, or http://127.0.0.1:5001 on this Mac
 ```
 
-The default port is 5001 because macOS AirPlay Receiver takes 5000 and answers every request with `403`.
+Dashboard v2 is the default home page. The older page is still available:
 
-The home page is the React app, built from `frontend/` into `static/app/`
-(`cd email-sorter/frontend && npm install && npm run build`).
+```bash
+python email-sorter/run.py -version 1
+```
 
 ---
 

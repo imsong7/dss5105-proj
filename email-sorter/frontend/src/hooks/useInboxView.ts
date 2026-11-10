@@ -19,6 +19,7 @@ import {
   classifyEmail,
   deleteCorrection,
   deleteSenderRule,
+  draftReply as requestDraftReply,
   fetchBackends,
   fetchEmails,
   fetchHealth,
@@ -668,6 +669,19 @@ export function useInboxView(session: SessionInfo) {
     [backend],
   );
 
+  const draftReply = useCallback(
+    async (id: string, signal?: AbortSignal) => {
+      const source = raw.current.get(id);
+
+      if (!source) {
+        throw new Error("Email is no longer loaded.");
+      }
+
+      return requestDraftReply(source, signal);
+    },
+    [],
+  );
+
   const cancel = useCallback(() => {
     setPaused(true);
     controller.current?.abort();
@@ -790,6 +804,7 @@ export function useInboxView(session: SessionInfo) {
     correct,
     removeRule,
     undoCorrection,
+    draftReply,
     cancel,
     hasLoaded: emails.length > 0,
     classifiedCount,

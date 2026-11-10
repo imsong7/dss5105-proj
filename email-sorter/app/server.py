@@ -52,6 +52,7 @@ from .ml_classifier import models_ready as _ml_ready
 from .ocr import ocr_status, prepare_text
 from .providers import AuthError, MailQuery, ProviderError, build_provider
 from .pushed_store import pushed_store
+from .reply_drafting import ReplyDraftError, generate_reply
 from .schemas import Classification, Email
 from .sender_rules import category_by_rule, coursework_by_rule, sender_address
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
@@ -1057,6 +1058,26 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
         except Exception as exc:  # most often: Ollama not running or model not pulled
             logging.exception("classification failed")
             return jsonify({"error": f"Classification failed: {exc}"}), 500
+
+    @app.post("/api/draft-reply")
+    def draft_reply():
+        data = request.get_json(force=True, silent=True)
+        if not isinstance(data, dict) or not isinstance(data.get("email"), dict):
+            return jsonify({"error": "Expected a JSON object with an email."}), 400
+        try:
+            email = Email(**data["email"])
+        except Exception as exc:
+            return jsonify({"error": f"Invalid email: {exc}"}), 400
+
+        owner = _request_user()
+        try:
+            result = generate_reply(email, owner, _display_name(owner))
+        except ReplyDraftError as exc:
+            return jsonify({"error": str(exc)}), exc.status_code
+        except Exception as exc:
+            logging.exception("reply drafting failed")
+            return jsonify({"error": f"Drafting failed: {exc}"}), 502
+        return jsonify(result)
 
     @app.post("/api/corrections")
     def save_correction():

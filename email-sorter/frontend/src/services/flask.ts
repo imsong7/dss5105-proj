@@ -2,6 +2,7 @@ import type {
   DeadlineCandidate,
   EmailClassification,
   InboxEmail,
+  ReplyDraft,
 } from "../domain/email";
 import type {
   AcademicEvent,
@@ -38,6 +39,14 @@ export interface FlaskEmail {
   ocr_notes?: string[];
   deadline_candidate?: FlaskDeadline | null;
   deadline_candidates?: FlaskDeadline[];
+}
+
+interface FlaskReplyDraft {
+  reply: string;
+  placeholders?: string[];
+  guardrail_issues?: string[];
+  provider?: string;
+  model?: string;
 }
 
 interface FlaskClassification {
@@ -198,6 +207,25 @@ export async function fetchEmails(
       : email;
   });
   return { raw: data.emails, emails };
+}
+
+export async function draftReply(
+  email: FlaskEmail,
+  signal?: AbortSignal,
+): Promise<ReplyDraft> {
+  const result = await api<FlaskReplyDraft>(
+    "/api/draft-reply",
+    { email },
+    { signal, timeoutMs: 120_000 },
+  );
+
+  return {
+    reply: result.reply || "",
+    placeholders: result.placeholders ?? [],
+    guardrailIssues: result.guardrail_issues ?? [],
+    provider: result.provider ?? "",
+    model: result.model ?? "",
+  };
 }
 
 export async function classifyEmail(

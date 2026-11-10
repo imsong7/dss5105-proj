@@ -1,13 +1,14 @@
 import type { RefObject } from "react";
 import { ArrowLeft, CalendarClock, ExternalLink, Mail } from "lucide-react";
 
-import type { InboxEmail } from "../domain/email";
+import type { InboxEmail, ReplyDraft } from "../domain/email";
 import type { ActionKey, CategoryKey } from "../domain/taxonomy";
 import { senderInitials } from "../domain/inbox";
 import { formatDeadline, formatFullDate } from "../lib/format";
 import { CategoryBadge } from "./CategoryBadge";
 import { emailLinks } from "../domain/links";
 import { CorrectionControl } from "./CorrectionControl";
+import { DraftReply } from "./DraftReply";
 import { StatusBadge } from "./StatusBadge";
 
 interface EmailDetailProps {
@@ -23,6 +24,7 @@ interface EmailDetailProps {
   ) => Promise<void>;
   onUndoCorrection: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
+  onDraftReply: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
   headingRef: RefObject<HTMLHeadingElement | null>;
   className?: string;
 }
@@ -34,6 +36,7 @@ export function EmailDetail({
   onCorrect,
   onUndoCorrection,
   onRemoveRule,
+  onDraftReply,
   headingRef,
   className = "",
 }: EmailDetailProps) {
@@ -218,6 +221,8 @@ export function EmailDetail({
               : "Not sorted yet. It is sorted with the next batch, or press Sort to do it now."}
           </p>
         )}
+
+        <DraftReply key={email.id} email={email} onDraft={onDraftReply} />
 
         <div className="mt-6 border-t border-line pt-5 text-[15px] leading-6 break-words text-ink/90 space-y-3 sm:text-[16px]">
           {bodyParagraphs.map((paragraph, index) => (

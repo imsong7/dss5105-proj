@@ -153,6 +153,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
           onCorrect={view.correct}
           onUndoCorrection={view.undoCorrection}
           onRemoveRule={view.removeRule}
+          onDraftReply={view.draftReply}
           headingRef={headingRef}
           className={showMobileDetail ? "flex" : "hidden lg:flex"}
         />

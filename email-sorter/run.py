@@ -2,7 +2,8 @@
 
 Usage::
 
-    python run.py                           # start the app
+    python run.py                           # start the app on this computer only
+    python run.py --tunnel                  # also share it publicly through ngrok (live app)
     python run.py --backend encoder         # category + action from text-encoder heads
     python run.py --backend hybrid_claude   # ML category + Claude action (default)
     python run.py --backend hybrid          # ML category + text-encoder action
@@ -99,24 +100,34 @@ if __name__ == "__main__":
         help="Also write the results to this CSV file.",
     )
     parser.add_argument(
+        "--tunnel",
+        action="store_true",
+        help="Share the app publicly through ngrok. Off by default, so teammates "
+             "can run it locally; the live machine sets USE_NGROK=1 in .env instead.",
+    )
+    parser.add_argument(
         "--no-tunnel",
         action="store_true",
-        help="Do not start ngrok (it starts by default).",
+        help="Never start ngrok, even when USE_NGROK=1 (the default is already off).",
     )
     parser.add_argument(
         "--ngrok-domain",
         default=None,
         metavar="DOMAIN",
         help="ngrok static domain (default: NGROK_DOMAIN env or "
-             "chive-suitably-slingshot.ngrok-free.dev).",
+             "tubular-colony-caboose.ngrok-free.dev).",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
-    if args.debug and not args.no_tunnel:
+    use_tunnel = not args.no_tunnel and (
+        args.tunnel or os.getenv("USE_NGROK", "").strip().lower() in {"1", "true", "yes"}
+    )
+
+    if args.debug and use_tunnel:
         # Flask's debugger runs any Python typed into an error page. Through
         # ngrok that would let anyone on the internet run code on this Mac.
-        parser.error("--debug only works with --no-tunnel (the debugger must never be public).")
+        parser.error("--debug cannot be used with ngrok (the debugger must never be public).")
 
     port = args.port if args.port is not None else settings.port
     try:
@@ -151,7 +162,7 @@ if __name__ == "__main__":
 
     tunnel_process = None
     public_url = None
-    if not args.no_tunnel:
+    if use_tunnel:
         # With Flask's reloader the script runs twice; only the parent should
         # own the tunnel so Ctrl+C stops it once.
         if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
@@ -159,7 +170,7 @@ if __name__ == "__main__":
             if provider != "powerautomate":
                 print(
                     "[ngrok] WARNING: this mode has no login, so anyone with the "
-                    "public URL can open the app. Use --no-tunnel to keep it local."
+                    "public URL can open the app. Run without --tunnel to keep it local."
                 )
 
     def stop_services_on_signal(_signum=None, _frame=None):
@@ -178,8 +189,9 @@ if __name__ == "__main__":
         if public_url:
             print(f"  Open the app:   {public_url}")
             print("  (share this link; it works from phones and other computers)")
-        elif args.no_tunnel:
-            print(f"  ngrok is off (--no-tunnel). This Mac only: http://127.0.0.1:{port}")
+        elif not use_tunnel:
+            print(f"  Open the app:   http://127.0.0.1:{port}  (this computer only)")
+            print("  (to share it publicly through ngrok, run with --tunnel)")
         else:
             print("  ngrok did not start (see [ngrok] lines above).")
             print(f"  This Mac only: http://127.0.0.1:{port}")

@@ -228,6 +228,15 @@ class PushedStoreTests(unittest.TestCase):
 
         self.assertEqual([email.id for email in store.all(ACCOUNT_A)], ["newest", "new"])
 
+    def test_one_owner_cannot_push_out_another_owners_mail(self):
+        store = PushedStore(2)
+        store.add(Email(id="b-old", received="2026-10-01T01:00:00Z"), ACCOUNT_B)
+        for hour in range(1, 6):
+            store.add(Email(id=f"a-{hour}", received=f"2026-10-28T0{hour}:00:00Z"), ACCOUNT_A)
+
+        self.assertEqual([email.id for email in store.all(ACCOUNT_B)], ["b-old"])
+        self.assertEqual(len(store.all(ACCOUNT_A)), 2)
+
     def test_same_message_id_for_two_owners_is_stored_twice(self):
         store = PushedStore()
         email = Email(id="shared", received="2026-10-28T02:00:00Z")

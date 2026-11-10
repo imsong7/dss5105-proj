@@ -51,7 +51,7 @@ class AcademicCalendarLoaderTests(unittest.TestCase):
 
 class AcademicCalendarApiTests(unittest.TestCase):
     def test_endpoint_returns_the_calendar(self):
-        response = create_app(backend="hybrid", version=2).test_client().get(
+        response = create_app(backend="hybrid").test_client().get(
             "/api/academic-calendar"
         )
 

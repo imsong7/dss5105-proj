@@ -2,15 +2,14 @@
 
 Usage::
 
-    python run.py                           # dashboard v2 (default)
-    python run.py -version 1                # use the older sorter page
+    python run.py                           # start the app
     python run.py --backend encoder         # category + action from text-encoder heads
     python run.py --backend hybrid_claude   # ML category + Claude action (default)
     python run.py --backend hybrid          # ML category + text-encoder action
     python run.py --backend claude          # Claude backend
     python run.py --backend llama --port 8080
-    python run.py --provider graphtoken     # read mail with an Outlook Graph token (default)
-    python run.py --provider powerautomate  # pushed mail; ngrok starts automatically
+    python run.py --provider powerautomate  # sign-in; each student picks flow or token (default)
+    python run.py --provider graphtoken     # no sign-in, Outlook Graph token only (single user)
 
 Compare classifiers from a terminal while the app is running::
 
@@ -29,6 +28,7 @@ from app.ngrok import start as start_tunnel
 from app.ngrok import stop as stop_tunnel
 from app.server import create_app, normalize_provider
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the email-sorter Flask app.")
     parser.add_argument(
@@ -38,15 +38,6 @@ if __name__ == "__main__":
         help="Model backend to use (overrides MODEL_BACKEND env var / config). "
              f"Choices: {', '.join(list_backends())}",
     )
-    parser.add_argument(
-        "-version",
-        "--version",
-        dest="app_version",
-        type=int,
-        choices=(1, 2),
-        default=2,
-        help="Dashboard version to show at the home page (default: 2).",
-    )
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", type=int, default=None, help="Port to bind to")
     parser.add_argument(
@@ -54,8 +45,9 @@ if __name__ == "__main__":
         default=None,
         choices=("graphtoken", "powerautomate"),
         metavar="SOURCE",
-        help="Mail source fixed for this run: graphtoken (Outlook Graph token, "
-             "default) or powerautomate (pushed mail). Overrides MAIL_PROVIDER.",
+        help="Mode for this run: powerautomate (default; sign-in, each student "
+             "picks their Power Automate flow or a Graph token) or graphtoken "
+             "(no sign-in, token only). Overrides MAIL_PROVIDER.",
     )
 
     compare = parser.add_argument_group("compare (terminal, app must be running)")
@@ -109,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-tunnel",
         action="store_true",
-        help="Do not start ngrok automatically in powerautomate mode.",
+        help="Do not start ngrok (it starts by default).",
     )
     parser.add_argument(
         "--ngrok-domain",
@@ -120,6 +112,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
+
+    if args.debug and not args.no_tunnel:
+        # Flask's debugger runs any Python typed into an error page. Through
+        # ngrok that would let anyone on the internet run code on this Mac.
+        parser.error("--debug only works with --no-tunnel (the debugger must never be public).")
 
     port = args.port if args.port is not None else settings.port
     try:
@@ -149,24 +146,44 @@ if __name__ == "__main__":
 
     app = create_app(
         backend=args.backend,
-        version=args.app_version,
         provider=provider,
     )
 
     tunnel_process = None
-    if provider == "powerautomate" and not args.no_tunnel:
+    public_url = None
+    if not args.no_tunnel:
         # With Flask's reloader the script runs twice; only the parent should
         # own the tunnel so Ctrl+C stops it once.
         if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-            tunnel_process, _url = start_tunnel(port, args.ngrok_domain)
+            tunnel_process, public_url = start_tunnel(port, args.ngrok_domain)
+            if provider != "powerautomate":
+                print(
+                    "[ngrok] WARNING: this mode has no login, so anyone with the "
+                    "public URL can open the app. Use --no-tunnel to keep it local."
+                )
 
-    def stop_tunnel_on_signal(_signum=None, _frame=None):
+    def stop_services_on_signal(_signum=None, _frame=None):
         stop_tunnel(tunnel_process)
         raise SystemExit(0)
 
     if tunnel_process is not None:
         # The VS Code stop button sends SIGTERM, which skips the finally block.
-        signal.signal(signal.SIGTERM, stop_tunnel_on_signal)
+        signal.signal(signal.SIGTERM, stop_services_on_signal)
+
+    # Make the address to share the last thing people read before Flask's own
+    # "Running on http://127.0.0.1" lines, which only work on this Mac.
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        line = "=" * 64
+        print(f"\n{line}")
+        if public_url:
+            print(f"  Open the app:   {public_url}")
+            print("  (share this link; it works from phones and other computers)")
+        elif args.no_tunnel:
+            print(f"  ngrok is off (--no-tunnel). This Mac only: http://127.0.0.1:{port}")
+        else:
+            print("  ngrok did not start (see [ngrok] lines above).")
+            print(f"  This Mac only: http://127.0.0.1:{port}")
+        print(f"{line}\n")
 
     # Bound to localhost only: your emails never leave this machine.
     try:

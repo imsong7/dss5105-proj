@@ -4,3 +4,5 @@ email_cl/
 __pycache__/
 *.pyc
 /private/
+# Power Automate exports hold a real webhook token
+*.zip

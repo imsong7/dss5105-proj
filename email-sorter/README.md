@@ -25,17 +25,22 @@ Edit `email-sorter/.env` if needed:
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `MAIL_PROVIDER` | `graphtoken` | `graphtoken` or `powerautomate` |
+| `MAIL_PROVIDER` | `powerautomate` | `powerautomate` (sign-in; each student picks their flow or a Graph token) or `graphtoken` (no sign-in) |
 | `MODEL_BACKEND` | `hybrid_claude` | default classifier backend |
-| `PORT` | `5000` | use `5001` if 5000 is taken |
-| `MAX_EMAILS` | `100` | load cap per batch |
+| `PORT` | `5001` | 5000 clashes with macOS AirPlay Receiver (it answers with 403) |
+| `MAX_EMAILS` | `500` | load cap per batch |
 | `INBOUND_MAX_EMAILS` | `500` | pushed-mail memory cap |
+| `ALLOW_SIGNUP` | `1` | lets new students create their own account at `/register` (Power Automate mode); `0` turns it off |
+| `ALLOW_TOKEN_LOGIN` | `1` | sign-in page offers "Use an Outlook token instead": no account, Microsoft Graph checks the token and the allowed email domains apply; `0` turns it off |
+| `ALLOWED_EMAIL_DOMAINS` | `u.nus.edu,nus.edu.sg` | only these email domains may sign up |
+| `SIGNUP_CODE` | empty | when set, sign-up asks for this code, so only people you share it with can join |
+| `SESSION_COOKIE_SECURE` | off | set to `1` when the app is only used over HTTPS (the ngrok URL); Safari will not send the cookie to plain `http://127.0.0.1` |
 
 Run from the repo root:
 
 ```bash
 python email-sorter/run.py
-# open http://127.0.0.1:5000
+# open the ngrok link it prints, or http://127.0.0.1:5001 on this Mac
 ```
 
 Dashboard v2 is the default home page. The older page is still available:
@@ -51,7 +56,7 @@ python email-sorter/run.py -version 1
 The source is fixed at launch with `--provider`; the browser does not ask for a
 source.
 
-### Graph token (default)
+### Graph token only (no sign-in)
 
 ```bash
 python email-sorter/run.py --port 5001 --provider graphtoken
@@ -69,8 +74,9 @@ python email-sorter/run.py --port 5001 --provider graphtoken
 python email-sorter/run.py --port 5001 --provider powerautomate
 ```
 
-- Adds a per-user app login (HTTP Basic auth).
-- Starts ngrok automatically for the app port using
+- Adds a per-user login page at `/login` (sign in with the account email and
+  the app-only password; no browser Basic-auth popup).
+- Starts ngrok by default (every mail source) for the app port using
   `chive-suitably-slingshot.ngrok-free.dev`.
 - Use `--no-tunnel` to skip ngrok, or
   `--ngrok-domain other.ngrok-free.dev` for another reserved domain.
@@ -101,6 +107,10 @@ PY
 ```
 
 #### Power Automate flow
+
+Students do not need this section: after signing in, **Connect Outlook** (Today page, the account menu, or Ctrl/Cmd+K) opens a step-by-step guide with their own address, headers and token filled in, plus copy buttons.
+
+The guide's **Download my flow** button (`GET /api/setup/flow.zip`) gives each signed-in student a ready-made import package built by `app/flow_package.py` with their own webhook address, email and token. They import it in Power Automate (**My flows > Import > Import Package (Legacy)**), pick their Outlook connection, then paste the flow's trigger **HTTP URL** back into the guide (`POST /api/setup/flow-url`, only `*.logic.azure.com` or `*.powerplatform.com` addresses are accepted). The app then asks that flow for mail each time it opens. Never share your own exported flow .zip: it contains your webhook token.
 
 Build a flow that collects a window of mail and posts each message to the app.
 The HTTP action needs a Power Automate premium connector.
@@ -181,11 +191,13 @@ Changing **Time window** only filters mail that is already loaded.
 
 - `--provider graphtoken`: no app login; everyone using the instance sees the
   same Graph mailbox.
-- `--provider powerautomate`: HTTP Basic auth. Each account in
+- `--provider powerautomate`: login page at `/login`. Each account in
   `private/multiuser.json` sees only its own pushed mail.
-- Accounts are loaded at startup; restart after adding a user.
-- The browser may cache Basic-auth credentials. The app changes the realm on
-  each start so the login popup appears again.
+- Students can create their own account at `/register` (link on the sign-in page). Each gets a fresh webhook token, shown in the in-app Connect Outlook guide. Accounts you add by hand in `private/multiuser.json` still need a restart.
+- Sign-ins are kept in a session cookie for 12 hours; use **Sign out** in the
+  top-right chip to end early. The session-signing key is stored in
+  `private/session_secret` (or the `SESSION_SECRET` env var), so people stay
+  signed in across app restarts.
 
 ---
 
@@ -277,7 +289,7 @@ python email-sorter/run.py --compare --port 5001 \
   --backends llama,ml --days 30 --output compare.csv
 ```
 
-Pushed-mail instances require the app login, so the CLI comparison currently
+Pushed-mail instances require the login page, so the CLI comparison currently
 targets a Graph-token instance.
 
 ---
@@ -293,9 +305,9 @@ targets a Graph-token instance.
 | `GET /api/health?backend=` | Readiness for one backend |
 | `POST /api/emails` | Fetch mail. Body: `provider`, `credentials`, optional `since`/`before`, `count` |
 | `POST /api/classify` | Classify one email with an optional `backend` |
-| `POST /api/inbound/outlook` | Power Automate push (webhook token, no Basic auth) |
-| `GET /api/inbound/diagnostics` | This account's recent push attempts (Basic auth) |
-| `POST /api/inbound/refresh` | Trigger this account's flow (Basic auth) |
+| `POST /api/inbound/outlook` | Power Automate push (webhook token, no login needed) |
+| `GET /api/inbound/diagnostics` | This account's recent push attempts (signed-in session) |
+| `POST /api/inbound/refresh` | Trigger this account's flow (signed-in session) |
 
 ---
 
@@ -311,7 +323,7 @@ targets a Graph-token instance.
 | `app/llama_classifier.py` | Ollama backend |
 | `app/claude_classifier.py` | Claude backend |
 | `app/hybrid_classifier.py` | ML + encoder/Claude hybrids |
-| `app/accounts.py` | Basic auth and account lookup |
+| `app/accounts.py` | Login page, sessions, and account lookup |
 | `app/pushed_store.py` | Per-user pushed-mail store |
 | `app/sender_rules.py` | Sender-based category overrides |
 | `app/calendar.py` | Deadline extraction and the NUS academic calendar |
@@ -320,6 +332,26 @@ targets a Graph-token instance.
 | `app/providers/` | Graph and pushed-mail sources |
 | `templates/` | Dashboard pages |
 | `static/` | JavaScript and CSS |
+| `static/vendor/tabler/` | Locally hosted Tabler CSS + license (no build step) |
+
+### UI kit and licenses
+
+The dashboard uses selected components from the open-source **Tabler** UI kit
+(vendored, version-pinned, no remote scripts).
+
+- Tabler CSS: **v1.7.3** (`@tabler/core`), MIT — hosted at
+  `static/vendor/tabler/tabler.min.css`. Attribution and integrity hash in
+  `static/vendor/tabler/NOTICE.txt`; full MIT text in `.../LICENSE`.
+- It bundles Bootstrap 5 CSS (MIT, The Bootstrap Authors), redistributed by
+  Tabler. No separate Bootstrap or Tabler **JavaScript** is used.
+- Icons are a small set of **Tabler Icons v3.50.0** (MIT) inlined as plain SVG
+  (`templates/_icons.html`); no icon webfont is loaded.
+- `static/style.css` loads **after** `tabler.min.css` and stays the override
+  layer. App-only class names are prefixed (`.v2-*`, `.cal-*`, `.calendar-*`,
+  `.academic-*`, `.dashboard-*`, `.tag-pill`) to avoid Tabler/Bootstrap
+  component collisions; a Tabler token bridge in `style.css` maps the adopted
+  pieces to this app's palette and system font stack.
+- No external fonts, analytics, or remote scripts are added.
 
 ## Tests
 

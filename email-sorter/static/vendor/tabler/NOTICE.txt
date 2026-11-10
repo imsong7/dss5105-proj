@@ -1,0 +1,24 @@
+Vendored UI assets — attribution and integrity
+==============================================
+
+tabler.min.css
+  Project:  Tabler (https://tabler.io), github.com/tabler/tabler
+  Package:  @tabler/core
+  Version:  1.7.3 (pinned; also stamped in the file's own header comment)
+  License:  MIT (see ./LICENSE), Copyright (c) 2018-2026 The Tabler Authors
+  SHA-256:  601301716c0bd97acbec6c2b6cb98f257d148063ef168aa06f902b1e7d9ea5
+  Source:   https://cdn.jsdelivr.net/npm/@tabler/core@1.7.3/dist/css/tabler.min.css
+  Use:      Linked before the app's own static/style.css, which stays the
+            override layer. Only CSS is vendored; no Tabler/Bootstrap
+            JavaScript is used.
+
+Inline SVG icons (see templates/_icons.html and static/dashboard_v2.js)
+  Project:  Tabler Icons (https://tabler.io/icons), github.com/tabler/tabler-icons
+  License:  MIT
+  Note:     A small set of icons (mail, search, chevrons, alert, calendar)
+            is inlined by hand as plain <svg> markup. No icon webfont and
+            no remote icon script is loaded.
+
+Bootstrap
+  tabler.min.css bundles Bootstrap 5 CSS (MIT, The Bootstrap Authors),
+  redistributed by Tabler. No separate Bootstrap asset is used here.

@@ -2,8 +2,10 @@
 
 Several people can share one running app, so every message is stored under the
 owner who pushed it (the dashboard email address). The dashboard only asks for
-its own owner. Keep the newest ``max_items`` across all owners and deduplicate
-on ``(owner, message id)`` so Power Automate retries do not create copies.
+its own owner. Each owner keeps their newest ``max_items`` (so one person's flow
+can never push out someone else's mail), with a hard cap across everyone to
+bound memory. Deduplicate on ``(owner, message id)`` so Power Automate retries
+do not create copies.
 """
 
 from collections import OrderedDict
@@ -18,9 +20,14 @@ def normalize_owner(value) -> str:
     return str(value or "").strip().lower()
 
 
+# Hard cap across all owners, as a multiple of the per-owner cap.
+TOTAL_FACTOR = 50
+
+
 class PushedStore:
     def __init__(self, max_items: int = 500):
         self.max_items = max(1, int(max_items))
+        self.max_total = self.max_items * TOTAL_FACTOR
         self._items: OrderedDict[tuple[str, str], Email] = OrderedDict()
         self._lock = Lock()
 
@@ -33,16 +40,22 @@ class PushedStore:
             if existing is not None:
                 return existing, True
             self._items[key] = email
-            while len(self._items) > self.max_items:
+            while sum(1 for item_owner, _ in self._items if item_owner == owner) > self.max_items:
+                self._items.pop(self._oldest_key(owner))
+            while len(self._items) > self.max_total:
                 self._items.pop(self._oldest_key())
             return email, False
 
-    def _oldest_key(self) -> tuple[str, str]:
-        """Evict by received date, not arrival order, when the queue is full."""
-        oldest_key = next(iter(self._items))
+    def _oldest_key(self, owner: str | None = None) -> tuple[str, str]:
+        """Evict by received date, not arrival order, when the queue is full.
+
+        With ``owner``, only that owner's mail is considered.
+        """
+        keys = [key for key in self._items if owner is None or key[0] == owner]
+        oldest_key = keys[0]
         oldest = None
-        for key, email in self._items.items():
-            received = email.received_at
+        for key in keys:
+            received = self._items[key].received_at
             if received is not None and (oldest is None or received < oldest):
                 oldest = received
                 oldest_key = key

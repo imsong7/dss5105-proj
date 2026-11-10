@@ -1,0 +1,83 @@
+<!doctype html>
+{% from "_icons.html" import icon %}
+{% from "_lion.html" import lion %}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect Outlook · Inbox sorter</title>
+<link rel="manifest" href="{{ url_for('static', filename='app/manifest.webmanifest') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='app/apple-touch-icon.png') }}">
+<meta name="theme-color" content="#003D7C">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='app/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='67') }}">
+</head>
+<body class="login-page">
+<div class="login-shell">
+{{ lion("login-perch", 96) }}
+<main class="login-card connect-card">
+  <div class="login-brand">
+    <span class="brand-name">Inbox sorter</span>
+    <span class="connect-step">Step 2 of 2</span>
+  </div>
+  <h1>Connect your Outlook{% if name %}, {{ name }}{% endif %}</h1>
+  <p class="sub">Choose how your mail reaches the app. You can change this later.</p>
+
+  {% if error %}<p class="login-error" role="alert">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="connect-notice" role="status">{{ notice }}</p>{% endif %}
+
+  <details class="connect-option" open>
+    <summary>
+      <span class="connect-title">Power Automate flow</span>
+      <span class="connect-tag good">Recommended · works on its own</span>
+    </summary>
+    <ol class="connect-steps">
+      <li>
+        <strong>Download your flow.</strong> It already has your address, email and private token, so do not share the file.
+        <a class="btn btn-primary connect-download" href="{{ url_for('setup_flow_package') }}" download="inbox-sorter-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
+      </li>
+      <li>
+        <strong>Import it.</strong> In <a href="https://make.powerautomate.com/manage/flows" target="_blank" rel="noopener noreferrer">Power Automate</a>:
+        My flows → Import → Import Package (Legacy) → upload the .zip → next to <em>Your Outlook connection</em> choose <em>Select during import</em> and pick your account → Import. Then open the flow and turn it on.
+      </li>
+      <li>
+        <strong>Paste the flow's address.</strong> In the flow, open the first step <em>When a HTTP request is received</em> and copy its HTTP URL.
+        {% if flow_saved %}<span class="connect-saved">Saved ✓</span>{% endif %}
+        <form method="post" action="{{ url_for('register_connect') }}" class="connect-url" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="action" value="flow-url">
+          <label class="visually-hidden" for="flow-url">HTTP URL</label>
+          <input id="flow-url" name="url" type="url" inputmode="url" spellcheck="false" placeholder="https://…logic.azure.com/workflows/…">
+          <button class="btn btn-outline-primary" type="submit">Save</button>
+        </form>
+      </li>
+    </ol>
+    <p class="connect-note">The HTTP steps are a Power Automate premium feature. If it asks for a licence, use a token instead.</p>
+  </details>
+
+  <details class="connect-option">
+    <summary>
+      <span class="connect-title">Outlook token</span>
+      <span class="connect-tag">Quick · lasts about an hour</span>
+    </summary>
+    <p class="connect-text">No flow to build. Each visit you paste a token from
+      <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>
+      (sign in, open the <strong>Access token</strong> tab, copy it). The app asks for it when it opens.</p>
+    <form method="post" action="{{ url_for('register_connect') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="token">
+      <button class="btn btn-outline-primary" type="submit">Use a token instead</button>
+    </form>
+  </details>
+
+  <form method="post" action="{{ url_for('register_connect') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="action" value="done">
+    <button class="btn btn-primary" type="submit">{% if flow_saved %}Open the app{% else %}Do this later and open the app{% endif %}</button>
+  </form>
+  <p class="login-switch">Signed in as {{ email }}</p>
+</main>
+</div>
+</body>
+</html>

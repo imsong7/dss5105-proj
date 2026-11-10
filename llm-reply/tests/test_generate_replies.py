@@ -279,15 +279,12 @@ class OutputTests(unittest.TestCase):
         self.assertIn("Use the RSVP deadline if the sender gave one", system)
         self.assertIn("Do not insert a placeholder into a sentence that claims to confirm attendance", system)
 
-    def test_prompt_offers_to_arrange_discussion(self) -> None:
+    def test_prompt_confirms_an_offered_time_directly(self) -> None:
         system, _ = g.build_prompt(make_email(), "Amelia Kang")
-        self.assertIn("optional consultation", system)
-        self.assertIn("We would like to arrange a consultation", system)
-        self.assertIn("Would [offered slot] work for you?", system)
-        self.assertIn("Keep this kind of reply to 2-3 sentences", system)
-        self.assertIn("Do not ask whether we want to attend", system)
-        self.assertIn("do not promise who else will attend", system)
-        self.assertIn("do not add an availability placeholder", system)
+        self.assertIn("Yes, [offered time] works for me.", system)
+        self.assertIn("Never respond to a proposed time by asking the sender", system)
+        self.assertIn("do not add an availability placeholder when a concrete time was offered", system)
+        self.assertIn("If the sender invites you to a consultation or meeting but gives no specific time", system)
 
     def test_prompt_treats_extension_as_request(self) -> None:
         system, _ = g.build_prompt(make_email(), "Amelia Kang")

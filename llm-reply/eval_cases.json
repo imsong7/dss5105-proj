@@ -317,5 +317,42 @@
       ],
       "max_sentences": 3
     }
+  },
+  {
+    "id": "eval-time-confirmation",
+    "internetMessageId": "<eval-time-confirmation@example.com>",
+    "subject": "Consultation on Friday",
+    "receivedDateTime": "2026-11-10T08:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Prof Lim",
+        "address": "prof.lim@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Hi Amelia,\n\nI can meet on Friday at 3pm to discuss your project. Please let me know if that works.\n\nBest,\nProf Lim"
+    },
+    "eval": {
+      "type": "time-confirmation",
+      "ideal_reply": "Dear Prof Lim,\n\nThank you for your email. Yes, Friday at 3pm works for me.\n\nBest,\nAmelia",
+      "must_include": [
+        "Friday",
+        "works for me"
+      ],
+      "must_not_include": [
+        "work for you",
+        "as an ai"
+      ],
+      "max_sentences": 3
+    }
   }
 ]

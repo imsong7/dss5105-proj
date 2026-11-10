@@ -76,10 +76,10 @@ python email-sorter/run.py --port 5001 --provider powerautomate
 
 - Adds a per-user login page at `/login` (sign in with the account email and
   the app-only password; no browser Basic-auth popup).
-- Starts ngrok by default (every mail source) for the app port using
-  `tubular-colony-caboose.ngrok-free.dev`.
-- Use `--no-tunnel` to skip ngrok, or
-  `--ngrok-domain other.ngrok-free.dev` for another reserved domain.
+- ngrok is **off by default**, so teammates can just run `python run.py` and
+  work locally. The live machine shares the app with `--tunnel` (or
+  `USE_NGROK=1` in `.env`) using `tubular-colony-caboose.ngrok-free.dev`;
+  `--ngrok-domain other.ngrok-free.dev` picks another reserved domain.
 
 The first time, create the private account file:
 

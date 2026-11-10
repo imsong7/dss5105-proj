@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 .env
 .venv/
+.venv-*/
 venv/
 .env.local
 
@@ -33,6 +34,9 @@ classical-ml/token_access.json
 classical-ml/artifacts/
 classical-ml/*.joblib
 evaluation/results/paired_cv/
+
+# Local-only working copies (not part of the repo)
+MLmine/
 
 # IDE
 .idea/

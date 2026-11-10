@@ -19,7 +19,7 @@ class EvalTests(unittest.TestCase):
         cls.by_id = {case["id"]: case for case in cls.cases}
 
     def test_cases_are_unique_and_diverse(self) -> None:
-        self.assertEqual(len(self.cases), 8)
+        self.assertEqual(len(self.cases), 9)
         self.assertEqual(len(self.by_id), len(self.cases))
         self.assertGreaterEqual(len({case["eval"]["type"] for case in self.cases}), 6)
 

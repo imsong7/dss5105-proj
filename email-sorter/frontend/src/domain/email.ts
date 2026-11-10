@@ -32,6 +32,14 @@ export interface EmailClassification {
   original?: { category: CategoryKey; action: ActionKey };
 }
 
+export interface ReplyDraft {
+  reply: string;
+  placeholders: readonly string[];
+  guardrailIssues: readonly string[];
+  provider: string;
+  model: string;
+}
+
 export interface InboxEmail {
   id: string;
   sender: {

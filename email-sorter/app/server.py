@@ -28,6 +28,7 @@ from .accounts import (
     flow_url_problem,
     is_account,
     is_token_session,
+    remember_session_graph_token,
     save_flow_url,
     session_graph_token,
     webhook_owner,
@@ -1093,7 +1094,8 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
         reply = data.get("reply")
         if not isinstance(reply, str):
             return jsonify({"error": "Expected the reply text."}), 400
-        token = str(data.get("token") or "").strip() or session_graph_token()
+        provided_token = str(data.get("token") or "").strip()
+        token = provided_token or session_graph_token()
         try:
             result = send_graph_reply(email, reply, token)
         except ReplySendError as exc:
@@ -1101,6 +1103,8 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
         except Exception as exc:
             logging.exception("reply sending failed")
             return jsonify({"error": f"Sending failed: {exc}"}), 502
+        if provided_token:
+            remember_session_graph_token(provided_token)
         return jsonify(result)
 
     @app.post("/api/corrections")

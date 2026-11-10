@@ -83,6 +83,7 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
       await onSend(email.id, draft.reply, sendToken);
       setSent(true);
       setSendOpen(false);
+      setSendToken("");
     } catch (cause) {
       setSendError(cause instanceof Error ? cause.message : "Could not send the reply.");
     } finally {
@@ -225,7 +226,7 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
                 onChange={(event) => setSendToken(event.target.value)}
                 spellCheck={false}
                 autoComplete="off"
-                placeholder="Paste a token, or leave blank if already connected"
+                placeholder="Paste once; later sends can leave this blank"
                 className="mt-1.5 min-h-11 w-full rounded-[10px] border border-line bg-surface px-3 font-mono text-[13px] focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
               />
               <p className="mt-1.5 text-[12px] leading-5 text-muted">
@@ -238,7 +239,7 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
                 >
                   Graph Explorer
                 </a>
-                . It is sent to your local app but not saved.
+                . It stays in this server's memory for about two hours, not on disk.
               </p>
 
               {sendError ? (

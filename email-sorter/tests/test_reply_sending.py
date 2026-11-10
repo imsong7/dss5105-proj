@@ -59,8 +59,9 @@ class SendReplyApiTests(unittest.TestCase):
     def setUp(self):
         self.client = create_app(backend="llama", provider="graphtoken").test_client()
 
+    @patch("app.server.remember_session_graph_token")
     @patch("app.server.send_graph_reply")
-    def test_endpoint_returns_the_receipt(self, send):
+    def test_endpoint_returns_the_receipt_and_remembers_the_token(self, send, remember):
         send.return_value = {"sent": True, "to": "lim@nus.edu.sg", "subject": "Re: Consultation slot"}
 
         response = self.client.post(
@@ -78,9 +79,11 @@ class SendReplyApiTests(unittest.TestCase):
         self.assertEqual(sent_email.id, "m1")
         self.assertEqual(reply, "Thank you, Friday works for me.")
         self.assertEqual(token, "token-123")
+        remember.assert_called_once_with("token-123")
 
+    @patch("app.server.remember_session_graph_token")
     @patch("app.server.send_graph_reply")
-    def test_endpoint_reports_send_errors(self, send):
+    def test_endpoint_reports_send_errors(self, send, remember):
         send.side_effect = ReplySendError("The token is missing Mail.Send permission.", 403)
 
         response = self.client.post(
@@ -90,6 +93,7 @@ class SendReplyApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertIn("Mail.Send", response.get_json()["error"])
+        remember.assert_not_called()
 
     def test_endpoint_rejects_a_missing_reply(self):
         response = self.client.post("/api/send-reply", json={"email": EMAIL.model_dump()})

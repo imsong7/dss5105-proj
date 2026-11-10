@@ -155,6 +155,19 @@ def session_graph_token() -> str:
     return graph_tokens.get(session.get(TOKEN_SESSION_KEY, ""))
 
 
+def remember_session_graph_token(token: str) -> None:
+    """Keep a send token in server memory under the signed-in session."""
+    token = (token or "").strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+    if not token:
+        return
+    previous = session.get(TOKEN_SESSION_KEY, "")
+    session[TOKEN_SESSION_KEY] = graph_tokens.put(token)
+    if previous:
+        graph_tokens.drop(previous)
+
+
 def token_login_enabled() -> bool:
     return os.getenv("ALLOW_TOKEN_LOGIN", "1").strip().lower() not in {"0", "false", "no"}
 SESSION_LIFETIME = timedelta(hours=12)

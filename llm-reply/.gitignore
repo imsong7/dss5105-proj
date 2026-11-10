@@ -1,5 +1,6 @@
 .env
 drafts/
+drafts-eval/
 received_mails.json
 __pycache__/
 *.py[cod]

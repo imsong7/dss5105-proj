@@ -184,6 +184,7 @@ Details:
 
 # reply drafts
 (cd llm-reply && python -m unittest discover -s tests)
+(cd llm-reply && python eval_replies.py --use-ideal)
 
 # evaluation
 python -m unittest evaluation.test_evaluation

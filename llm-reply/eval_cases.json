@@ -1,0 +1,321 @@
+[
+  {
+    "id": "eval-consultation",
+    "internetMessageId": "<eval-consultation@example.com>",
+    "subject": "Consultation session on 6 October",
+    "receivedDateTime": "2026-09-15T04:51:53Z",
+    "from": {
+      "emailAddress": {
+        "name": "Anggi",
+        "address": "anggi@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Hello, everyone!\n\nIf your group has any questions or would like to discuss your CA, please drop us a message. You may also join the consultation session before class on 6 October, together with the other group(s). Please let us know in advance if you would like to attend.\n\nBest,\nAnggi"
+    },
+    "eval": {
+      "type": "consultation",
+      "ideal_reply": "Hello Anggi,\n\nI would like to attend the consultation session on 6 October. Please let me know if there is anything I should prepare beforehand.\n\nBest,\nAmelia",
+      "must_include": [
+        "consultation",
+        "6 October"
+      ],
+      "must_not_include": [
+        "other group",
+        "as an ai",
+        "10:00 AM",
+        "10 AM"
+      ],
+      "max_sentences": 3
+    }
+  },
+  {
+    "id": "eval-extension",
+    "internetMessageId": "<eval-extension@example.com>",
+    "subject": "Assignment extension request",
+    "receivedDateTime": "2026-09-16T02:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Prof Tan",
+        "address": "prof.tan@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Dear Amelia,\n\nI understand you have been unwell. Please let me know if you need an extension for the assignment due on Friday.\n\nBest,\nProf Tan"
+    },
+    "eval": {
+      "type": "extension",
+      "ideal_reply": "Dear Prof Tan,\n\nThank you for your understanding. I would like to request an extension for the assignment due on Friday. Could you let me know if an extension is possible and, if so, until when?\n\nBest,\nAmelia",
+      "must_include": [
+        "extension",
+        "Friday",
+        "until when"
+      ],
+      "must_not_include": [
+        "prof.tan@example.edu",
+        "as an ai",
+        "I appreciate the extension",
+        "September 18",
+        "September 18th",
+        "extended deadline",
+        "the extension has been granted",
+        "thank you for the extension"
+      ],
+      "max_sentences": 3
+    }
+  },
+  {
+    "id": "eval-group-meeting",
+    "internetMessageId": "<eval-group-meeting@example.com>",
+    "subject": "Group 8 meeting time",
+    "receivedDateTime": "2026-09-17T03:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Wei",
+        "address": "wei@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Hi Amelia,\n\nCan we meet next week to finalise our presentation? I am free Tuesday afternoon or Wednesday morning.\n\nThanks,\nWei"
+    },
+    "eval": {
+      "type": "group-coordination",
+      "ideal_reply": "Hi Wei,\n\nThanks for checking in. Tuesday afternoon works for me, but Wednesday morning is also possible if that suits you better. Please let me know which you prefer.\n\nBest,\nAmelia",
+      "must_include": [],
+      "must_not_include": [
+        "wei@example.edu",
+        "as an ai",
+        "10 AM"
+      ],
+      "max_sentences": 3,
+      "must_include_any": [
+        [
+          "Tuesday",
+          "Wednesday"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "eval-rsvp",
+    "internetMessageId": "<eval-rsvp@example.com>",
+    "subject": "Invitation: Sustainability workshop on 18 September",
+    "receivedDateTime": "2026-09-18T01:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Sarah",
+        "address": "sarah@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Dear Amelia,\n\nWe would like to invite you to our workshop on 18 September at 2pm. Please confirm your attendance by Friday.\n\nBest,\nSarah"
+    },
+    "eval": {
+      "type": "rsvp",
+      "ideal_reply": "Dear Sarah,\n\nThank you for the invitation to the sustainability workshop on 18 September at 2pm. I will confirm my attendance by Friday.\n\nBest,\nAmelia",
+      "must_include": [
+        "18 September",
+        "attend",
+        "Friday"
+      ],
+      "must_not_include": [
+        "bring a friend",
+        "sarah@example.edu",
+        "confirm that I [confirm",
+        "I [confirm whether I will attend]"
+      ],
+      "max_sentences": 3
+    }
+  },
+  {
+    "id": "eval-access",
+    "internetMessageId": "<eval-access@example.com>",
+    "subject": "Request to access platform",
+    "receivedDateTime": "2026-09-19T05:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Ryan",
+        "address": "support@example.com"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Dear Amelia,\n\nYou can now access the platform using these credentials:\nUser Name: amelia.kang\nPassword: TempPass123\n\nPlease log in within 5 days and provide feedback.\n\nThank you,\nRyan"
+    },
+    "eval": {
+      "type": "account-access",
+      "ideal_reply": "Hello Ryan,\n\nThank you for the access details. I have logged in successfully and will provide feedback after reviewing the platform.\n\nBest,\nAmelia",
+      "must_include": [
+        "feedback"
+      ],
+      "must_not_include": [
+        "TempPass123",
+        "support@example.com",
+        "User Name"
+      ],
+      "max_sentences": 3,
+      "must_include_any": [
+        [
+          "access",
+          "log in",
+          "credentials"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "eval-feedback",
+    "internetMessageId": "<eval-feedback@example.com>",
+    "subject": "Event feedback request",
+    "receivedDateTime": "2026-09-20T06:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "NUSync",
+        "address": "nusync@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Hi Amelia,\n\nWe would like your feedback for the event you attended. Please complete the feedback form.\n\nThank you,\nNUSync"
+    },
+    "eval": {
+      "type": "feedback",
+      "ideal_reply": "Hi NUSync,\n\nThank you for the reminder. I have completed the feedback form for the event.\n\nBest,\nAmelia",
+      "must_include": [
+        "feedback"
+      ],
+      "must_not_include": [
+        "nusync@example.edu",
+        "as an ai"
+      ],
+      "max_sentences": 3
+    }
+  },
+  {
+    "id": "eval-deadline-clarification",
+    "internetMessageId": "<eval-deadline@example.com>",
+    "subject": "Clarification on tutorial deadline",
+    "receivedDateTime": "2026-09-21T07:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "David",
+        "address": "david@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Dear all,\n\nThe tutorial solutions are due at the beginning of the Wednesday lecture at 7pm. Please let me know if you have any questions.\n\nBest,\nDavid"
+    },
+    "eval": {
+      "type": "deadline-clarification",
+      "ideal_reply": "Dear David,\n\nThank you for the clarification. I understand that the tutorial solutions are due at the beginning of the Wednesday lecture at 7pm.\n\nBest,\nAmelia",
+      "must_include": [
+        "Wednesday",
+        "7pm"
+      ],
+      "must_not_include": [
+        "david@example.edu",
+        "as an ai"
+      ],
+      "max_sentences": 3
+    }
+  },
+  {
+    "id": "eval-scheduling",
+    "internetMessageId": "<eval-scheduling@example.com>",
+    "subject": "Rescheduling our project check-in",
+    "receivedDateTime": "2026-09-22T08:00:00Z",
+    "from": {
+      "emailAddress": {
+        "name": "Marcus",
+        "address": "marcus@example.edu"
+      }
+    },
+    "toRecipients": [
+      {
+        "emailAddress": {
+          "name": "Amelia Kang",
+          "address": "ameliakang@u.nus.edu"
+        }
+      }
+    ],
+    "body": {
+      "contentType": "text",
+      "content": "Hi Amelia,\n\nI need to move our project check-in from Thursday to another day. Could you suggest a time next week?\n\nThanks,\nMarcus"
+    },
+    "eval": {
+      "type": "scheduling",
+      "ideal_reply": "Hi Marcus,\n\nThanks for letting me know. I am available on Monday afternoon or Tuesday morning next week. Would either of those work for you?\n\nBest,\nAmelia",
+      "must_include": [
+        "next week"
+      ],
+      "must_not_include": [
+        "marcus@example.edu",
+        "as an ai",
+        "September 29",
+        "29th"
+      ],
+      "max_sentences": 3
+    }
+  }
+]

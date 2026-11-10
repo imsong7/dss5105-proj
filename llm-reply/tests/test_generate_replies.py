@@ -272,6 +272,13 @@ class OutputTests(unittest.TestCase):
         self.assertIn("[confirm the group's availability]", system)
         self.assertIn("Never reply with only an acknowledgement", system)
 
+    def test_prompt_handles_unknown_rsvp_naturally(self) -> None:
+        system, _ = g.build_prompt(make_email(), "Amelia Kang")
+        self.assertIn("I will confirm my attendance by [date]", system)
+        self.assertIn("at an event (not a consultation session)", system)
+        self.assertIn("Use the RSVP deadline if the sender gave one", system)
+        self.assertIn("Do not insert a placeholder into a sentence that claims to confirm attendance", system)
+
     def test_prompt_offers_to_arrange_discussion(self) -> None:
         system, _ = g.build_prompt(make_email(), "Amelia Kang")
         self.assertIn("optional consultation", system)
@@ -281,6 +288,24 @@ class OutputTests(unittest.TestCase):
         self.assertIn("Do not ask whether we want to attend", system)
         self.assertIn("do not promise who else will attend", system)
         self.assertIn("do not add an availability placeholder", system)
+
+    def test_prompt_treats_extension_as_request(self) -> None:
+        system, _ = g.build_prompt(make_email(), "Amelia Kang")
+        self.assertIn("rather than granting it, request it explicitly", system)
+        self.assertIn("Do not say it has already been granted", system)
+        self.assertIn("I would like to request an extension", system)
+        self.assertIn("until when", system)
+        self.assertIn("Do not propose a new date", system)
+        self.assertIn("Do not write \"I appreciate the extension\"", system)
+
+    def test_prompt_forbids_invented_dates_and_times(self) -> None:
+        system, _ = g.build_prompt(make_email(), "Amelia Kang")
+        self.assertIn("Never invent a specific time, date, location, or deadline", system)
+        self.assertIn("answer using those options", system)
+
+    def test_prompt_limits_most_replies(self) -> None:
+        system, _ = g.build_prompt(make_email(), "Amelia Kang")
+        self.assertIn("Keep most replies to 3 sentences or fewer", system)
 
     def test_prompt_does_not_copy_raw_addresses(self) -> None:
         system, _ = g.build_prompt(make_email(), "Amelia Kang")
@@ -354,6 +379,141 @@ class OutputTests(unittest.TestCase):
         with patch.object(g.requests, "post", side_effect=fake_post):
             g.call_llm(config, "system", "user")
         self.assertNotIn("temperature", captured["payload"])
+
+
+class GuardrailTests(unittest.TestCase):
+    def test_clean_reply_has_no_issues(self) -> None:
+        self.assertEqual(g.guardrail_issues("Thanks, noted.", make_email()), [])
+
+    def test_raw_sender_address_is_flagged(self) -> None:
+        issues = g.guardrail_issues("Please contact prof@nus.edu.sg.", make_email())
+        self.assertTrue(any("raw email address" in issue for issue in issues))
+
+    def test_ai_phrase_is_flagged(self) -> None:
+        issues = g.guardrail_issues("As an AI, I cannot attend.", make_email())
+        self.assertTrue(any("AI/assistant" in issue for issue in issues))
+
+    def test_extension_offer_accepts_request_wording(self) -> None:
+        email = make_email(body="Please let me know if you need an extension for the assignment due on Friday.")
+        reply = (
+            "Dear Prof Tan,\n\n"
+            "I would like to request an extension for the assignment due on Friday.\n\n"
+            "Best,\nAmelia"
+        )
+        self.assertEqual(g.guardrail_issues(reply, email), [])
+
+    def test_extension_offer_accepts_appreciate_request(self) -> None:
+        email = make_email(body="Please let me know if you need an extension for the assignment due on Friday.")
+        reply = "I would appreciate an extension for the assignment due on Friday."
+        self.assertEqual(g.guardrail_issues(reply, email), [])
+
+    def test_extension_offer_flags_granted_wording(self) -> None:
+        email = make_email(body="Please let me know if you need an extension for the assignment due on Friday.")
+        issues = g.guardrail_issues("I appreciate the extension. I will submit by the extended deadline.", email)
+        self.assertTrue(any("offered extension as already granted" in issue for issue in issues))
+
+    def test_unlisted_placeholder_is_flagged(self) -> None:
+        issues = g.guardrail_issues("Could we meet on [confirm date]?", make_email())
+        self.assertTrue(any("not listed" in issue for issue in issues))
+
+    def test_listed_placeholder_is_accepted(self) -> None:
+        reply = "Could we meet on [confirm date]?\n\nPlaceholders:\n[confirm date] - proposed date"
+        self.assertEqual(g.guardrail_issues(reply, make_email()), [])
+
+    def test_duplicate_placeholder_in_body_is_flagged(self) -> None:
+        reply = "Meet [confirm date] or [confirm date].\n\nPlaceholders:\n[confirm date] - date"
+        issues = g.guardrail_issues(reply, make_email())
+        self.assertTrue(any("more than once" in issue for issue in issues))
+
+
+class CacheTests(unittest.TestCase):
+    def _config(self) -> g.LLMConfig:
+        return g.LLMConfig(
+            "anthropic",
+            "claude-sonnet-5-5",
+            "test",
+            "https://api.anthropic.com",
+            0.3,
+            800,
+            30,
+        )
+
+    def _write_cache(self, output_dir: Path, email: g.Email, config: g.LLMConfig) -> str:
+        system, user = g.build_prompt(email, "Amelia Kang")
+        cache_key = g.draft_cache_key(email, system, user, config)
+        record = {
+            "id": email.id,
+            "internet_message_id": email.internet_message_id,
+            "subject": email.subject,
+            "from": {"name": email.sender_name, "address": email.sender_email},
+            "recipient": {"name": "Prof Tan", "address": "prof@nus.edu.sg"},
+            "recipient_needs_filling": False,
+            "to": email.to,
+            "received": email.received,
+            "filter_label": "Needs a reply",
+            "filter_confidence": 0.9,
+            "provider": config.provider,
+            "model": config.model,
+            "generated_at": "2026-01-01T00:00:00+00:00",
+            "cache_key": cache_key,
+            "reply": "Cached reply.",
+            "placeholders": [],
+            "draft_file": "cached.eml",
+        }
+        (output_dir / "drafts.json").write_text(
+            json.dumps({"drafts": [record]}), encoding="utf-8"
+        )
+        return cache_key
+
+    def test_matching_cache_skips_llm(self) -> None:
+        config = self._config()
+        email = make_email()
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            self._write_cache(output_dir, email, config)
+            args = type("Args", (), {"output": str(output_dir), "force": False})()
+            stdout = StringIO()
+            with patch.object(g, "call_llm", side_effect=AssertionError("must not call API")):
+                with redirect_stdout(stdout):
+                    g.write_outputs(
+                        [(email, "Needs a reply", 0.9)],
+                        args,
+                        config,
+                        "Amelia Kang",
+                        "me@nus.edu.sg",
+                    )
+            summary = json.loads((output_dir / "drafts.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["cached_count"], 1)
+            self.assertEqual(summary["generated_count"], 0)
+            self.assertIn("Using cached draft", stdout.getvalue())
+            self.assertTrue((output_dir / "cached.eml").exists())
+
+    def test_force_regenerates_cached_draft(self) -> None:
+        config = self._config()
+        email = make_email()
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            self._write_cache(output_dir, email, config)
+            args = type("Args", (), {"output": str(output_dir), "force": True})()
+            with patch.object(g, "call_llm", return_value="Fresh reply."):
+                g.write_outputs(
+                    [(email, "Needs a reply", 0.9)],
+                    args,
+                    config,
+                    "Amelia Kang",
+                    "me@nus.edu.sg",
+                )
+            summary = json.loads((output_dir / "drafts.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["generated_count"], 1)
+            self.assertEqual(summary["drafts"][0]["reply"], "Fresh reply.")
+
+    def test_cache_key_changes_with_prompt(self) -> None:
+        config = self._config()
+        email = make_email()
+        system, user = g.build_prompt(email, "Amelia Kang")
+        first = g.draft_cache_key(email, system, user, config)
+        second = g.draft_cache_key(email, system, user + " ", config)
+        self.assertNotEqual(first, second)
 
 
 if __name__ == "__main__":

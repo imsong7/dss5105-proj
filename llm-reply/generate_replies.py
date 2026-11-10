@@ -357,10 +357,14 @@ Rules:
 - Be concise, warm, and professional. Use a plain-text email format.
 - Answer every explicit question and address every request in the email.
 - If the email asks for a decision, confirmation, RSVP, availability, or a choice, answer it explicitly. Never reply with only an acknowledgement when the sender asked a question.
-- If the email offers an optional consultation, discussion, or meeting, write a short request to arrange it using this pattern: "We would like to arrange a consultation to discuss [topic]. Would [offered slot] work for you?" Keep this kind of reply to 2-3 sentences. Do not ask whether we want to attend, do not promise who else will attend, and do not add an availability placeholder when the reply already asks whether the offered slot works. Use a placeholder only for details the reply genuinely needs and you cannot know.
+- If the sender asks you to RSVP or confirm attendance at an event (not a consultation session) and the decision is unknown, write "I will confirm my attendance by [date]." Use the RSVP deadline if the sender gave one. Do not insert a placeholder into a sentence that claims to confirm attendance.
+- If the sender offers an optional consultation, discussion, or meeting slot and asks whether you can attend, write a short request using this pattern: "We would like to arrange a consultation to discuss [topic]. Would [offered slot] work for you?" Keep this kind of reply to 2-3 sentences. Do not use the word "consultation" for ordinary group coordination; just accept or choose the offered time. Do not ask whether we want to attend, do not promise who else will attend, and do not add an availability placeholder when the reply already asks whether the offered slot works.
+- If the sender asks whether you need something (such as an extension) rather than granting it, request it explicitly. Do not say it has already been granted. For an extension, use wording like "I would like to request an extension for the assignment due on Friday. Could you let me know if an extension is possible and, if so, until when?" Do not propose a new date. Do not write "I appreciate the extension" or refer to an "extended deadline" unless the sender already granted it.
+- Never invent a specific time, date, location, or deadline. If the sender offers specific options, answer using those options; if you need to propose availability and no options were given, use a placeholder.
 - If the needed detail is unknown, insert a placeholder such as [confirm the group's availability] instead of guessing.
-- Do not invent facts, dates, numbers, promises, or attachments.
+- Do not invent facts, promises, or attachments.
 - Do not copy raw email addresses from the incoming email. Refer to people and services by name unless the reply specifically needs to give the recipient an address.
+- Keep most replies to 3 sentences or fewer, excluding the greeting and sign-off.
 - Do not add extra context, explanations, or follow-up sentences that the sender did not ask for.
 - If the incoming email is purely informational, keep the reply to a short acknowledgement.
 - If information is missing, insert a clearly marked placeholder such as [confirm date] and list it at the end under "Placeholders:".
@@ -572,6 +576,63 @@ def placeholders_in(text: str) -> list[str]:
     return sorted({match.strip() for match in re.findall(r"\[[^\[\]\n]{1,60}\]", text)})
 
 
+def guardrail_issues(reply: str, email: Email) -> list[str]:
+    issues = []
+    lower = reply.lower()
+    for phrase in ("as an ai", "as a language model", "ai assistant", "i am an ai", "i'm an ai"):
+        if phrase in lower:
+            issues.append(f"mentions AI/assistant phrase: {phrase}")
+
+    incoming_addresses = set()
+    if email.sender_email:
+        incoming_addresses.add(email.sender_email.lower())
+    for address in re.findall(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", email.body):
+        incoming_addresses.add(address.lower())
+    for address in sorted(incoming_addresses):
+        if address and address in lower:
+            issues.append(f"copies raw email address: {address}")
+
+    extension_offer = re.search(
+        r"(?i)\b(?:if|whether) you (?:need|require|would like) (?:an? )?extension\b|\bdo you need (?:an? )?extension\b",
+        email.body,
+    )
+    if extension_offer:
+        for phrase in (
+            "i appreciate the extension",
+            "thank you for the extension",
+            "thanks for the extension",
+            "the extension has been granted",
+            "the extension is granted",
+            "i have been granted an extension",
+            "by the extended deadline",
+            "the extended deadline",
+        ):
+            if phrase in lower:
+                issues.append(f"treats an offered extension as already granted: {phrase}")
+                break
+
+    match = re.search(r"(?i)\bPlaceholders:\s*", reply)
+    if match:
+        body = reply[: match.start()]
+        listing = reply[match.end() :]
+        listed = {item.lower() for item in placeholders_in(listing)}
+        body_placeholders = {item.lower() for item in placeholders_in(body)}
+        for placeholder in sorted(body_placeholders):
+            if body.lower().count(placeholder) > 1:
+                issues.append(f"placeholder appears more than once: {placeholder}")
+        for placeholder in sorted(body_placeholders - listed):
+            issues.append(f"placeholder is not listed: {placeholder}")
+        for placeholder in sorted(listed - body_placeholders):
+            issues.append(f"listed placeholder is not in the reply: {placeholder}")
+    else:
+        for placeholder in placeholders_in(reply):
+            if reply.lower().count(placeholder.lower()) > 1:
+                issues.append(f"placeholder appears more than once: {placeholder}")
+            issues.append(f"placeholder is not listed: {placeholder}")
+
+    return issues
+
+
 def safe_name(email: Email) -> str:
     slug = re.sub(r"[^A-Za-z0-9]+", "-", email.subject).strip("-")[:50] or "email"
     digest = hashlib.sha1((email.id or email.internet_message_id or email.subject).encode()).hexdigest()[:10]
@@ -616,72 +677,131 @@ def build_eml(email: Email, reply: str, sender_name: str, sender_email: str) -> 
     return message.as_string()
 
 
+def draft_key_for(email: Email) -> str:
+    return email.id or email.internet_message_id or email.subject
+
+
+def draft_cache_key(email: Email, system: str, user: str, config: LLMConfig) -> str:
+    raw = json.dumps(
+        {
+            "id": draft_key_for(email),
+            "provider": config.provider,
+            "model": config.model,
+            "system": system,
+            "user": user,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def load_previous_drafts(output_dir: Path) -> dict[str, dict]:
+    index_path = output_dir / "drafts.json"
+    if not index_path.exists():
+        return {}
+    try:
+        previous = json.loads(index_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as error:
+        print(f"[warn] could not read existing drafts.json ({error}); starting fresh", file=sys.stderr)
+        return {}
+    records = previous.get("drafts", []) if isinstance(previous, dict) else previous
+    if not isinstance(records, list):
+        return {}
+    merged = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        key = record.get("id") or record.get("internet_message_id") or record.get("subject")
+        if key:
+            merged[key] = record
+    return merged
+
+
 def write_outputs(rows, args, config: LLMConfig, sender_name: str, sender_email: str) -> None:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    index = []
+    merged = load_previous_drafts(output_dir)
+    generated = 0
+    cached = 0
     for email, label, confidence in rows:
-        print(f"Generating: {email.subject}")
         system, user = build_prompt(email, sender_name)
-        reply = call_llm(config, system, user)
-        if not reply.strip():
-            print(f"[warn] empty reply for {email.subject!r}; skipped", file=sys.stderr)
-            continue
-        name = safe_name(email)
-        recipient_name, recipient_address = reply_recipient(email)
+        key = draft_key_for(email)
+        cache_key = draft_cache_key(email, system, user, config)
+        existing = merged.get(key)
+        force = bool(getattr(args, "force", False))
 
-        record = {
-            "id": email.id,
-            "internet_message_id": email.internet_message_id,
-            "subject": email.subject,
-            "from": {"name": email.sender_name, "address": email.sender_email},
-            "recipient": {"name": recipient_name, "address": recipient_address},
-            "recipient_needs_filling": not bool(recipient_address),
-            "to": email.to,
-            "received": email.received,
-            "filter_label": label,
-            "filter_confidence": confidence,
-            "provider": config.provider,
-            "model": config.model,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "reply": reply,
-            "placeholders": placeholders_in(reply),
-            "draft_file": f"{name}.eml",
-        }
+        if existing and existing.get("reply") and existing.get("cache_key") == cache_key and not force:
+            print(f"Using cached draft: {email.subject}")
+            record = dict(existing)
+            record["filter_label"] = label
+            record["filter_confidence"] = confidence
+            record["placeholders"] = placeholders_in(record["reply"])
+            recipient_name, recipient_address = reply_recipient(email)
+            record["recipient"] = {"name": recipient_name, "address": recipient_address}
+            record["recipient_needs_filling"] = not bool(recipient_address)
+            name = Path(record.get("draft_file") or f"{safe_name(email)}.eml").stem
+            record["draft_file"] = f"{name}.eml"
+            cached += 1
+        else:
+            print(f"Generating: {email.subject}")
+            reply = call_llm(config, system, user)
+            if not reply.strip():
+                print(f"[warn] empty reply for {email.subject!r}; skipped", file=sys.stderr)
+                continue
+            name = safe_name(email)
+            recipient_name, recipient_address = reply_recipient(email)
+            record = {
+                "id": email.id,
+                "internet_message_id": email.internet_message_id,
+                "subject": email.subject,
+                "from": {"name": email.sender_name, "address": email.sender_email},
+                "recipient": {"name": recipient_name, "address": recipient_address},
+                "recipient_needs_filling": not bool(recipient_address),
+                "to": email.to,
+                "received": email.received,
+                "filter_label": label,
+                "filter_confidence": confidence,
+                "provider": config.provider,
+                "model": config.model,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "cache_key": cache_key,
+                "reply": reply,
+                "placeholders": placeholders_in(reply),
+                "draft_file": f"{name}.eml",
+            }
+            generated += 1
+
+        issues = guardrail_issues(record["reply"], email)
+        record["guardrail_issues"] = issues
+        if issues:
+            print(
+                f"[warn] guardrail issues for {email.subject!r}: " + "; ".join(issues),
+                file=sys.stderr,
+            )
+
         (output_dir / f"{name}.json").write_text(
             json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         (output_dir / f"{name}.eml").write_text(
-            build_eml(email, reply, sender_name, sender_email), encoding="utf-8"
+            build_eml(email, record["reply"], sender_name, sender_email), encoding="utf-8"
         )
-        index.append(record)
-
-    merged = {}
-    index_path = output_dir / "drafts.json"
-    if index_path.exists():
-        try:
-            previous = json.loads(index_path.read_text(encoding="utf-8"))
-            for record in previous.get("drafts", []):
-                key = record.get("id") or record.get("internet_message_id") or record.get("subject")
-                if key:
-                    merged[key] = record
-        except (json.JSONDecodeError, OSError) as error:
-            print(f"[warn] could not read existing drafts.json ({error}); starting fresh", file=sys.stderr)
-    for record in index:
-        key = record["id"] or record["internet_message_id"] or record["subject"]
         merged[key] = record
-    all_records = list(merged.values())
 
+    all_records = list(merged.values())
+    index_path = output_dir / "drafts.json"
     summary = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "provider": config.provider,
         "model": config.model,
         "count": len(all_records),
-        "new_count": len(index),
+        "new_count": generated,
+        "generated_count": generated,
+        "cached_count": cached,
         "drafts": all_records,
     }
-    (index_path).write_text(
+    index_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
@@ -695,11 +815,13 @@ def write_outputs(rows, args, config: LLMConfig, sender_name: str, sender_email:
             lines.append(f"- To: {recipient_name} <{recipient_address}>")
         else:
             lines.append("- To: [fill in recipient email]")
-        lines.append(f"- File: `{record['draft_file']}`")
+        lines.append(f"- File: `{record.get('draft_file', '')}`")
         if record.get("recipient_needs_filling"):
             lines.append("- Note: Canvas notification; fill in the recipient's private email before sending.")
-        if record["placeholders"]:
+        if record.get("placeholders"):
             lines.append(f"- Placeholders: {', '.join(record['placeholders'])}")
+        if record.get("guardrail_issues"):
+            lines.append(f"- Guardrail: {'; '.join(record['guardrail_issues'])}")
         lines.append("")
         lines.append(record["reply"])
         lines.append("")
@@ -711,6 +833,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Draft LLM replies for received emails (no sending).")
     parser.add_argument("--input", default=str(DEFAULT_INPUT), help="Path to received_mails.json")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help="Draft output directory")
+    parser.add_argument("--force", action="store_true", help="Regenerate drafts even when a matching cached draft exists")
     parser.add_argument("--filter", choices=["needs-reply", "all"], default="needs-reply")
     parser.add_argument("--ids", default="", help="Comma-separated message id substrings")
     parser.add_argument("--limit", type=int, default=0, help="Max number of emails")

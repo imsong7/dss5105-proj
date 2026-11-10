@@ -1,26 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
 
 import type { InboxEmail, ReplyDraft } from "../domain/email";
 
 interface DraftReplyProps {
   email: InboxEmail;
   onDraft: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
+  onSend: (id: string, reply: string, token?: string) => Promise<void>;
 }
 
 const PRIMARY_BUTTON =
   "mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-wait disabled:opacity-60";
+const ACTION_PRIMARY =
+  "inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-wait disabled:opacity-60";
 const SECONDARY_BUTTON =
   "inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none disabled:opacity-60";
 
-export function DraftReply({ email, onDraft }: DraftReplyProps) {
+export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
   const [draft, setDraft] = useState<ReplyDraft | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendToken, setSendToken] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => () => abort.current?.abort(), []);
+
+  const recipient = email.sender.name || email.sender.address;
+  const subject = email.subject.trim() || "(no subject)";
+  const replySubject = subject.toLowerCase().startsWith("re:") ? subject : `Re: ${subject}`;
 
   async function generate() {
     abort.current?.abort();
@@ -29,6 +41,9 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
     setLoading(true);
     setError(null);
     setCopied(false);
+    setSendOpen(false);
+    setSent(false);
+    setSendError(null);
 
     try {
       const result = await onDraft(email.id, controller.signal);
@@ -58,6 +73,23 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
     }
   }
 
+  async function send() {
+    if (!draft) {
+      return;
+    }
+    setSending(true);
+    setSendError(null);
+    try {
+      await onSend(email.id, draft.reply, sendToken);
+      setSent(true);
+      setSendOpen(false);
+    } catch (cause) {
+      setSendError(cause instanceof Error ? cause.message : "Could not send the reply.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <section
       aria-label="Draft reply"
@@ -69,8 +101,8 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
           <p className="text-[13px] font-semibold text-ink">Draft reply</p>
           <p className="text-[12px] text-muted">
             {draft
-              ? `${draft.model || "Generated"} · nothing is sent`
-              : "Generate a draft reply. Nothing is sent."}
+              ? `${draft.model || "Generated"} · review before sending`
+              : "Generate a draft reply. Nothing is sent until you press Send."}
           </p>
         </div>
       </div>
@@ -108,9 +140,12 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
             className="mt-3 w-full resize-y rounded-[10px] border border-line bg-surface px-3.5 py-3 text-[14px] leading-6 text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             rows={Math.min(14, Math.max(7, draft.reply.split("\n").length + 1))}
             value={draft.reply}
-            onChange={(event) =>
-              setDraft((current) => (current ? { ...current, reply: event.target.value } : current))
-            }
+            onChange={(event) => {
+              const reply = event.target.value;
+              setDraft((current) => (current ? { ...current, reply } : current));
+              setSent(false);
+              setSendError(null);
+            }}
           />
 
           {draft.placeholders.length ? (
@@ -131,12 +166,22 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
             </div>
           ) : null}
 
+          {sent ? (
+            <p
+              role="status"
+              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent"
+            >
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Sent to {email.sender.address}
+            </p>
+          ) : null}
+
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               className={SECONDARY_BUTTON}
               onClick={() => void generate()}
-              disabled={loading}
+              disabled={loading || sending}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Regenerate
@@ -145,7 +190,91 @@ export function DraftReply({ email, onDraft }: DraftReplyProps) {
               <Copy className="h-4 w-4" aria-hidden="true" />
               {copied ? "Copied" : "Copy draft"}
             </button>
+            {!sent ? (
+              <button
+                type="button"
+                className={ACTION_PRIMARY}
+                onClick={() => {
+                  setSendOpen((open) => !open);
+                  setSendError(null);
+                }}
+                disabled={sending}
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Send
+              </button>
+            ) : null}
           </div>
+
+          {sendOpen && !sent ? (
+            <div className="mt-3 rounded-[8px] border border-line bg-surface px-3 py-3">
+              <p className="text-[13px] font-semibold text-ink">Send this reply?</p>
+              <p className="mt-1 text-[12px] leading-5 text-muted">
+                To: {recipient} &lt;{email.sender.address}&gt;
+                <br />
+                Subject: {replySubject}
+              </p>
+
+              <label htmlFor={`send-token-${email.id}`} className="mt-3 block text-[12px] font-medium text-ink">
+                Microsoft Graph token <span className="font-normal text-muted">(needs Mail.Send)</span>
+              </label>
+              <input
+                id={`send-token-${email.id}`}
+                type="password"
+                value={sendToken}
+                onChange={(event) => setSendToken(event.target.value)}
+                spellCheck={false}
+                autoComplete="off"
+                placeholder="Paste a token, or leave blank if already connected"
+                className="mt-1.5 min-h-11 w-full rounded-[10px] border border-line bg-surface px-3 font-mono text-[13px] focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
+              />
+              <p className="mt-1.5 text-[12px] leading-5 text-muted">
+                Get a token from{" "}
+                <a
+                  className="text-accent underline underline-offset-2"
+                  href="https://developer.microsoft.com/en-us/graph/graph-explorer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Graph Explorer
+                </a>
+                . It is sent to your local app but not saved.
+              </p>
+
+              {sendError ? (
+                <p role="alert" className="mt-2 text-[13px] leading-5 text-action-now-fg">
+                  {sendError}
+                </p>
+              ) : null}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={ACTION_PRIMARY}
+                  onClick={() => void send()}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {sending ? "Sending..." : "Send now"}
+                </button>
+                <button
+                  type="button"
+                  className={SECONDARY_BUTTON}
+                  onClick={() => {
+                    setSendOpen(false);
+                    setSendError(null);
+                  }}
+                  disabled={sending}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
     </section>

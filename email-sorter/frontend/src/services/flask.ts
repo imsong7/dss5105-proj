@@ -228,6 +228,18 @@ export async function draftReply(
   };
 }
 
+export async function sendReply(
+  email: FlaskEmail,
+  reply: string,
+  token?: string,
+): Promise<void> {
+  await api(
+    "/api/send-reply",
+    { email, reply, token: token?.trim() || undefined },
+    { timeoutMs: 30_000 },
+  );
+}
+
 export async function classifyEmail(
   email: FlaskEmail,
   backend: string,

@@ -25,6 +25,7 @@ interface EmailDetailProps {
   onUndoCorrection: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
   onDraftReply: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
+  onSendReply: (id: string, reply: string, token?: string) => Promise<void>;
   headingRef: RefObject<HTMLHeadingElement | null>;
   className?: string;
 }
@@ -37,6 +38,7 @@ export function EmailDetail({
   onUndoCorrection,
   onRemoveRule,
   onDraftReply,
+  onSendReply,
   headingRef,
   className = "",
 }: EmailDetailProps) {
@@ -222,7 +224,12 @@ export function EmailDetail({
           </p>
         )}
 
-        <DraftReply key={email.id} email={email} onDraft={onDraftReply} />
+        <DraftReply
+          key={email.id}
+          email={email}
+          onDraft={onDraftReply}
+          onSend={onSendReply}
+        />
 
         <div className="mt-6 border-t border-line pt-5 text-[15px] leading-6 break-words text-ink/90 space-y-3 sm:text-[16px]">
           {bodyParagraphs.map((paragraph, index) => (

@@ -1,0 +1,44 @@
+{#- A small look at the app beside the sign-in card. The preview rows are
+    made-up examples (marked "Example"), never anyone's real mail. Chip text
+    must match the app's label names in app/taxonomy.py. -#}
+{% from "_icons.html" import icon %}
+{% from "_lion.html" import lion %}
+<aside class="login-showcase" aria-label="What Inbox sorter does">
+  <h2 class="ls-title">Your NUS inbox,<br><span>sorted for you.</span></h2>
+
+  {{ lion("ls-perch", 120) }}
+  <div class="ls-preview" aria-hidden="true">
+    <div class="ls-head">
+      <span class="ls-day">Today</span>
+      <span class="ls-week">Week 13</span>
+      <span class="ls-example">Example</span>
+    </div>
+    <div class="ls-row">
+      <span class="ls-bar now"></span>
+      <span class="ls-text"><b>CA4 submission</b><small>DSS5101 · due Fri 11:59 pm</small></span>
+      <span class="ls-chip now">Needs action</span>
+    </div>
+    <div class="ls-row">
+      <span class="ls-bar reply"></span>
+      <span class="ls-text"><b>Group meeting time?</b><small>Project team · this week</small></span>
+      <span class="ls-chip reply">Needs a reply</span>
+    </div>
+    <div class="ls-row">
+      <span class="ls-bar remind"></span>
+      <span class="ls-text"><b>Career fair</b><small>Register by 12 Nov</small></span>
+      <span class="ls-chip remind">Reminder</span>
+    </div>
+    <div class="ls-weeks">
+      <span class="ls-weeks-label">Due per week</span>
+      <span class="ls-cols">
+        <i style="--h:45%"></i><i style="--h:80%" class="hot"></i><i style="--h:30%"></i><i style="--h:60%"></i><i style="--h:20%"></i>
+      </span>
+    </div>
+  </div>
+
+  <ul class="ls-features">
+    <li>{{ icon("mail", class="icon", size=18) }}<span>Sorts every email by what it needs from you</span></li>
+    <li>{{ icon("calendar", class="icon", size=18) }}<span>Finds deadlines and puts them on your calendar</span></li>
+    <li>{{ icon("school", class="icon", size=18) }}<span>Groups mail by course, so nothing slips</span></li>
+  </ul>
+</aside>

@@ -1,0 +1,82 @@
+<!doctype html>
+{% from "_icons.html" import icon %}
+{% from "_lion.html" import lion %}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Create account · Inbox sorter</title>
+<link rel="manifest" href="{{ url_for('static', filename='app/manifest.webmanifest') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='app/apple-touch-icon.png') }}">
+<meta name="theme-color" content="#003D7C">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='app/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='67') }}">
+</head>
+<body class="login-page">
+<div class="login-shell">
+{{ lion("login-perch", 96) }}
+<main class="login-card">
+  <div class="login-brand">
+    <span class="brand-name">Inbox sorter</span>
+    <span class="connect-step">Step 1 of 2</span>
+  </div>
+  <h1>Create your account</h1>
+  <p class="sub">Use your university email. Your mail stays private to your account.</p>
+
+  {% if error %}
+  <p class="login-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('register') }}" autocomplete="on">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <label for="name">Your name <span class="optional">(shown on Today)</span></label>
+    <input id="name" name="name" type="text" autocomplete="given-name" maxlength="40"
+           placeholder="e.g. Mina" value="{{ name or '' }}">
+
+    <label for="email">University email</label>
+    <input id="email" name="email" type="email" required autocomplete="email" autofocus
+           placeholder="you@{{ domains[0] if domains else 'u.nus.edu' }}" value="{{ email or '' }}">
+
+    <label for="password">Password <span class="optional">(8+ characters)</span></label>
+    <div class="login-pw">
+      <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
+      <button class="pw-toggle" id="pw-toggle" type="button" aria-controls="password" aria-pressed="false">Show</button>
+    </div>
+
+    <label for="confirm">Password again</label>
+    <input id="confirm" name="confirm" type="password" required minlength="8" autocomplete="new-password">
+
+    {% if needs_code %}
+    <label for="code">Sign-up code <span class="optional">(from whoever runs this app)</span></label>
+    <input id="code" name="code" type="text" required autocomplete="off">
+    {% endif %}
+
+    <button class="btn btn-primary" type="submit">Create account and connect Outlook</button>
+  </form>
+
+  <div class="connect-next" aria-label="Next step">
+    <p class="connect-next-title"><span class="connect-step">Step 2</span> Connect your Outlook</p>
+    <p class="connect-next-text">Right after this, choose how your mail reaches the app:</p>
+    <ul>
+      <li><strong>Power Automate flow</strong>: download a ready-made flow and import it. Works on its own.</li>
+      <li><strong>Outlook token</strong>: paste a token from Graph Explorer. Quick, lasts about an hour.</li>
+    </ul>
+  </div>
+
+  <p class="login-switch">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+</main>
+{% include "_login_showcase.html" %}
+</div>
+<script>
+document.getElementById("pw-toggle").addEventListener("click", function () {
+  var input = document.getElementById("password");
+  var show = input.type === "password";
+  input.type = show ? "text" : "password";
+  this.textContent = show ? "Hide" : "Show";
+  this.setAttribute("aria-pressed", String(show));
+});
+</script>
+</body>
+</html>

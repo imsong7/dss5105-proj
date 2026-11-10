@@ -1,0 +1,15 @@
+{
+  "name": "Inbox sorter",
+  "short_name": "Inbox",
+  "description": "Deadlines and mail for NUS students.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f7",
+  "theme_color": "#003d7c",
+  "icons": [
+    { "src": "/static/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/static/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

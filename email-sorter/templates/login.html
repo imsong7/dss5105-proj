@@ -1,0 +1,87 @@
+<!doctype html>
+{% from "_icons.html" import icon %}
+{% from "_lion.html" import lion %}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · Inbox sorter</title>
+<link rel="manifest" href="{{ url_for('static', filename='app/manifest.webmanifest') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='app/apple-touch-icon.png') }}">
+<meta name="theme-color" content="#003D7C">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='app/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='67') }}">
+</head>
+<body class="login-page">
+<div class="login-shell">
+{{ lion("login-perch", 96) }}
+<main class="login-card">
+  <div class="login-brand">
+    <span class="brand-name">Inbox sorter</span>
+  </div>
+  <h1>Sign in</h1>
+  <p class="sub">Sign in with your account email and password. You only see your own mail.</p>
+
+  {% if error %}
+  <p class="login-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('login') }}" autocomplete="on">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+
+    <label for="email">Email address</label>
+    <input id="email" name="email" type="email" required autocomplete="email"{% if not token_open %} autofocus{% endif %}
+           placeholder="you@u.nus.edu" value="{{ email or '' }}">
+
+    <label for="password">Password</label>
+    <div class="login-pw">
+      <input id="password" name="password" type="password" required autocomplete="current-password">
+      <button class="pw-toggle" id="pw-toggle" type="button" aria-controls="password" aria-pressed="false">Show</button>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Sign in</button>
+  </form>
+
+  {% if signup %}
+  <p class="login-switch">New here? <a href="{{ url_for('register') }}">Create an account</a></p>
+  {% endif %}
+
+  {% if token_login %}
+  <div class="login-or" role="separator"><span>or</span></div>
+  <details class="login-token"{% if token_open %} open{% endif %}>
+    <summary>Use an Outlook token instead</summary>
+    <p class="sub">No account needed. Open
+      <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>,
+      sign in with your university Microsoft account, open the <strong>Access token</strong> tab and copy it.
+      It lasts about an hour, then you paste a new one.</p>
+    <form method="post" action="{{ url_for('login_token') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label for="graph-token">Access token</label>
+      <textarea id="graph-token" name="token" required rows="3" spellcheck="false" autocomplete="off"{% if token_open %} autofocus{% endif %}
+                placeholder="Paste the token from Graph Explorer"></textarea>
+      {% if token_needs_code %}
+      <label for="token-code">Sign-up code</label>
+      <input id="token-code" name="code" type="text" required autocomplete="off">
+      {% endif %}
+      <button class="btn btn-outline-primary" type="submit">Continue with token</button>
+    </form>
+  </details>
+  {% endif %}
+
+</main>
+{% include "_login_showcase.html" %}
+</div>
+<script>
+document.getElementById("pw-toggle").addEventListener("click", function () {
+  var input = document.getElementById("password");
+  var show = input.type === "password";
+  input.type = show ? "text" : "password";
+  this.textContent = show ? "Hide" : "Show";
+  this.setAttribute("aria-pressed", String(show));
+});
+</script>
+</body>
+</html>

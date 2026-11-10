@@ -34,10 +34,16 @@ class MultiuserAuthTests(unittest.TestCase):
         self.client = self.app.test_client()
 
     def test_anonymous_denied(self):
-        self.assertEqual(self.client.get("/who").status_code, 401)
+        response = self.client.get("/who")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers["Location"])
 
     def test_wrong_password_denied(self):
-        self.assertEqual(self.client.get("/who", auth=("a@example.com", "wrong")).status_code, 401)
+        response = self.client.get("/who", auth=("a@example.com", "wrong"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers["Location"])
 
     def test_identity_and_refresh_bound(self):
         response = self.client.get("/who", auth=("a@example.com", "alpha-password-123"))

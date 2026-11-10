@@ -70,7 +70,10 @@ def start(port: int, domain: str | None = None) -> tuple[subprocess.Popen | None
         print("[ngrok] install it with: brew install ngrok")
         return None, None
 
-    command = [executable, "http", f"--domain={domain}", str(port)]
+    # ngrok 3.39+ renamed --domain to --url; the old flag only warns now.
+    # 127.0.0.1, not "localhost": on macOS, AirPlay Receiver also listens on
+    # port 5000 over IPv6 (::1) and answers every request with 403.
+    command = [executable, "http", f"--url={domain}", f"127.0.0.1:{port}"]
     print(f"[ngrok] starting: {' '.join(command)}")
     log = tempfile.NamedTemporaryFile(prefix="ngrok-", suffix=".log", delete=False)
     log_path = Path(log.name)
@@ -85,7 +88,7 @@ def start(port: int, domain: str | None = None) -> tuple[subprocess.Popen | None
         for line in lines[-5:]:
             print(f"[ngrok] {line}")
 
-    for _ in range(20):
+    for _ in range(40):
         time.sleep(0.5)
         if process.poll() is not None:
             print("[ngrok] exited before the tunnel was ready:")

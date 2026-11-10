@@ -1,0 +1,469 @@
+@import "tailwindcss";
+
+@theme {
+  /* Apple-style system stack: SF on Apple platforms, system UI elsewhere. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons",
+    "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+
+  /* Cool neutral surfaces, hairline separators, near-black ink. */
+  --color-page: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f2f2f5;
+  --color-ink: #1d1d1f;
+  --color-muted: #6e6e73;
+  --color-line: #d9d9de;
+
+  /* NUS Blue (PMS 294 / #003D7C) is the primary interactive accent. */
+  --color-accent: #003d7c;
+  --color-accent-dark: #002b5a;
+  --color-accent-soft: #eef2f8;
+
+  /* NUS Orange (PMS 152 / #EF7C00) is a highlight, not a text colour. */
+  --color-highlight: #ef7c00;
+  --color-highlight-dark: #8a4400;
+  --color-highlight-soft: #fdf4ea;
+  --color-highlight-line: #f6dcbb;
+
+  --color-cat-medical-bg: #f9ece9;
+  --color-cat-medical-fg: #8c4038;
+  --color-cat-medical-line: #eed6d1;
+  --color-cat-promotional-bg: #fbf3e3;
+  --color-cat-promotional-fg: #86601f;
+  --color-cat-promotional-line: #efdfc0;
+  --color-cat-career-bg: #e9f2ee;
+  --color-cat-career-fg: #246b55;
+  --color-cat-career-line: #d2e5dd;
+  --color-cat-canva-bg: #f2eef9;
+  --color-cat-canva-fg: #64508f;
+  --color-cat-canva-line: #e0d8ef;
+  --color-cat-general-bg: #eef1f4;
+  --color-cat-general-fg: #4f5a63;
+  --color-cat-general-line: #dde3e8;
+  --color-cat-others-bg: #f2f2f4;
+  --color-cat-others-fg: #63636a;
+  --color-cat-others-line: #e1e1e6;
+
+  --color-action-now-bg: #fbe9e6;
+  --color-action-now-fg: #97362b;
+  --color-action-now-line: #f0c9c2;
+  --color-action-reply-bg: #e9eefb;
+  --color-action-reply-fg: #2d4f9e;
+  --color-action-reply-line: #cfdaf3;
+  --color-action-reminder-bg: #fbf1dc;
+  --color-action-reminder-fg: #815c1a;
+  --color-action-reminder-line: #efdfb8;
+  --color-action-none-bg: #f2f2f5;
+  --color-action-none-fg: #5c5c62;
+  --color-action-none-line: #e1e1e6;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-page text-ink antialiased;
+    /* No rubber-band bounce or accidental pull-to-refresh behind the app. */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Left and right notch in landscape. */
+  #root {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  ::selection {
+    @apply bg-accent/15;
+  }
+}
+
+/* Apple-style hairline scrollbars. */
+@media (min-width: 1024px) {
+  .inbox-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #c7c7cc transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Small, quick motion. The reduced-motion rule above turns it all off. */
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.view-enter {
+  animation: view-in 0.18s ease-out;
+}
+
+.toast-enter {
+  animation: toast-in 0.18s ease-out;
+}
+
+/* ---- Interaction polish. All of it is disabled by the reduced-motion rule. ---- */
+
+/* Lists fade up one row after another. */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stagger > * {
+  /* "backwards", not "both": a finished transform would trap dropdowns inside the row. */
+  animation: row-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 320ms; }
+
+/* Cards lift on hover; buttons press in. */
+.lift {
+  position: relative;
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s ease;
+}
+/* Raise the hovered or focused card so its dropdowns sit above the next card. */
+.lift:hover,
+.lift:focus-within {
+  z-index: 10;
+}
+/* Touch screens keep :hover after a tap, so only lift where hover is real. */
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.press {
+  transition: transform 0.12s ease;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
+/* The "done" circle pops and sends out a small burst. */
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.pop {
+  animation: pop 0.3s ease-out;
+}
+
+@keyframes burst {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--a)) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--a)) translateY(-26px) scale(0.4);
+  }
+}
+.burst > i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: burst 0.55s ease-out forwards;
+}
+
+/* Greeting banner: a slow drifting glow. */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(14px, -8px) scale(1.12); }
+}
+.drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+/* Toast timer. */
+@keyframes toast-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Command palette. */
+dialog.palette[open] {
+  animation: toast-in 0.16s ease-out;
+}
+dialog.palette::backdrop {
+  background: rgba(10, 20, 40, 0.35);
+  backdrop-filter: blur(3px);
+}
+
+/* Bottom sheets on phones. */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.sheet-in {
+  animation: sheet-in 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 639px) {
+  dialog:not(.palette) {
+    margin: auto 0 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-width: 1px 0 0 0;
+    border-radius: 1rem 1rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  dialog:not(.palette)[open] {
+    animation: sheet-in 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* ---- Dark theme: follows the device unless the student picks one. ---- */
+:root {
+  --course-bg-l: 92%;
+  --course-text-l: 24%;
+  --course-accent-l: 38%;
+  --toast-bg: #1d1d1f;
+  --toast-fg: #ffffff;
+  --toast-link: #9cc4ff;
+  --lion-mane: #003d7c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --color-page: #0e1014;
+  --color-surface: #181b21;
+  --color-surface-muted: #232730;
+  --color-ink: #eceef2;
+  --color-muted: #9aa1ad;
+  --color-line: #303642;
+
+  --color-accent: #3d86dc;
+  --color-accent-dark: #2f6fbd;
+  --color-accent-soft: #172336;
+
+  --color-highlight-dark: #f2b36e;
+  --color-highlight-soft: #2a2015;
+  --color-highlight-line: #4d3a20;
+
+  --color-cat-medical-bg: #36201e;
+  --color-cat-medical-fg: #f0a39a;
+  --color-cat-medical-line: #54312d;
+  --color-cat-promotional-bg: #342a17;
+  --color-cat-promotional-fg: #e6c77d;
+  --color-cat-promotional-line: #503f20;
+  --color-cat-career-bg: #17302a;
+  --color-cat-career-fg: #7fd0b3;
+  --color-cat-career-line: #254a40;
+  --color-cat-canva-bg: #28223a;
+  --color-cat-canva-fg: #b7a5e6;
+  --color-cat-canva-line: #3b3356;
+  --color-cat-general-bg: #212830;
+  --color-cat-general-fg: #a9b6c2;
+  --color-cat-general-line: #323c47;
+  --color-cat-others-bg: #25262b;
+  --color-cat-others-fg: #a4a5ae;
+  --color-cat-others-line: #35363d;
+
+  --color-action-now-bg: #371f1c;
+  --color-action-now-fg: #f2a69c;
+  --color-action-now-line: #57312c;
+  --color-action-reply-bg: #1b2640;
+  --color-action-reply-fg: #9fb8f0;
+  --color-action-reply-line: #2b3a5e;
+  --color-action-reminder-bg: #33281a;
+  --color-action-reminder-fg: #e8c581;
+  --color-action-reminder-line: #51402a;
+  --color-action-none-bg: #24262c;
+  --color-action-none-fg: #a6a8b2;
+  --color-action-none-line: #353740;
+
+  --course-bg-l: 22%;
+  --course-text-l: 82%;
+  --course-accent-l: 62%;
+  --toast-bg: #eceef2;
+  --toast-fg: #14161a;
+  --toast-link: #1d5fb8;
+  --lion-mane: #5b9bf0;
+  color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-page: #0e1014;
+  --color-surface: #181b21;
+  --color-surface-muted: #232730;
+  --color-ink: #eceef2;
+  --color-muted: #9aa1ad;
+  --color-line: #303642;
+
+  --color-accent: #3d86dc;
+  --color-accent-dark: #2f6fbd;
+  --color-accent-soft: #172336;
+
+  --color-highlight-dark: #f2b36e;
+  --color-highlight-soft: #2a2015;
+  --color-highlight-line: #4d3a20;
+
+  --color-cat-medical-bg: #36201e;
+  --color-cat-medical-fg: #f0a39a;
+  --color-cat-medical-line: #54312d;
+  --color-cat-promotional-bg: #342a17;
+  --color-cat-promotional-fg: #e6c77d;
+  --color-cat-promotional-line: #503f20;
+  --color-cat-career-bg: #17302a;
+  --color-cat-career-fg: #7fd0b3;
+  --color-cat-career-line: #254a40;
+  --color-cat-canva-bg: #28223a;
+  --color-cat-canva-fg: #b7a5e6;
+  --color-cat-canva-line: #3b3356;
+  --color-cat-general-bg: #212830;
+  --color-cat-general-fg: #a9b6c2;
+  --color-cat-general-line: #323c47;
+  --color-cat-others-bg: #25262b;
+  --color-cat-others-fg: #a4a5ae;
+  --color-cat-others-line: #35363d;
+
+  --color-action-now-bg: #371f1c;
+  --color-action-now-fg: #f2a69c;
+  --color-action-now-line: #57312c;
+  --color-action-reply-bg: #1b2640;
+  --color-action-reply-fg: #9fb8f0;
+  --color-action-reply-line: #2b3a5e;
+  --color-action-reminder-bg: #33281a;
+  --color-action-reminder-fg: #e8c581;
+  --color-action-reminder-line: #51402a;
+  --color-action-none-bg: #24262c;
+  --color-action-none-fg: #a6a8b2;
+  --color-action-none-line: #353740;
+
+  --course-bg-l: 22%;
+  --course-text-l: 82%;
+  --course-accent-l: 62%;
+  --toast-bg: #eceef2;
+  --toast-fg: #14161a;
+  --toast-link: #1d5fb8;
+  --lion-mane: #5b9bf0;
+  color-scheme: dark;
+}
+
+/* Confetti for clearing the week. */
+@keyframes confetti-fall {
+  from {
+    opacity: 1;
+    transform: translate3d(0, -20px, 0) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(var(--drift), 100dvh, 0) rotate(var(--spin));
+  }
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 1px;
+  animation: confetti-fall 1.8s ease-in forwards;
+}
+
+/*
+ * iPhone Safari zooms the whole page when a field smaller than 16px gets focus,
+ * which makes a sheet look too big for the screen. Keep fields at 16px on phones
+ * and let date and time fields shrink to their column.
+ */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  dialog .grid > * {
+    min-width: 0;
+  }
+}
+
+/* A soft highlight sweeping around inside the greeting icon tile. */
+@keyframes glow-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.icon-glow {
+  position: absolute;
+  inset: -55%;
+  background: radial-gradient(circle at 72% 28%, var(--glow, rgba(255, 255, 255, 0.7)) 0%, transparent 38%);
+  animation: glow-orbit 7s linear infinite;
+  pointer-events: none;
+}
+
+/* Bars in the weekly chart grow up from the baseline. */
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}

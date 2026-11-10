@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wrong request method</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='50') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='52') }}">
 </head>
 <body>
 <main>
-  <section class="card" style="max-width:640px">
+  <section class="info-card" style="max-width:640px">
     <span class="version-mark">405</span>
     <h1>Wrong request method</h1>
     <p class="sub">{{ message }}</p>

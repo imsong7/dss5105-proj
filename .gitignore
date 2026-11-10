@@ -44,3 +44,6 @@ evaluation/results/paired_cv/
 Thumbs.db
 
 CHANGES.md
+
+# React build served by Flask (npm run build in email-sorter/frontend)
+email-sorter/static/app/

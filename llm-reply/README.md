@@ -1,21 +1,21 @@
 # LLM Reply Drafts
 
-用 LLM 為收到的郵件自動撰寫回覆草稿。只會產生草稿檔，**不會寄出、不會修改信箱**。
+Generate reply drafts for received emails with an LLM. This tool only creates draft files; **it does not send emails or modify the mailbox**.
 
-## 流程
+## Flow
 
-1. 讀取收到的郵件 JSON。預設依序找 `data/received_mails.json`、`../email project/received_mails.json`；也可用 `--input` 指定。
-2. 用 4 類 action 分類器篩選出 `Needs a reply` 的郵件。預設離線：有 joblib 模型時用 `--classifier ml`，否則用 `keywords`；也可用 `--classifier claude` 使用 repo 的 Claude 方法（`claude/config.yaml` 的同一套 prompt 與 labels，會呼叫 API）。
-3. 呼叫 LLM 生成回覆；若同一封信的 prompt、provider、model 都沒變，預設重用 `drafts.json` 的舊草稿，不呼叫 API。
-4. 輸出到 `llm-reply/drafts/`：
-   - `*.json`：完整記錄（原信、回覆、模型、placeholders、`guardrail_issues`）
-   - `*.eml`：可直接匯入 Outlook / Mail 的草稿。一般 email 會用原信 `replyTo`（若有）或 `From`；Canvas 通知若沒有 `replyTo`，`To` 會留空，請手動填入對方私人 email。
-   - `drafts.md`：方便快速瀏覽（含 guardrail 警告）
-   - `drafts.json`：所有草稿的合併索引（新結果覆蓋同一封信的舊草稿，並記錄 `generated_count` / `cached_count`）
+1. Read the received email JSON. By default, it checks `data/received_mails.json` and then `../email project/received_mails.json`; use `--input` to provide another path.
+2. Use a 4-class action classifier to select emails labelled `Needs a reply`. This is offline by default: it uses `--classifier ml` when a joblib model is available, otherwise it uses `keywords`. You can also use `--classifier claude` to use the repository's Claude method (the same prompt and labels from `claude/config.yaml`, which calls the API).
+3. Call the LLM to generate replies. If the prompt, provider, and model for an email are unchanged, the existing draft in `drafts.json` is reused by default without calling the API.
+4. Write output to `llm-reply/drafts/`:
+   - `*.json`: full record (original email, reply, model, placeholders, `guardrail_issues`)
+   - `*.eml`: draft that can be imported directly into Outlook / Mail. For normal emails, the tool uses the original `replyTo` if present, otherwise `From`. For Canvas notifications without `replyTo`, `To` is left blank; fill in the recipient's private email manually.
+   - `drafts.md`: quick overview (including guardrail warnings)
+   - `drafts.json`: merged index of all drafts (new results replace older drafts for the same email and record `generated_count` / `cached_count`)
 
-## 安裝
+## Installation
 
-建議直接使用 repo 根目錄的虛擬環境（root `requirements.txt` 已含 `requests`、`PyYAML`、`scikit-learn` 等）：
+Use the virtual environment at the repository root (the root `requirements.txt` includes `requests`, `PyYAML`, `scikit-learn`, and others):
 
 ```bash
 cd ..                      # repo root
@@ -25,101 +25,101 @@ pip install -r requirements.txt
 
 cd llm-reply
 cp .env.example .env
-# 編輯 .env，填入 ANTHROPIC_API_KEY
+# Edit .env and add ANTHROPIC_API_KEY
 ```
 
-預設使用 Claude：`LLM_PROVIDER=anthropic`、`LLM_MODEL=claude-sonnet-5-5`。
-如要改用較便宜、適合大量生成的模型，可設 `LLM_MODEL=claude-haiku-5-5`。
+Claude is used by default: `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-sonnet-5-5`.
+To use a cheaper model better suited to high-volume generation, set `LLM_MODEL=claude-haiku-5-5`.
 
-4 類 action 篩選預設離線：有 joblib 模型時用 `ml`，否則用 `keywords`，不會呼叫 API。若改用 `--classifier claude`，模型會讀 `claude/config.yaml` 的 `claude.model`（預設 `claude-haiku-5-5`；可用 `CLAUDE_MODEL` 覆寫），此時一次 `Needs a reply` 最多會有兩次 API 呼叫：一次分類、一次寫草稿。
+The 4-class action filter is offline by default: it uses `ml` when a joblib model is available, otherwise `keywords`, and does not call the API. If you use `--classifier claude`, the model reads `claude.model` from `claude/config.yaml` (default `claude-haiku-5-5`; override with `CLAUDE_MODEL`). In that case, one `Needs a reply` email can use up to two API calls: one for classification and one for drafting.
 
-`--dry-run` 永遠離線，只印 prompt、不生成草稿；若同時指定 `--classifier claude`，會自動改用 `keywords` 預覽。
+`--dry-run` is always offline and only prints the prompt without generating drafts. If you also use `--classifier claude`, it automatically switches to `keywords` for the preview.
 
-草稿預設會快取：若同一封信的 prompt、provider、model 都沒變，會直接重用 `drafts.json` 的舊草稿，不再呼叫 API。要強制重新生成，加 `--force`。
+Drafts are cached by default: if the prompt, provider, and model for an email are unchanged, the existing draft in `drafts.json` is reused and the API is not called. Add `--force` to regenerate.
 
-`--classifier ml` 需要 joblib 模型，預設找 `classical-ml/artifacts/required_action_model.joblib`，找不到時退回舊路徑 `../email project/ml_outputs/required_action_model.joblib`；也可用 `--ml-model` 指定。
+`--classifier ml` requires a joblib model. By default, it looks for `classical-ml/artifacts/required_action_model.joblib`, then falls back to the old path `../email project/ml_outputs/required_action_model.joblib`; you can also provide a path with `--ml-model`.
 
-`--classifier keywords` 不需要分類器或額外套件，會用關鍵字規則（`please reply`、`let us know`、`can you` 等）。
+`--classifier keywords` does not require a classifier or extra dependencies. It uses keyword rules such as `please reply`, `let us know`, and `can you`.
 
-## 使用
+## Usage
 
 ```bash
-# 先看會處理哪些信、送出什麼 prompt（完全離線）
+# Preview which emails will be processed and what prompt is sent (fully offline)
 python generate_replies.py --dry-run --limit 5
 
-# 用 joblib 分類器做離線預覽
+# Offline preview using the joblib classifier
 python generate_replies.py --dry-run --classifier ml --limit 5
 
-# 產生草稿（預設只回 Needs a reply）
+# Generate drafts (only Needs a reply by default)
 python generate_replies.py --limit 10
 
-# 處理所有非 noreply 郵件
+# Process all non-noreply emails
 python generate_replies.py --filter all --limit 20
 
-# 指定郵件（id 或 internetMessageId 的子字串；會略過所有篩選）
+# Select emails by id or a substring of internetMessageId (bypasses all filters)
 python generate_replies.py --ids "AAMkAGJk,dea82b3c"
 
-# 只接受分類器信心值 >= 0.5 的郵件
+# Only accept emails with classifier confidence >= 0.5
 python generate_replies.py --min-confidence 0.5
 
-# 用本地 Ollama
+# Use local Ollama
 LLM_PROVIDER=ollama LLM_MODEL=llama3.1 python generate_replies.py --limit 5
 ```
 
-## 常用參數
+## Common Options
 
-| 參數 | 說明 |
+| Option | Description |
 | --- | --- |
-| `--filter needs-reply \| all` | 篩選模式，預設 `needs-reply` |
-| `--classifier keywords \| ml \| claude` | 4 類 action 分類器，預設 `ml`（有模型時）或 `keywords`（皆離線） |
-| `--claude-config` | `claude/config.yaml` 路徑，預設 `../claude/config.yaml` |
-| `--ml-model` | `--classifier ml` 使用的 joblib 路徑 |
-| `--include-actions` | 連 `Needs an action` 一併回覆 |
-| `--include-noreply` | 不跳過 noreply 寄件者 |
-| `--include-broadcast` | 不跳過自動公告／群發郵件 |
-| `--skip-domains` | 要跳過的寄件者網域，預設不跳過；例如 `instructure.com` |
-| `--provider openai \| anthropic \| ollama` | LLM 供應商 |
-| `--model` | 覆寫模型 |
-| `--base-url` | 覆寫 API endpoint（OpenAI-compatible） |
-| `--ids` | 指定郵件 id 子字串；有給定時會略過所有篩選 |
-| `--sender-email` | 回覆者 email；預設從信件 `To` 自動判斷 |
-| `--sender-name` | 回覆者姓名；預設從信件 `To` 自動判斷 |
-| `--no-confirm` | 不詢問、直接使用偵測到的寄件者（適合腳本） |
-| `--min-confidence` | 分類器信心門檻，預設 `0`（不啟用） |
-| `--limit` | 最多處理幾封 |
-| `--output` | 草稿輸出目錄，預設 `llm-reply/drafts/` |
-| `--force` | 即使快取命中，也強制重新呼叫 LLM 生成草稿 |
-| `--dry-run` | 只印 prompt、不生成草稿；永遠離線（Claude 會自動改用 keywords） |
+| `--filter needs-reply \| all` | Filter mode; default `needs-reply` |
+| `--classifier keywords \| ml \| claude` | 4-class action classifier; default `ml` when a model is available, otherwise `keywords` (both offline) |
+| `--claude-config` | Path to `claude/config.yaml`; default `../claude/config.yaml` |
+| `--ml-model` | Joblib path used by `--classifier ml` |
+| `--include-actions` | Also reply to `Needs an action` emails |
+| `--include-noreply` | Do not skip noreply senders |
+| `--include-broadcast` | Do not skip automated announcements or bulk emails |
+| `--skip-domains` | Sender domains to skip; none by default, for example `instructure.com` |
+| `--provider openai \| anthropic \| ollama` | LLM provider |
+| `--model` | Override the model |
+| `--base-url` | Override the API endpoint (OpenAI-compatible) |
+| `--ids` | Select emails by id substring; all filters are bypassed when provided |
+| `--sender-email` | Sender email for replies; detected automatically from the email's `To` field by default |
+| `--sender-name` | Sender name for replies; detected automatically from the email's `To` field by default |
+| `--no-confirm` | Do not prompt; use the detected sender directly (useful for scripts) |
+| `--min-confidence` | Classifier confidence threshold; default `0` (disabled) |
+| `--limit` | Maximum number of emails to process |
+| `--output` | Draft output directory; default `llm-reply/drafts/` |
+| `--force` | Regenerate drafts with the LLM even when a cached draft exists |
+| `--dry-run` | Only print prompts and do not generate drafts; always offline (Claude falls back to keywords) |
 
-## 離線評估
+## Offline Evaluation
 
-`eval_cases.json` 有 8 種不同情境（諮詢、延期、組員約時間、活動 RSVP、帳號開通、回饋、截止日澄清、改期），每封都附 `ideal_reply` 與評分規則。`eval_replies.py` 只讀草稿，不會呼叫 API。
+`eval_cases.json` contains 8 scenarios (consultation, extension, group scheduling, event RSVP, account access, feedback, deadline clarification, and rescheduling). Each case includes an `ideal_reply` and scoring rules. `eval_replies.py` only reads drafts and does not call the API.
 
 ```bash
-# 驗證評分規則本身（使用每封的 ideal_reply）
+# Validate the scoring rules themselves (using each case's ideal_reply)
 python eval_replies.py --use-ideal
 
-# 評估已生成的草稿
+# Evaluate generated drafts
 python eval_replies.py --drafts drafts/drafts.json
 ```
 
-若要產生這 8 封的模型草稿，可先用 `--input eval_cases.json --ids "eval-"` 產生到另一個目錄；這一步會呼叫 LLM API：
+To generate model drafts for these 8 cases, first write them to a separate directory with `--input eval_cases.json --ids "eval-"`. This step calls the LLM API:
 
 ```bash
 python generate_replies.py --input eval_cases.json --ids "eval-" --output drafts-eval
 python eval_replies.py --drafts drafts-eval/drafts.json
 ```
 
-## 注意
+## Notes
 
-- `.env` 內含 API key，**不要 commit**。
-- 預設只產生草稿，寄出前請人手檢查，特別是 `Placeholders:` 列出的欄位。
-- 回覆身分（`From`、稱呼）優先序：`--sender-name` / `--sender-email` → `REPLY_SENDER_NAME` / `REPLY_SENDER_EMAIL` → 自動從信件 `To` 收件者判斷（即登入者信箱）。若 `To` 有多個地址而無法判斷，會要求你明確指定。
-- 沒有用參數或 `.env` 指定時，互動模式下會顯示偵測到的寄件者：直接按 Enter 接受，或當場輸入新的 email／姓名更正。腳本或非互動環境不會停下來問；可用 `--no-confirm` 強制不詢問。
-- 若接到 `email-sorter` 的登入流程，應該把 `authenticated_owner()`（登入者 email）傳進來，而不是在 `.env` 寫死個人資料。
-- Anthropic 的 Claude Sonnet/Haiku 5.5 會拒絕 `temperature`、`top_p`、`top_k`，因此 Anthropic 請求不送 `temperature`；`--temperature` 只對 OpenAI-compatible / Ollama 生效。
-- 預設不跳過 Canvas／`instructure.com`，避免漏掉講師需要回覆的通知；若不想處理 Canvas 通知，可加 `--skip-domains instructure.com`。
-- Canvas 通知的寄件者通常是 `notifications@instructure.com`，不是講師本人；若信中沒有 `replyTo`，`.eml` 的 `To` 會留空並在 `drafts.md` 標記 `[fill in recipient email]`，請手動填入講師的私人 email 再寄出。
-- 若顯示 `nothing selected; skipped: ...`，代表郵件被 noreply、網域、broadcast、分類器或信心門檻濾掉；用 `--filter all` 或 `--include-broadcast`、`--skip-domains ""` 除錯。
-- 每份草稿會計算 `guardrail_issues`，標記原始 email 地址、AI/assistant 措辭、重複或未列出的 placeholder；有問題時 `drafts.md` 會顯示 `Guardrail:`，請寄出前修正。
-- `drafts.json` / `drafts.md` 會與舊草稿合併（同一封信用新結果覆蓋），不會再整批覆蓋。相同 prompt／provider／model 會重用快取；要重新生成請加 `--force`。
+- `.env` contains the API key; **do not commit it**.
+- The tool only generates drafts. Review them manually before sending, especially fields listed under `Placeholders:`.
+- Sender identity (`From` and form of address) precedence: `--sender-name` / `--sender-email` -> `REPLY_SENDER_NAME` / `REPLY_SENDER_EMAIL` -> automatic detection from the email's `To` recipient (the signed-in mailbox). If `To` contains multiple addresses and the owner cannot be determined, you must specify it explicitly.
+- When no option or `.env` value is provided, interactive mode shows the detected sender: press Enter to accept, or type a new email / name to correct it. Scripts and non-interactive environments do not pause for input; use `--no-confirm` to suppress the prompt.
+- If integrated with the `email-sorter` login flow, pass in `authenticated_owner()` (the signed-in user's email) instead of hard-coding personal details in `.env`.
+- Anthropic Claude Sonnet/Haiku 5.5 rejects `temperature`, `top_p`, and `top_k`, so Anthropic requests do not send `temperature`; `--temperature` only applies to OpenAI-compatible providers and Ollama.
+- Canvas / `instructure.com` is not skipped by default, so notifications that require a reply from an instructor are not missed. To skip Canvas notifications, add `--skip-domains instructure.com`.
+- Canvas notifications usually come from `notifications@instructure.com`, not the instructor. If the email has no `replyTo`, the `.eml` `To` field is left blank and `drafts.md` marks `[fill in recipient email]`; fill in the instructor's private email before sending.
+- If you see `nothing selected; skipped: ...`, the emails were filtered out by noreply, domain, broadcast, classifier, or confidence rules. Use `--filter all`, `--include-broadcast`, or `--skip-domains ""` to debug.
+- Each draft includes `guardrail_issues`, which flags raw email addresses, AI/assistant wording, and duplicate or unlisted placeholders. When there are issues, `drafts.md` shows `Guardrail:`; fix them before sending.
+- `drafts.json` / `drafts.md` are merged with older drafts (new results replace older drafts for the same email) instead of replacing the whole batch. Identical prompt / provider / model combinations reuse the cache; add `--force` to regenerate.

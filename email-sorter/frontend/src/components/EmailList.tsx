@@ -75,8 +75,14 @@ export function EmailList({
             const heading = formatDayHeading(group.key, today);
             return (
               <section key={group.key} aria-label={heading}>
-                <h3 className="sticky top-0 z-10 flex h-7 items-center border-b border-line bg-surface/95 px-4 text-[12px] font-medium text-muted backdrop-blur max-sm:mb-2 max-sm:border-b-0 max-sm:bg-page/95 max-sm:px-1">
-                  {heading}
+                <h3 className="sticky top-0 z-10 flex h-8 items-center justify-between gap-3 border-y border-line bg-surface-muted/95 px-4 text-[12px] backdrop-blur max-sm:mb-2 max-sm:h-7 max-sm:rounded-lg max-sm:border max-sm:px-3">
+                  <span className={`font-semibold ${heading === "Today" ? "text-accent" : "text-ink"}`}>
+                    {heading}
+                  </span>
+                  <span className="text-muted tabular-nums">
+                    {group.emails.length}
+                    <span className="sr-only"> email{group.emails.length === 1 ? "" : "s"}</span>
+                  </span>
                 </h3>
                 <ul className="max-sm:mb-3 max-sm:flex max-sm:flex-col max-sm:gap-2.5">
                   {group.emails.map((email) => (

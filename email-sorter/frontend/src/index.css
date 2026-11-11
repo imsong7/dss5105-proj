@@ -509,3 +509,17 @@ dialog.palette::backdrop {
   animation: glow-orbit 7s linear infinite;
   pointer-events: none;
 }
+
+/* Bars in the weekly chart grow up from the baseline. */
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}

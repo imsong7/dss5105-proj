@@ -33,7 +33,8 @@ import { useTheme } from "../hooks/useTheme";
 import { Confetti } from "./Confetti";
 import { LionMark } from "./LionMark";
 import type { Mood } from "./LionMark";
-import { WeekAhead } from "./WeekAhead";
+import { WorkloadStrip } from "./WorkloadStrip";
+import { CourseChips } from "./CourseChips";
 import { SkeletonRows } from "./Skeleton";
 import { Popover } from "./Popover";
 import { SwipeRow } from "./SwipeRow";
@@ -615,14 +616,20 @@ export function TodayPage({
         <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6">
           {/* Overview first on phones; a side column on wide screens. */}
           <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-start-1">
-            <WeekAhead
+            <WorkloadStrip
               deadlines={calendar.deadlines}
               isDone={(key) => states.isDone(key)}
               academic={calendar.academicAll}
-              courses={calendar.courses}
               today={today}
               onOpenDate={onOpenDate}
               onOpenEmail={onOpenEmail}
+            />
+
+            <CourseChips
+              courses={calendar.courses}
+              deadlines={calendar.deadlines}
+              isDone={(key) => states.isDone(key)}
+              today={today}
             />
 
             {exams.length > 0 ? (

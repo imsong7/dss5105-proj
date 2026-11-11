@@ -138,8 +138,11 @@ export function CalendarDayPanel({
 
         {upcoming.length > 0 ? (
           <ul className="mt-1 flex flex-col gap-0.5">
-            {upcoming.map((deadline) => (
-              <li key={deadline.id}>
+            {upcoming.map((deadline, index) => {
+              // Same day as the row above: the date is already shown there.
+              const sameDay = index > 0 && upcoming[index - 1].date === deadline.date;
+              return (
+              <li key={deadline.id} className={index > 0 && !sameDay ? "mt-1.5 border-t border-line/60 pt-1.5" : ""}>
                 <button
                   type="button"
                   data-role="upcoming-deadline"
@@ -148,7 +151,11 @@ export function CalendarDayPanel({
                   className="flex min-h-11 w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none"
                 >
                   <span className="w-[72px] shrink-0 whitespace-nowrap pt-0.5 text-[11px] font-medium tracking-[0.02em] text-highlight-dark">
-                    {formatDayShort(deadline.date)}
+                    {sameDay ? (
+                      <span className="sr-only">{formatDayShort(deadline.date)}</span>
+                    ) : (
+                      formatDayShort(deadline.date)
+                    )}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-medium text-ink">
@@ -160,7 +167,8 @@ export function CalendarDayPanel({
                   </span>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-1.5 text-[13px] text-muted">

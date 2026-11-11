@@ -45,7 +45,7 @@ export interface Notice {
   error: boolean;
 }
 
-const PUSH_POLL_MS = 5_000;
+const PUSH_POLL_MS = 3_000;
 const AUTO_SORT_KEY = "inbox-sorter.autoSort";
 const WINDOW_KEY = "inbox-sorter.window";
 const SORT_KEY = "inbox-sorter.sort";
@@ -91,7 +91,7 @@ const DEFAULT_COUNT = 500;
 const PUSH_SORT_BATCH = 100;
 const PUSH_SORT_QUIET_MS = 30_000;
 /** No new mail for this long means the flow has finished sending. */
-const PUSH_ARRIVAL_QUIET_MS = 12_000;
+const PUSH_ARRIVAL_QUIET_MS = 6_000;
 /** Today and Calendar read the same mail, so never load less than this. */
 const MIN_LOAD_DAYS = 30;
 
@@ -216,7 +216,9 @@ export function useInboxView(session: SessionInfo) {
   const loadController = useRef<AbortController | null>(null);
   const classifyController = useRef<AbortController | null>(null);
   const classifyRun = useRef(0);
-  const busy = useRef(false);
+  // Loading and classification are independent: one finishing must not clear the other.
+  const loading = useRef(false);
+  const classifying = useRef(false);
 
   // A token pasted on the sign-in page arrives with the session: no second paste.
   const [token, setToken] = useState(session.graphToken ?? "");
@@ -231,23 +233,6 @@ export function useInboxView(session: SessionInfo) {
   backendRef.current = backend;
   const [health, setHealth] = useState<Health | null>(null);
 
-  // When the student switches backends, model-only results from the previous
-  // backend must not be displayed as if they came from the new one. Corrections
-  // and sender rules are kept because they are explicit user choices. Any
-  // in-flight classification responses are also discarded by bumping the run id.
-  useEffect(() => {
-    if (!backend) return;
-    classifyController.current?.abort();
-    classifyRun.current += 1;
-    setEmails((previous) =>
-      previous.map((email) => {
-        const c = email.classification;
-        if (!c || c.corrected || c.byRule || c.backend === backend) return email;
-        return { ...email, classification: undefined, classifyError: undefined };
-      }),
-    );
-  }, [backend]);
-
   const [autoSort, setAutoSortState] = useState(readAutoSort);
   // Set when the student cancels, so auto-sort does not restart by itself.
   const paused = useRef(false);
@@ -257,6 +242,34 @@ export function useInboxView(session: SessionInfo) {
     paused.current = value;
     setAutoPausedState(value);
   }, []);
+
+  /** Supersede any classification run and clear its state. Late results and the old
+   *  run's `finally` then see a newer run id and leave the new state alone. */
+  const stopClassification = useCallback(() => {
+    classifyController.current?.abort();
+    classifyController.current = null;
+    classifyRun.current += 1;
+    classifying.current = false;
+    setProgress(null);
+    setAutoRun(false);
+  }, []);
+
+  // When the student switches backends, model-only results from the previous
+  // backend must not be displayed as if they came from the new one. Corrections
+  // and sender rules are kept because they are explicit user choices. Any
+  // in-flight classification responses are also discarded by bumping the run id.
+  useEffect(() => {
+    if (!backend) return;
+    stopClassification();
+    setEmails((previous) =>
+      previous.map((email) => {
+        const c = email.classification;
+        if (!c || c.corrected || c.byRule || c.backend === backend) return email;
+        return { ...email, classification: undefined, classifyError: undefined };
+      }),
+    );
+  }, [backend, stopClassification]);
+
 
   const [windowDays, setWindowDaysState] = useState<WindowDays>(readWindow);
   const setWindowDays = (value: WindowDays) => {
@@ -326,10 +339,10 @@ export function useInboxView(session: SessionInfo) {
       // A fresh load supersedes any in-flight load or classification: the old
       // targets and results are no longer relevant.
       loadController.current?.abort();
-      classifyController.current?.abort();
+      stopClassification();
       const abort = new AbortController();
       loadController.current = abort;
-      busy.current = true;
+      loading.current = true;
       setPhase("loading");
       setNotice(null);
       setProgress(null);
@@ -346,6 +359,10 @@ export function useInboxView(session: SessionInfo) {
           abort.signal,
         );
 
+        // A newer load, a cancel or a refresh owns the state now: drop this response.
+        if (abort.signal.aborted || loadController.current !== abort) {
+          return;
+        }
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
         setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
         setSelectedId((current) =>
@@ -372,7 +389,7 @@ export function useInboxView(session: SessionInfo) {
           );
         }
       } catch (error) {
-        if (isAbort(error)) {
+        if (isAbort(error) || abort.signal.aborted || loadController.current !== abort) {
           return;
         }
         setPhase(emails.length ? "ready" : "idle");
@@ -391,11 +408,11 @@ export function useInboxView(session: SessionInfo) {
       } finally {
         if (loadController.current === abort) {
           loadController.current = null;
-          busy.current = false;
+          loading.current = false;
         }
       }
     },
-    [emails.length, isPushed, session.maxEmails, session.provider, setPaused, token],
+    [emails.length, isPushed, session.maxEmails, session.provider, setPaused, stopClassification, token],
   );
 
   // First load. Pushed mail needs no token; Outlook waits for the dialog.
@@ -440,13 +457,13 @@ export function useInboxView(session: SessionInfo) {
     }
 
     const timer = window.setInterval(async () => {
-      if (busy.current || document.visibilityState === "hidden") {
+      if (loading.current || classifying.current || document.visibilityState === "hidden") {
         return;
       }
 
       const abort = new AbortController();
       loadController.current = abort;
-      busy.current = true;
+      loading.current = true;
       try {
         const result = await fetchEmails(
           {
@@ -458,6 +475,9 @@ export function useInboxView(session: SessionInfo) {
           },
           abort.signal,
         );
+        if (abort.signal.aborted || loadController.current !== abort) {
+          return;
+        }
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
         setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
         setPhase("ready");
@@ -467,8 +487,8 @@ export function useInboxView(session: SessionInfo) {
       } finally {
         if (loadController.current === abort) {
           loadController.current = null;
+          loading.current = false;
         }
-        busy.current = false;
       }
     }, PUSH_POLL_MS);
 
@@ -498,7 +518,7 @@ export function useInboxView(session: SessionInfo) {
       classifyController.current?.abort();
       const abort = new AbortController();
       classifyController.current = abort;
-      busy.current = true;
+      classifying.current = true;
       setNotice(null);
       setAutoRun(quiet);
       setProgress({ done: 0, total: targets.length });
@@ -584,7 +604,7 @@ export function useInboxView(session: SessionInfo) {
         // Only the most recent classification run may tear down the busy/progress state.
         if (classifyRun.current === runId) {
           classifyController.current = null;
-          busy.current = false;
+          classifying.current = false;
           setProgress(null);
           setAutoRun(false);
         }
@@ -821,9 +841,12 @@ export function useInboxView(session: SessionInfo) {
 
   const cancel = useCallback(() => {
     setPaused(true);
+    loadController.current?.abort();
+    loadController.current = null;
+    loading.current = false;
     classifyController.current?.abort();
     classifyController.current = null;
-    busy.current = false;
+    classifying.current = false;
     setProgress(null);
     setAutoRun(false);
     setPhase((current) => (current === "loading" ? (emails.length ? "ready" : "idle") : current));

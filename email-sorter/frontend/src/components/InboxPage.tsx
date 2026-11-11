@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { AlertCircle, Inbox, Reply, Sparkles } from "lucide-react";
 
 import type { InboxView } from "../hooks/useInboxView";
 import type { ItemStates } from "../hooks/useItemStates";
@@ -96,8 +97,38 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:px-8 lg:py-6">
-      <h1 className="sr-only max-sm:hidden">Inbox</h1>
+    <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:px-8 lg:py-6">
+      <header className="hidden shrink-0 items-end justify-between gap-6 sm:flex">
+        <div>
+          <p className="mb-1 flex items-center gap-2 text-[12px] font-bold tracking-[0.1em] text-accent uppercase">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            AI-organised workspace
+          </p>
+          <h1 className="text-[30px] leading-tight font-bold tracking-[-0.035em] text-ink">Your inbox, prioritised</h1>
+          <p className="mt-1.5 text-[14px] text-muted">
+            Scan decisions, replies and deadlines without losing focus.
+          </p>
+        </div>
+        {view.hasLoaded ? (
+          <dl className="grid shrink-0 grid-cols-3 gap-2" aria-label="Inbox summary">
+            {[
+              { label: "All mail", value: view.total, icon: Inbox, tone: "text-accent bg-accent-soft" },
+              { label: "Action", value: view.counts.needs_action, icon: AlertCircle, tone: "text-action-now-fg bg-action-now-bg" },
+              { label: "Replies", value: view.counts.needs_reply, icon: Reply, tone: "text-action-reply-fg bg-action-reply-bg" },
+            ].map(({ label, value, icon: Icon, tone }) => (
+              <div key={label} className="flex min-w-[112px] items-center gap-2.5 rounded-xl border border-line/80 bg-surface/80 px-3 py-2.5 shadow-sm">
+                <span className={`grid h-8 w-8 place-items-center rounded-lg ${tone}`}>
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span>
+                  <dt className="text-[11px] font-medium text-muted">{label}</dt>
+                  <dd className="text-[16px] font-bold leading-5 tabular-nums text-ink">{value}</dd>
+                </span>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </header>
       {!showMobileDetail ? (
         <MobileHero
           title="Inbox"
@@ -111,7 +142,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
         />
       ) : null}
 
-      <div className={`shrink-0 space-y-3.5 ${showMobileDetail ? "max-lg:hidden" : ""}`}>
+      <div className={`shrink-0 space-y-3 ${showMobileDetail ? "max-lg:hidden" : ""}`}>
         <InboxToolbar view={view} />
         <NoticeBar notice={view.notice} onDismiss={view.dismissNotice} />
         <QuickFilters
@@ -126,7 +157,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 overflow-hidden rounded-xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${
+        className={`workspace-card flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-line/90 bg-surface ${
           showMobileDetail ? "" : "max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none"
         }`}
       >

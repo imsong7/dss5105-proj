@@ -48,14 +48,14 @@ export function EmailDetail({
         aria-label="Email details"
         className={`min-w-0 flex-1 flex-col lg:overflow-y-auto inbox-scroll ${className}`}
       >
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,rgba(7,86,163,0.06),transparent_55%)] p-10 text-center">
           <span
-            className="grid h-12 w-12 place-items-center rounded-full bg-surface-muted text-muted"
+            className="grid h-14 w-14 place-items-center rounded-2xl bg-accent-soft text-accent ring-1 ring-accent/10"
             aria-hidden="true"
           >
             <Mail className="h-5 w-5" />
           </span>
-          <p className="text-[14px] font-semibold text-ink">Select an email</p>
+          <p className="text-[15px] font-bold text-ink">Choose a message to focus</p>
           <p className="max-w-[36ch] text-[14px] leading-5 text-muted">
             Pick a message from the list to see its contents, classification
             reason, and any deadline found in the text.
@@ -93,16 +93,16 @@ export function EmailDetail({
         </button>
       </div>
 
-      <article className="flex min-w-0 max-w-[720px] flex-1 flex-col p-5 sm:p-7">
+      <article className="mx-auto flex min-w-0 w-full max-w-[760px] flex-1 flex-col p-5 sm:p-8 lg:p-10">
         <div className="flex items-start gap-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-muted text-[14px] font-semibold text-ink/60"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-[14px] font-bold text-accent ring-1 ring-accent/10"
             aria-hidden="true"
           >
             {senderInitials(sender.name)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold text-ink">
+            <p className="text-[15px] font-bold text-ink">
               {sender.name}
             </p>
             <p className="truncate text-[13px] text-muted">
@@ -125,7 +125,7 @@ export function EmailDetail({
           id="email-detail-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="mt-4 text-xl leading-snug font-semibold tracking-tight text-ink focus:outline-none sm:text-2xl"
+          className="mt-5 text-[24px] leading-[1.25] font-bold tracking-[-0.025em] text-ink focus:outline-none sm:text-[30px]"
         >
           {subject}
         </h2>
@@ -192,7 +192,7 @@ export function EmailDetail({
 
         {classification ? (
           <>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-line/80 bg-surface-muted/55 p-3">
               <CategoryBadge category={classification.category} size="md" />
               <StatusBadge action={classification.action} size="md" />
             </div>
@@ -231,7 +231,7 @@ export function EmailDetail({
           onSend={onSendReply}
         />
 
-        <div className="mt-6 border-t border-line pt-5 text-[15px] leading-6 break-words text-ink/90 space-y-3 sm:text-[16px]">
+        <div className="mt-7 border-t border-line pt-6 text-[15px] leading-7 break-words text-ink/90 space-y-4 sm:text-[16px]">
           {bodyParagraphs.map((paragraph, index) => (
             <p key={index} className="whitespace-pre-wrap">
               {paragraph}

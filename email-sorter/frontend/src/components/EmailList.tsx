@@ -38,7 +38,7 @@ export function EmailList({
   return (
     <section
       aria-label="Email list"
-      className={`w-full flex-col lg:w-[400px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-line inbox-scroll ${className}`}
+      className={`w-full flex-col bg-surface lg:w-[440px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-line inbox-scroll xl:w-[470px] ${className}`}
     >
       {emails.length === 0 ? (
         <EmptyState

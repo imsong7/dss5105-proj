@@ -107,30 +107,27 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
   return (
     <>
     <header
-      className={`sticky top-0 z-20 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur max-sm:hidden ${
-        overlay ? "lg:border-transparent lg:bg-transparent lg:backdrop-blur-none" : ""
+      className={`sticky top-0 z-20 border-b border-line/80 bg-surface/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl max-sm:hidden ${
+        overlay ? "lg:bg-surface/78" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
-        <div className="relative flex items-center gap-2.5 self-stretch">
-          {/* A big lion lying on the bottom edge of the top bar (the top of the
-              coloured band below). It hangs below the row by the bar's bottom
-              padding, so its paws rest on the edge; the spacer keeps its width. */}
-          <span aria-hidden="true" className="w-[90px] shrink-0" />
-          <span className="absolute -bottom-[16px] left-0">
-            <LionMark size={60} mood={mood} />
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-2.5 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-accent-soft ring-1 ring-accent/10">
+            <LionMark size={42} mood={mood} />
           </span>
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
-            Inbox sorter
+          <span>
+            <span className="block text-[14px] font-bold tracking-[-0.01em] text-ink">Scholar Inbox</span>
+            <span className="block text-[10px] font-semibold tracking-[0.08em] text-muted uppercase">Graduate workspace</span>
           </span>
         </div>
 
         <nav aria-label="Views" className="max-sm:hidden">
-          <ul ref={list} className="relative flex items-center gap-0.5 rounded-[10px] bg-surface-muted p-0.5">
+          <ul ref={list} className="relative flex items-center gap-0.5 rounded-xl bg-surface-muted/90 p-1">
             {pill ? (
               <li
                 aria-hidden="true"
-                className="absolute top-0.5 bottom-0.5 rounded-[8px] bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.10)] ring-1 ring-black/5 transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                className="absolute top-1 bottom-1 rounded-lg bg-surface shadow-[0_1px_4px_rgba(16,24,40,0.10)] ring-1 ring-black/5 transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ left: pill.left, width: pill.width }}
               />
             ) : null}
@@ -143,7 +140,7 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
                     type="button"
                     aria-current={active ? "page" : undefined}
                     onClick={() => onViewChange(key)}
-                    className={`press relative inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[8px] px-3.5 py-1.5 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface-muted focus-visible:outline-none sm:w-auto ${
+                    className={`press relative inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface-muted focus-visible:outline-none sm:w-auto ${
                       active
                         ? "font-semibold text-accent"
                         : "font-medium text-muted hover:text-ink"
@@ -168,7 +165,7 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
               onClick={onOpenPalette}
               aria-label="Search and jump (Ctrl or Command K)"
               title="Jump to anything (⌘K)"
-              className="press hidden min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-3 text-[13px] text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none lg:inline-flex"
+              className="press hidden min-h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-[13px] text-muted shadow-sm hover:border-accent/30 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none lg:inline-flex"
             >
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               Jump to…

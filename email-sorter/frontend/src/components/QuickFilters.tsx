@@ -57,10 +57,10 @@ export function QuickFilters({
             type="button"
             aria-pressed={active}
             onClick={() => onActionChange(key)}
-            className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none ${
+            className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none ${
               active
-                ? "bg-accent-soft text-accent-dark ring-1 ring-accent/20"
-                : "bg-surface-muted text-ink/70 hover:text-ink"
+                ? "border-accent/25 bg-accent-soft text-accent-dark shadow-sm"
+                : "border-transparent bg-surface/65 text-ink/70 hover:border-line hover:bg-surface hover:text-ink"
             }`}
           >
             {active ? (

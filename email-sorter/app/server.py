@@ -10,6 +10,7 @@ Usage::
 import hashlib
 import io
 import logging
+import os
 import re
 import secrets
 import socket
@@ -336,9 +337,22 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
         origin = request.headers.get("Origin")
         if origin is None:
             return None  # Not a browser (tests, scripts, Power Automate).
-        if origin == "null" or urlparse(origin).netloc != request.host:
-            return jsonify({"error": "Cross-site request refused."}), 403
-        return None
+        parsed = urlparse(origin)
+        if origin != "null" and (
+            parsed.netloc == request.host
+            # A page on this computer (the Vite dev server on :5173 proxies to
+            # Flask on another port). No outside website can use these names.
+            or parsed.hostname in ("127.0.0.1", "localhost", "::1")
+            or origin in _extra_origins()
+        ):
+            return None
+        logging.warning("Cross-site request refused from Origin %s (set ALLOWED_ORIGINS to allow it)", origin)
+        return jsonify({"error": "Cross-site request refused."}), 403
+
+    def _extra_origins() -> set[str]:
+        """Exact origins allowed in .env, e.g. ALLOWED_ORIGINS=https://x.figma.site"""
+        raw = os.getenv("ALLOWED_ORIGINS", "")
+        return {item.strip().rstrip("/") for item in raw.split(",") if item.strip()}
 
     @app.after_request
     def _security_headers(response):

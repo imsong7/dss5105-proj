@@ -424,6 +424,16 @@ class LoginPageTests(unittest.TestCase):
             "/api/profile", json={"name": "Ali"}, headers={"Origin": "http://localhost"}
         )
         self.assertEqual(same.status_code, 200)
+        # The Vite dev server on this computer proxies from another port.
+        dev = self.client.post(
+            "/api/profile", json={"name": "Ali"}, headers={"Origin": "http://127.0.0.1:5173"}
+        )
+        self.assertEqual(dev.status_code, 200)
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://preview.example.site"}):
+            allowed = self.client.post(
+                "/api/profile", json={"name": "Ali"}, headers={"Origin": "https://preview.example.site"}
+            )
+        self.assertEqual(allowed.status_code, 200)
         # The Power Automate webhook is server-to-server and keeps working.
         pushed = self.client.post(
             "/api/inbound/outlook",

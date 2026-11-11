@@ -235,7 +235,7 @@ export function daysBetween(from: string, to: string): number {
   );
 }
 
-export type Urgency = "overdue" | "soon" | "later";
+type Urgency = "overdue" | "soon" | "later";
 
 /** "Today", "Tomorrow", "In 3 days", "2 days overdue", plus a tone for color. */
 export function relativeDay(

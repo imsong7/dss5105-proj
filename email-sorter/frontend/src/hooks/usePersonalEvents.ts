@@ -56,5 +56,3 @@ export function usePersonalEvents() {
 
   return { events, loadError, save, remove };
 }
-
-export type PersonalEvents = ReturnType<typeof usePersonalEvents>;

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export const SHORTCUTS: readonly { keys: string; action: string }[] = [
+const SHORTCUTS: readonly { keys: string; action: string }[] = [
   { keys: "g then t", action: "Go to Today" },
   { keys: "g then i", action: "Go to Inbox" },
   { keys: "g then c", action: "Go to Calendar" },

@@ -24,7 +24,7 @@ function initials(company: string, title: string): string {
 const TAG = "inline-flex items-center rounded-full px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap";
 
 /** One job: company badge, title, company, tags, pay; Save and Open on the right. */
-export function JobRow({ job }: { job: Job }) {
+function JobRow({ job }: { job: Job }) {
   const saved = useSavedJobs();
   const isSaved = saved?.isSaved(job.id) ?? false;
 

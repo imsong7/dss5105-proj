@@ -6,7 +6,7 @@
  * Display only: the full text still goes to sorting and date finding.
  */
 
-export interface CleanBody {
+interface CleanBody {
   /** Paragraphs to show. */
   main: string[];
   /** Signature, disclaimers, "you received this because", unsubscribe. */

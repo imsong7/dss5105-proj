@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export interface ShortcutHandlers {
+interface ShortcutHandlers {
   goTo: (view: "today" | "inbox" | "calendar") => void;
   focusSearch: () => void;
   move: (delta: 1 | -1) => void;

@@ -2,7 +2,7 @@ import type { CalendarDeadline } from "./calendar";
 import { addDays } from "./calendar";
 import type { InboxEmail } from "./email";
 
-export interface TodaySections {
+interface TodaySections {
   overdue: CalendarDeadline[];
   today: CalendarDeadline[];
   soon: CalendarDeadline[];

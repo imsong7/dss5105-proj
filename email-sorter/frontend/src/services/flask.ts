@@ -16,7 +16,7 @@ import { api } from "./api";
 
 /* ---- Flask payloads (see app/server.py, app/schemas.py, app/calendar.py) ---- */
 
-export interface FlaskDeadline {
+interface FlaskDeadline {
   date: string;
   all_day: boolean;
   timezone: string;
@@ -29,7 +29,7 @@ export interface FlaskDeadline {
 }
 
 /** One job from a digest (app/listings.py). */
-export interface FlaskJob {
+interface FlaskJob {
   id: string;
   url: string;
   title: string;
@@ -92,7 +92,7 @@ export async function removeSavedJob(id: string): Promise<void> {
 }
 
 /** Facts read off a poster image (app/poster.py). */
-export interface FlaskPoster {
+interface FlaskPoster {
   title: string;
   when: { date: string; time?: string; year_inferred?: boolean } | null;
   venue: string;
@@ -150,7 +150,7 @@ export interface SessionInfo {
   maxEmails: number;
 }
 
-export type MailSource = "outlook" | "powerautomate";
+type MailSource = "outlook" | "powerautomate";
 
 /** Save where this student's mail comes from. The page reloads afterwards. */
 export async function saveMailSource(source: MailSource): Promise<void> {
@@ -172,7 +172,7 @@ export interface Health {
 /* ---- Mapping ---- */
 
 /** "Name <addr@x.y>" -> parts; a bare address uses its local part as the name. */
-export function parseSender(raw: string): { name: string; address: string } {
+function parseSender(raw: string): { name: string; address: string } {
   const text = (raw || "").trim();
   const match = text.match(/^(.*?)\s*<([^>]+)>$/);
 
@@ -206,7 +206,7 @@ function mapDeadline(candidate: FlaskDeadline | null | undefined): DeadlineCandi
   };
 }
 
-export function mapEmail(raw: FlaskEmail): InboxEmail {
+function mapEmail(raw: FlaskEmail): InboxEmail {
   return {
     id: raw.id,
     sender: parseSender(raw.sender),
@@ -247,7 +247,7 @@ function actionOf(value: string): ActionKey {
     : "no_immediate_action";
 }
 
-export function mapClassification(raw: FlaskClassification): EmailClassification {
+function mapClassification(raw: FlaskClassification): EmailClassification {
   return {
     category: categoryOf(raw.content_category),
     action: actionOf(raw.reply_nature),

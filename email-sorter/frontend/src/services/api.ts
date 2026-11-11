@@ -1,6 +1,6 @@
 /** Same-origin JSON helper. Flask session cookies ride along automatically. */
 
-export class ApiError extends Error {
+class ApiError extends Error {
   readonly status: number;
 
   constructor(message: string, status: number) {

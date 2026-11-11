@@ -1,6 +1,6 @@
-export type DayPeriod = "morning" | "afternoon" | "evening" | "night";
+type DayPeriod = "morning" | "afternoon" | "evening" | "night";
 
-export interface PeriodTheme {
+interface PeriodTheme {
   greeting: string;
   /** CSS gradient for the banner. */
   background: string;
@@ -48,7 +48,7 @@ export const PERIODS: Record<DayPeriod, PeriodTheme> = {
 };
 
 /** Hour of day in Singapore, matching how deadlines are read. */
-export function singaporeHour(now: Date = new Date()): number {
+function singaporeHour(now: Date = new Date()): number {
   return Number(
     new Intl.DateTimeFormat("en-GB", {
       hour: "numeric",

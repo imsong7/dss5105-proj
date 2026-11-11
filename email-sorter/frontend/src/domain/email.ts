@@ -43,7 +43,7 @@ export interface Job {
 }
 
 /** What a poster image in the email says, as facts the student can act on. */
-export interface EmailPoster {
+interface EmailPoster {
   title: string;
   /** YYYY-MM-DD of the event, when the poster shows one. */
   date?: string;

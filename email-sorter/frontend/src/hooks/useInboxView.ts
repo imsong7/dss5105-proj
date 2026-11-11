@@ -38,7 +38,7 @@ import type {
 
 const CLASSIFY_CONCURRENCY = 6;
 
-export type LoadPhase = "idle" | "loading" | "ready";
+type LoadPhase = "idle" | "loading" | "ready";
 
 export interface Notice {
   text: string;

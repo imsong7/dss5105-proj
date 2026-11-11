@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export interface ToastInput {
+interface ToastInput {
   text: string;
   actionLabel?: string;
   onAction?: () => void;

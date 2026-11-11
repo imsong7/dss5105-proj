@@ -1,7 +1,7 @@
 import type { AcademicEvent } from "./calendar";
 import { addDays, daysBetween } from "./calendar";
 
-export type AcademicTone =
+type AcademicTone =
   | "holiday"
   | "exam"
   | "reading"
@@ -9,19 +9,7 @@ export type AcademicTone =
   | "orientation"
   | "semester";
 
-export const ACADEMIC_TONES: Record<
-  AcademicTone,
-  { label: string; bg: string; ink: string; accent: string }
-> = {
-  holiday: { label: "Holiday", bg: "#fff1f0", ink: "#912018", accent: "#d92d20" },
-  exam: { label: "Exams", bg: "#fff6e8", ink: "#93370d", accent: "#dc6803" },
-  reading: { label: "Reading week", bg: "#eef6ff", ink: "#175cd3", accent: "#2e90fa" },
-  vacation: { label: "Vacation", bg: "#ecfbf2", ink: "#067647", accent: "#12b76a" },
-  orientation: { label: "Orientation", bg: "#f4f1ff", ink: "#5925dc", accent: "#7a5af8" },
-  semester: { label: "Term", bg: "#f2f4f7", ink: "#475467", accent: "#98a2b3" },
-};
-
-export function academicTone(category: string): AcademicTone {
+function academicTone(category: string): AcademicTone {
   const text = category.toLowerCase();
 
   if (text.includes("holiday")) return "holiday";
@@ -33,7 +21,7 @@ export function academicTone(category: string): AcademicTone {
 }
 
 /** Short label for a tight calendar cell, e.g. "Sem 1" or "1A Exam". */
-export function academicShortTitle(event: AcademicEvent): string {
+function academicShortTitle(event: AcademicEvent): string {
   return event.event
     .replace(/^Mini Semester\s+/i, "")
     .replace(/\bExamination\b/gi, "Exam")

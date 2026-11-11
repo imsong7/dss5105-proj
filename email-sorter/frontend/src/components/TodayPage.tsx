@@ -28,14 +28,12 @@ import type { InboxView } from "../hooks/useInboxView";
 import type { ItemStates } from "../hooks/useItemStates";
 import { academicNote, termWeek } from "../domain/academic";
 import { firstName, PERIODS, periodOf } from "../lib/greeting";
-import { courseStyle } from "../domain/course";
-import { useOpenCourse } from "../contexts/CourseContext";
 import { CourseToken } from "./CourseToken";
 import { useTheme } from "../hooks/useTheme";
 import { Confetti } from "./Confetti";
 import { LionMark } from "./LionMark";
 import type { Mood } from "./LionMark";
-import { WorkloadStrip } from "./WorkloadStrip";
+import { WeekAhead } from "./WeekAhead";
 import { SkeletonRows } from "./Skeleton";
 import { Popover } from "./Popover";
 import { SwipeRow } from "./SwipeRow";
@@ -391,7 +389,6 @@ export function TodayPage({
   onOpenEmail,
   onOpenDate,
 }: TodayPageProps) {
-  const openCourse = useOpenCourse();
   const today = calendar.todayKey;
   const [reveal, setReveal] = useState(false);
   const period = usePeriod();
@@ -618,32 +615,15 @@ export function TodayPage({
         <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6">
           {/* Overview first on phones; a side column on wide screens. */}
           <div className="flex flex-col gap-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-start-1">
-            <WorkloadStrip
+            <WeekAhead
               deadlines={calendar.deadlines}
               isDone={(key) => states.isDone(key)}
               academic={calendar.academicAll}
+              courses={calendar.courses}
               today={today}
               onOpenDate={onOpenDate}
               onOpenEmail={onOpenEmail}
             />
-
-            {calendar.courses.length > 0 ? (
-              <ul aria-label="Your courses" className="flex flex-wrap gap-2">
-                {calendar.courses.map((course) => (
-                  <li key={course.code}>
-                    <button
-                      type="button"
-                      onClick={() => openCourse?.(course.code)}
-                      aria-label={`Open course ${course.code}`}
-                      style={courseStyle(course.hue)}
-                      className="press inline-flex min-h-11 items-center rounded-full bg-[var(--course-bg)] px-4 text-[13px] font-bold tracking-[0.04em] text-[var(--course-text)] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-                    >
-                      {course.code}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
 
             {exams.length > 0 ? (
               <ul aria-label="Exam countdown" className="flex flex-wrap gap-2">

@@ -1,10 +1,6 @@
-# Dependencies to RUN the app (default backend hybrid_claude, plus llama and claude).
-# Install from the repo root:
+# Repo-wide dependencies for the app, all four methods, and evaluation.
+# Install once from the repo root:
 #     pip install -r requirements.txt
-#
-# Also needed only for some features:
-#     requirements-encoders.txt   the `encoder` and `hybrid` backends (torch, transformers)
-#     requirements-research.txt   retraining classical-ml, evaluation and plots (no torch)
 
 # Core app (Flask, mail providers, models)
 flask>=3.0
@@ -16,11 +12,15 @@ pydantic>=2.6
 langchain-core>=0.3
 langchain-ollama>=0.2
 
-# ML backend (TF-IDF models) and shared data handling
+# ML backend and shared data handling
 scikit-learn>=1.3
 pandas>=2.0
 numpy>=1.26
 joblib>=1.3
+
+# Text-encoder backends (frozen BGE/E5 heads and DistilBERT fine-tunes)
+torch>=2.0
+transformers>=5.0
 
 # Claude backend
 anthropic>=0.40
@@ -31,6 +31,17 @@ beautifulsoup4>=4.12
 Pillow>=10.0
 # QR codes on posters (optional; without it no QR links are read)
 opencv-python-headless>=4.8
+
+# Classical ML training and reports
+openpyxl>=3.1
+seaborn>=0.12
+xgboost>=2.0
+matplotlib>=3.7
+
+# Evaluation: resource use, energy, label-noise audit
+psutil>=5.9
+codecarbon>=2.5
+cleanlab>=2.7
 
 # Tests
 pytest>=8.0

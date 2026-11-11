@@ -16,8 +16,7 @@ Use the shared environment from the repo root:
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt          # the app (default hybrid_claude backend)
-# pip install -r requirements-encoders.txt   # also the `encoder` and `hybrid` backends (torch)
+pip install -r requirements.txt
 
 cp email-sorter/.env.example email-sorter/.env
 ```

@@ -23,9 +23,7 @@ Use one virtual environment at the repo root.
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt          # the app (default hybrid_claude backend)
-# pip install -r requirements-encoders.txt   # also the `encoder` and `hybrid` backends (torch)
-# pip install -r requirements-research.txt   # also retraining classical-ml, evaluation and plots (no torch)
+pip install -r requirements.txt
 
 cp email-sorter/.env.example email-sorter/.env
 python email-sorter/run.py
@@ -159,7 +157,7 @@ claude/           Claude backend (rules -> Claude -> guardrails)
 email-sorter/llm-reply/  Optional reply-draft generator (inside the app folder)
 evaluation/       Shared quality and operational evaluation
 data/             Shared synthetic.csv and local labels.csv (labels gitignored)
-requirements*.txt  Dependencies: app, encoder backends, and research (training/evaluation)
+requirements.txt  One dependency file for the whole repo
 ```
 
 Details:

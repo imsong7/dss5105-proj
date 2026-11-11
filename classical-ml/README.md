@@ -64,7 +64,7 @@ always contain real emails only.
 - `reports/`: committed aggregate experiment reports.
 - `artifacts/`: ignored models and generated evaluation files; includes real
   email text and should not be committed.
-- `../requirements-research.txt`: dependencies for retraining and reports (no torch; the app itself only needs `../requirements.txt`).
+- `../requirements.txt`: shared Python dependencies for the whole repo.
 
 ## Data
 
@@ -102,7 +102,7 @@ Python 3.10+ is recommended. From the repo root:
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-research.txt
+pip install -r requirements.txt
 ```
 
 On macOS, XGBoost needs `libomp` (e.g. `brew install libomp`). If it is

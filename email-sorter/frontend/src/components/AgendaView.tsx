@@ -2,7 +2,8 @@ import { ArrowUpRight, Pencil } from "lucide-react";
 
 import type { AcademicEvent, CalendarDeadline, PersonalEvent } from "../domain/calendar";
 import { addDays, formatDayLong, formatTime, relativeDay } from "../domain/calendar";
-import { courseStyle, titleWithoutCourse } from "../domain/course";
+import { formatShortDay } from "../lib/format";
+import { courseStyle, shortTitle } from "../domain/course";
 import { CourseToken } from "./CourseToken";
 
 interface AgendaViewProps {
@@ -106,24 +107,36 @@ export function AgendaView({
                       item.personal ? onEditEvent(item.personal) : onOpenEmail(item.emailId)
                     }
                     style={courseStyle(item.hue)}
-                    className={`flex min-h-11 w-full items-center gap-3 rounded-[10px] border-l-[4px] px-3 py-2 text-left transition-colors hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                    className={`flex min-h-11 w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left transition-colors hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                       item.hue !== undefined
-                        ? "border-l-[var(--course-border)] bg-[var(--course-bg)]"
+                        ? "bg-[var(--course-bg)]"
                         : item.personal
-                          ? "border-l-accent bg-accent-soft"
-                          : "border-l-highlight bg-highlight-soft"
+                          ? "bg-accent-soft"
+                          : "bg-highlight-soft"
                     }`}
                   >
-                    <span className="w-[64px] shrink-0 text-[13px] font-medium text-ink/70">
+                    {/* A coloured dot marks the kind instead of a side bar. */}
+                    <span
+                      aria-hidden="true"
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                        item.hue !== undefined
+                          ? "bg-[var(--course-border)]"
+                          : item.personal
+                            ? "bg-accent"
+                            : "bg-highlight"
+                      }`}
+                    />
+                    <span className="w-[58px] shrink-0 text-[13px] font-medium text-ink/70">
                       {formatTime(item.time)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-medium text-ink">
-                        {item.course ? titleWithoutCourse(item.subject) : item.subject}
+                        {shortTitle(item.subject)}
                       </span>
                       <span className="mt-0.5 flex items-center gap-2 text-[13px] text-ink/70">
                         {item.course ? <CourseToken code={item.course} hue={item.hue} /> : null}
-                        {item.personal ? "Your event" : item.label}
+                        {/* "Deadline" on every row is noise; name only the other kinds. */}
+                        {item.personal ? "Your event" : item.label === "Deadline" ? null : item.label}
                       </span>
                     </span>
                     {item.personal ? (
@@ -141,7 +154,7 @@ export function AgendaView({
                   className="px-3 py-1 text-[13px] text-muted"
                 >
                   NUS · {event.event}
-                  {event.endDate !== event.startDate ? ` (until ${event.endDate})` : ""}
+                  {event.endDate !== event.startDate ? ` · until ${formatShortDay(event.endDate)}` : ""}
                 </li>
               ))}
             </ul>

@@ -92,10 +92,12 @@ export function academicMarkersOn(
 export function markerLabel(marker: AcademicMarker): string {
   const title = academicShortTitle(marker.event);
 
+  // A period reads as a span: the arrow points along it from its first day
+  // ("Reading Week →") and back to it on its last ("← Reading Week").
   return marker.edge === "start"
-    ? `▸ ${title}`
+    ? `${title} →`
     : marker.edge === "end"
-      ? `${title} ◂`
+      ? `← ${title}`
       : title;
 }
 

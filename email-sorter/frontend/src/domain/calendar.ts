@@ -1,4 +1,4 @@
-import { assignCourseHues, courseCode, isCanvasEmail } from "./course";
+import { assignCourseHues, courseCode, isCourseEmail } from "./course";
 import { bestLink } from "./links";
 import type { EmailLink } from "./links";
 import type { InboxEmail } from "./email";
@@ -132,7 +132,7 @@ export function buildDeadlines(
   const courseOf = new Map<string, string>();
 
   for (const email of emails) {
-    if (email.deadline && isCanvasEmail(email)) {
+    if (email.deadline && isCourseEmail(email)) {
       const code = courseCode(email);
       if (code) {
         courseOf.set(email.id, code);

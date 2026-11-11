@@ -37,6 +37,38 @@ export function titleWithoutCourse(subject: string): string {
   return withoutCode || cleaned || subject;
 }
 
+const COURSEWORK =
+  /\b(?:assignment|quiz|exam(?:ination)?|test|tutorial|lecture|project|grade|grading|feedback|submission|submit|due|deadline|presentation|consultation|reading week|ca\d)\b/i;
+
+/**
+ * Course mail: from Canvas, or a course code next to a coursework word (the
+ * same idea as the server's course rule). Ordinary mail stays uncoloured.
+ */
+export function isCourseEmail(email: InboxEmail): boolean {
+  return isCanvasEmail(email) || (courseCode(email) !== null && COURSEWORK.test(email.subject));
+}
+
+/**
+ * The task in a few words for tight spaces: "CA4 submission due Friday
+ * 11:59pm, DSS5101 Principles of Sustainability" becomes "CA4 submission".
+ * The date and course are shown next to it, so they are dropped here.
+ */
+export function shortTitle(subject: string): string {
+  const base = titleWithoutCourse(subject);
+  const short = base
+    // ", DSS5101 Principles of ..." and anything after a course code
+    .replace(/\s*[,(\[–—:-]?\s*\b[A-Z]{2,5}\s?\d{4,5}[A-Z]?\b.*$/, "")
+    // "due Friday 11:59pm", "- register by 12 Nov", "deadline: ..."
+    .replace(/\s*[-–—:,]?\s*\b(?:is\s+)?(?:due|deadline|register by|submit by|closes?)\b.*$/i, "")
+    // "on 24 Nov 2026 9am"
+    .replace(/\s+on\s+\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]{3,}.*$/i, "")
+    .replace(/[\s,:;–—-]+$/, "")
+    .trim();
+  const chosen = short.length >= 3 ? short : base;
+
+  return chosen.charAt(0).toUpperCase() + chosen.slice(1);
+}
+
 // Widely spaced hues so two courses never get near-identical colors. A stable
 // hash picks a starting slot; collisions move to the next free slot.
 const COURSE_HUES = [352, 22, 46, 76, 128, 158, 186, 210, 238, 264, 292, 320];

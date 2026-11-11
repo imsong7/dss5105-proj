@@ -10,8 +10,9 @@ import {
   formatDayShort,
   formatItemCount,
   formatTime,
+  todayKey,
 } from "../domain/calendar";
-import { courseStyle, titleWithoutCourse } from "../domain/course";
+import { courseStyle, shortTitle, titleWithoutCourse } from "../domain/course";
 import { CourseToken } from "./CourseToken";
 import { StatusBadge } from "./StatusBadge";
 
@@ -41,8 +42,15 @@ export function CalendarDayPanel({
   className = "",
 }: CalendarDayPanelProps) {
   const itemCount = selectedDeadlines.length;
+  const isToday = selectedDate === todayKey();
+  const next = upcoming[0];
+  // An empty day still says what comes next, so the panel is never a dead end.
   const dayCountLabel =
-    itemCount === 0 ? "Nothing on this day" : `${formatItemCount(itemCount)} on this day`;
+    itemCount === 0
+      ? `Nothing due ${isToday ? "today" : "on this day"}${
+          next ? `. Next: ${shortTitle(next.subject)}, ${formatDayShort(next.date)}` : ""
+        }`
+      : `${formatItemCount(itemCount)} on this day`;
 
   return (
     <aside
@@ -87,11 +95,9 @@ export function CalendarDayPanel({
                     : onOpenEmail(deadline.emailId)
                 }
                 style={courseStyle(deadline.hue)}
-                className={`group flex w-full flex-col gap-1.5 rounded-[10px] border border-line bg-surface p-3.5 text-left ${
-                  deadline.hue !== undefined
-                    ? "border-l-[4px] border-l-[var(--course-border)]"
-                    : ""
-                }  transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none`}
+                className={`group flex w-full flex-col gap-1.5 rounded-[12px] border border-line p-3.5 text-left ${
+                  deadline.hue !== undefined ? "bg-[var(--course-bg)]" : "bg-surface"
+                } transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none`}
               >
                 <span className="flex flex-wrap items-center gap-1.5">
                   {deadline.course ? (
@@ -156,7 +162,7 @@ export function CalendarDayPanel({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-medium text-ink">
-                      {deadline.subject}
+                      {shortTitle(deadline.subject)}
                     </span>
                     <span className="block truncate text-[12px] text-muted">
                       {formatTime(deadline.time)} · {deadline.sender}

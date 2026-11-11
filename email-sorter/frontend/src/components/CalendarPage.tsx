@@ -61,14 +61,15 @@ export function CalendarPage({
 
   return (
     <div className="flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
-    <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+    {/* Phones: room at the foot so the + button never covers the last item. */}
+    <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-4 px-4 py-5 max-sm:pb-24 sm:px-6 lg:px-8 lg:py-6">
       <h1 className="sr-only max-sm:hidden">Calendar</h1>
       <MobileHero
         title="Calendar"
         subtitle={
           loading
             ? "Loading your mail…"
-            : `${view.monthCount} date${view.monthCount === 1 ? "" : "s"} this month`
+            : `${view.monthCount} due this month`
         }
       />
 

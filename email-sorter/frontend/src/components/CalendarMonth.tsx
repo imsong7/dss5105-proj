@@ -1,6 +1,6 @@
 import { markerLabel, markerSpoken } from "../domain/academic";
 import type { AcademicMarker } from "../domain/academic";
-import { courseStyle, titleWithoutCourse } from "../domain/course";
+import { courseStyle, shortTitle } from "../domain/course";
 import { useEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
@@ -143,7 +143,7 @@ export function CalendarMonth({
       </div>
 
       <p data-role="month-summary" className="mt-1 text-[13px] text-muted max-sm:hidden">
-        {monthCount} date{monthCount === 1 ? "" : "s"} this month
+        {monthCount} due this month
       </p>
 
       <div className="mt-4 grid grid-cols-7 gap-1" aria-hidden="true">
@@ -193,8 +193,10 @@ export function CalendarMonth({
               className={`relative flex min-h-[58px] flex-col gap-1 rounded-[8px] p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none lg:min-h-[78px] ${
                 !cell.inMonth
                   ? "bg-transparent hover:bg-surface-muted/60"
-                  : isSelected
+                  : isSelected && !isToday
                     ? "bg-accent-soft ring-1 ring-accent/25"
+                    : isSelected
+                      ? "ring-1 ring-line"
                     : cell.isWeekend
                       ? "bg-surface-muted/45 hover:bg-surface-muted"
                       : "bg-transparent hover:bg-surface-muted/60"
@@ -212,6 +214,7 @@ export function CalendarMonth({
                 >
                   {cell.day}
                 </span>
+
                 {deadlines.length > 0 ? (
                   <span
                     className={`ml-auto text-[11px] font-semibold tabular-nums lg:hidden ${
@@ -231,24 +234,33 @@ export function CalendarMonth({
                       key={deadline.id}
                       title={deadline.subject}
                       style={courseStyle(deadline.hue)}
-                      className={`min-w-0 rounded-[5px] px-1.5 py-1 ${
+                      className={`min-w-0 rounded-[6px] px-1.5 py-1 ${
                         deadline.hue !== undefined
-                          ? "border-l-[3px] border-l-[var(--course-border)] bg-[var(--course-bg)]"
+                          ? "bg-[var(--course-bg)]"
                           : deadline.personal
-                            ? "border-l-[3px] border-l-accent bg-accent-soft"
-                            : "border-l-[3px] border-l-highlight bg-highlight-soft"
+                            ? "bg-accent-soft"
+                            : "bg-highlight-soft"
                       }`}
                     >
                       <span
-                        className={`block truncate text-[11px] leading-[14px] font-semibold ${
+                        className={`flex min-w-0 items-center gap-1 text-[11px] leading-[14px] font-semibold ${
                           deadline.hue !== undefined
                             ? "text-[var(--course-text)]"
                             : "text-ink"
                         }`}
                       >
-                        {deadline.course
-                          ? titleWithoutCourse(deadline.subject)
-                          : deadline.subject}
+                        {/* A small dot carries the colour instead of a side bar. */}
+                        <span
+                          aria-hidden="true"
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                            deadline.hue !== undefined
+                              ? "bg-[var(--course-border)]"
+                              : deadline.personal
+                                ? "bg-accent"
+                                : "bg-highlight"
+                          }`}
+                        />
+                        <span className="truncate">{shortTitle(deadline.subject)}</span>
                       </span>
                       <span
                         className={`block truncate text-[11px] leading-[13px] ${

@@ -20,6 +20,19 @@ const fullDate = new Intl.DateTimeFormat(LOCALE, {
   timeZone: TIME_ZONE,
 });
 
+const shortDay = new Intl.DateTimeFormat(LOCALE, {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: TIME_ZONE,
+});
+
+/** A calendar day such as "Fri, 20 Nov", from "2026-11-20". */
+export function formatShortDay(isoDay: string): string {
+  const date = parseDate(`${isoDay}T12:00:00Z`);
+  return date ? shortDay.format(date) : isoDay;
+}
+
 const deadlineDay = new Intl.DateTimeFormat(LOCALE, {
   weekday: "short",
   day: "numeric",

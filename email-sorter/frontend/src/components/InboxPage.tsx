@@ -9,13 +9,6 @@ import { InboxToolbar } from "./InboxToolbar";
 import { NoticeBar } from "./NoticeBar";
 import { QuickFilters } from "./QuickFilters";
 
-const TODAY_LABEL = new Intl.DateTimeFormat("en-SG", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  timeZone: "Asia/Singapore",
-});
-
 interface InboxPageProps {
   view: InboxView;
   states: ItemStates;
@@ -103,26 +96,8 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:px-8 lg:py-6">
-      <header className="hidden shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-2 sm:flex">
-        <div>
-          <p className="label text-muted">{TODAY_LABEL.format(new Date())}</p>
-          <h1 className="mt-0.5 text-[28px] leading-tight font-semibold tracking-[-0.02em] text-ink">
-            Inbox
-          </h1>
-        </div>
-        <p className="max-w-[46ch] text-[14px] leading-6 text-muted" aria-live="polite">
-          {view.hasLoaded ? (
-            <>
-              <span className="font-semibold text-ink tabular-nums">{view.total}</span> messages.{" "}
-              <span className="font-semibold text-action-now-fg tabular-nums">{view.counts.needs_action}</span> to act on,{" "}
-              <span className="font-semibold text-action-reply-fg tabular-nums">{view.counts.needs_reply}</span> waiting for your reply.
-            </>
-          ) : (
-            "Load your mail to see what needs you."
-          )}
-        </p>
-      </header>
+    <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-3 px-4 py-4 sm:px-6 lg:min-h-0 lg:px-8 lg:py-4">
+      <h1 className="sr-only max-sm:hidden">Inbox</h1>
       {!showMobileDetail ? (
         <MobileHero
           title="Inbox"
@@ -136,18 +111,25 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
         />
       ) : null}
 
-      <div className={`shrink-0 space-y-3 ${showMobileDetail ? "max-lg:hidden" : ""}`}>
-        <InboxToolbar view={view} />
+      {/* Wide screens: filter tabs and search share one row; narrower ones stack them. */}
+      <div className={`flex shrink-0 flex-col gap-2.5 ${showMobileDetail ? "max-lg:hidden" : ""}`}>
+        <div className="flex flex-col gap-2.5 min-[1400px]:flex-row min-[1400px]:items-end min-[1400px]:gap-6">
+          <div className="order-2 min-w-0 min-[1400px]:order-1 min-[1400px]:flex-1">
+            <QuickFilters
+              action={view.action}
+              onActionChange={view.setAction}
+              counts={view.counts}
+              total={view.total}
+              visibleCount={view.visibleCount}
+              hasActiveFilters={view.hasActiveFilters}
+              onClearFilters={view.clearFilters}
+            />
+          </div>
+          <div className="order-1 min-[1400px]:order-2 min-[1400px]:w-[760px] min-[1400px]:shrink-0">
+            <InboxToolbar view={view} />
+          </div>
+        </div>
         <NoticeBar notice={view.notice} onDismiss={view.dismissNotice} />
-        <QuickFilters
-          action={view.action}
-          onActionChange={view.setAction}
-          counts={view.counts}
-          total={view.total}
-          visibleCount={view.visibleCount}
-          hasActiveFilters={view.hasActiveFilters}
-          onClearFilters={view.clearFilters}
-        />
       </div>
 
       <div

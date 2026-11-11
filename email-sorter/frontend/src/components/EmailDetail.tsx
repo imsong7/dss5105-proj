@@ -88,7 +88,7 @@ export function EmailDetail({
         </button>
       </div>
 
-      <article className="mx-auto flex w-full min-w-0 max-w-[720px] flex-1 flex-col p-5 sm:p-8 lg:px-12 lg:py-10">
+      <article className="mx-auto flex w-full min-w-0 max-w-[720px] flex-1 flex-col p-5 sm:px-8 sm:py-6 lg:px-10 lg:py-6">
         <div className="flex items-start gap-3">
           <span
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-muted text-[13px] font-semibold text-ink/60"
@@ -120,13 +120,13 @@ export function EmailDetail({
           id="email-detail-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="mt-5 text-[24px] leading-[1.25] font-semibold tracking-[-0.02em] text-balance text-ink focus:outline-none sm:text-[28px]"
+          className="mt-3.5 text-[24px] leading-[1.25] font-semibold tracking-[-0.02em] text-balance text-ink focus:outline-none sm:text-[28px]"
         >
           {subject}
         </h2>
 
         {dates.length > 0 ? (
-          <div className="mt-5 flex items-start gap-3 rounded-md bg-highlight-soft px-4 py-3">
+          <div className="mt-4 flex items-start gap-3 rounded-md bg-highlight-soft px-4 py-3">
             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-highlight-dark" aria-hidden="true" />
             <ul className="flex min-w-0 flex-1 flex-col gap-2">
               {dates.map((item, index) => (
@@ -187,7 +187,7 @@ export function EmailDetail({
 
         {classification ? (
           <>
-            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3">
               <span className="label text-muted">Sorted as</span>
               <CategoryBadge category={classification.category} size="md" />
               <StatusBadge action={classification.action} size="md" />
@@ -227,7 +227,7 @@ export function EmailDetail({
           onSend={onSendReply}
         />
 
-        <div className="mt-7 border-t border-line pt-6 text-[15px] leading-7 break-words text-ink/90 space-y-4 sm:text-[16px]">
+        <div className="mt-5 border-t border-line pt-5 text-[15px] leading-7 break-words text-ink/90 space-y-4 sm:text-[16px]">
           {bodyParagraphs.map((paragraph, index) => (
             <p key={index} className="whitespace-pre-wrap">
               {paragraph}

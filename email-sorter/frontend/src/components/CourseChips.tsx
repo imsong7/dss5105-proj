@@ -46,46 +46,38 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
     .sort((a, b) => (a.next ?? "9999").localeCompare(b.next ?? "9999"));
 
   return (
-    <section aria-label="Your courses">
-      <h2 className="mb-2 px-0.5 text-[12px] font-medium text-muted">Courses</h2>
-      <ul className="grid grid-cols-2 gap-2">
-        {tiles.map((tile) => {
-          const soon = tile.next !== undefined && daysBetween(today, tile.next) <= 1;
+    <ul aria-label="Your courses" className="flex flex-wrap gap-1.5">
+      {tiles.map((tile) => {
+        const soon = tile.next !== undefined && daysBetween(today, tile.next) <= 1;
+        const nextText = tile.next ? `next ${shortWhen(tile.next, today)}` : "nothing due";
 
-          return (
-            <li key={tile.code}>
-              <button
-                type="button"
-                onClick={() => openCourse?.(tile.code)}
-                aria-label={`Open course ${tile.code}: ${tile.thisWeek} due this week${
-                  tile.next ? `, next ${formatDayShort(tile.next)}` : ""
-                }`}
-                style={courseStyle(tile.hue)}
-                className="press flex min-h-[60px] w-full flex-col justify-between gap-1.5 rounded-xl border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:border-[var(--course-border)] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--course-accent)]" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-bold tracking-[0.03em] text-ink">
-                    {tile.code}
-                  </span>
-                  {tile.thisWeek > 0 ? (
-                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[var(--course-bg)] px-1.5 text-[11px] font-bold text-[var(--course-text)] tabular-nums">
-                      {tile.thisWeek}
-                    </span>
-                  ) : null}
-                </span>
+        return (
+          <li key={tile.code}>
+            <button
+              type="button"
+              onClick={() => openCourse?.(tile.code)}
+              title={`${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
+              aria-label={`Open course ${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
+              style={courseStyle(tile.hue)}
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface pr-1.5 pl-2.5 text-[12px] font-bold tracking-[0.03em] text-ink transition-colors hover:border-[var(--course-border)] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--course-accent)]" aria-hidden="true" />
+              {tile.code}
+              {tile.thisWeek > 0 ? (
                 <span
-                  className={`text-[12px] ${
-                    soon ? "font-semibold text-highlight-dark" : "text-muted"
+                  className={`grid h-5 min-w-5 place-items-center rounded-md px-1 text-[11px] tabular-nums ${
+                    soon ? "bg-highlight-soft text-highlight-dark" : "bg-surface-muted text-muted"
                   }`}
                 >
-                  {tile.next ? `Next · ${shortWhen(tile.next, today)}` : "All clear"}
+                  {tile.thisWeek}
                 </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+              ) : (
+                <span className="w-1" aria-hidden="true" />
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

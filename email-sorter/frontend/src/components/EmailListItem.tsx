@@ -59,7 +59,7 @@ export function EmailListItem({
               {highlight(sender.name, query)}
             </span>
             {selected ? <span className="sr-only">(selected)</span> : null}
-            <time className="shrink-0 text-[12px] text-muted tabular-nums" dateTime={receivedAt}>
+            <time className="shrink-0 text-[12px] font-medium text-accent tabular-nums" dateTime={receivedAt}>
               {formatListTime(receivedAt)}
             </time>
           </span>

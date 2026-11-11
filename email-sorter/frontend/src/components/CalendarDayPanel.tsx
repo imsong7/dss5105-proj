@@ -13,7 +13,6 @@ import {
 } from "../domain/calendar";
 import { courseStyle, titleWithoutCourse } from "../domain/course";
 import { CourseToken } from "./CourseToken";
-import { StatusBadge } from "./StatusBadge";
 
 interface CalendarDayPanelProps {
   selectedDate: string;
@@ -32,8 +31,6 @@ export function CalendarDayPanel({
   selectedDate,
   selectedDeadlines,
   upcoming,
-  academic = [],
-  upcomingAcademic = [],
   onSelectDate,
   onOpenEmail,
   onAddEvent,
@@ -53,25 +50,28 @@ export function CalendarDayPanel({
         {formatDayLong(selectedDate)} — {dayCountLabel}
       </p>
 
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <h2
           data-role="selected-day"
-          className="mt-0.5 text-[17px] leading-snug font-semibold tracking-[-0.01em] text-ink"
+          className="text-[17px] leading-snug font-semibold tracking-[-0.01em] text-ink"
         >
           {formatDayLong(selectedDate)}
         </h2>
-        <p data-role="selected-count" className="mt-0.5 text-[13px] text-muted">
-          {dayCountLabel}
-        </p>
         <button
           type="button"
           onClick={onAddEvent}
-          className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          aria-label="Add event on this day"
+          title="Add event on this day"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Add event on this day
         </button>
       </div>
+      {itemCount === 0 ? (
+        <p data-role="selected-count" className="-mt-2 text-[13px] text-muted">
+          {dayCountLabel}
+        </p>
+      ) : null}
 
       {selectedDeadlines.length > 0 ? (
         <ul className="flex flex-col gap-2">
@@ -97,7 +97,6 @@ export function CalendarDayPanel({
                     <Clock className="h-3 w-3" aria-hidden="true" />
                     {formatTime(deadline.time)}
                   </span>
-                  {deadline.action ? <StatusBadge action={deadline.action} /> : null}
                   {deadline.personal ? (
                     <Pencil
                       className="ml-auto h-3.5 w-3.5 shrink-0 text-muted transition-colors group-hover:text-accent"
@@ -119,9 +118,7 @@ export function CalendarDayPanel({
                       {deadline.personal.notes}
                     </span>
                   ) : null
-                ) : (
-                  <span className="text-[12px] text-muted">{deadline.sender}</span>
-                )}
+                ) : null}
               </button>
             </li>
           ))}
@@ -131,9 +128,6 @@ export function CalendarDayPanel({
       <div className="mt-1 border-t border-line pt-3">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[13px] font-semibold text-ink">Coming up</p>
-          <span className="text-[12px] font-medium text-muted tabular-nums">
-            {upcoming.length}
-          </span>
         </div>
 
         {upcoming.length > 0 ? (
@@ -162,7 +156,7 @@ export function CalendarDayPanel({
                       {deadline.subject}
                     </span>
                     <span className="block truncate text-[12px] text-muted">
-                      {formatTime(deadline.time)} · {deadline.sender}
+                      {formatTime(deadline.time)}
                     </span>
                   </span>
                 </button>
@@ -176,21 +170,6 @@ export function CalendarDayPanel({
           </p>
         )}
       </div>
-
-      {academic.length > 0 || upcomingAcademic.length > 0 ? (
-        <div className="border-t border-line pt-3 text-[13px] text-muted">
-          {academic.map((event) => (
-            <p key={`${event.event}-${event.startDate}`} className="font-medium text-ink">
-              NUS · {event.event}
-            </p>
-          ))}
-          {upcomingAcademic[0] ? (
-            <p>
-              Next: {upcomingAcademic[0].event} · {formatDayShort(upcomingAcademic[0].startDate)}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
     </aside>
   );
 }

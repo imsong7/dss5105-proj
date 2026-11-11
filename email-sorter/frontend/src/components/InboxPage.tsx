@@ -104,10 +104,10 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
 
   return (
     <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:px-8 lg:py-6">
-      <header className="hidden shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-2 border-b border-ink pb-3 sm:flex">
+      <header className="hidden shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-2 sm:flex">
         <div>
           <p className="label text-muted">{TODAY_LABEL.format(new Date())}</p>
-          <h1 className="mt-1 font-display text-[40px] leading-none font-medium tracking-[-0.02em] text-ink">
+          <h1 className="mt-0.5 text-[28px] leading-tight font-semibold tracking-[-0.02em] text-ink">
             Inbox
           </h1>
         </div>

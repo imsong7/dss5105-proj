@@ -27,8 +27,8 @@ const ACTION_STYLES: Record<
 };
 
 const SIZES = {
-  sm: "gap-1 text-[10.5px]",
-  md: "gap-1.5 text-[12px]",
+  sm: "gap-1 text-[12px]",
+  md: "gap-1.5 text-[13px]",
 } as const;
 
 const ICON_SIZES = {
@@ -46,7 +46,7 @@ export function StatusBadge({ action, size = "sm" }: StatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center font-mono font-medium tracking-[0.06em] uppercase ${box} ${SIZES[size]}`}
+      className={`inline-flex items-center font-semibold ${box} ${SIZES[size]}`}
     >
       <Icon className={ICON_SIZES[size]} aria-hidden="true" />
       <span>{REPLY_NATURE[action]}</span>

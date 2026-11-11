@@ -50,7 +50,7 @@ export function EmailDetail({
       >
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
           <Mail className="h-6 w-6 text-muted/70" aria-hidden="true" strokeWidth={1.5} />
-          <p className="font-display text-[22px] font-medium text-ink">Nothing open yet</p>
+          <p className="text-[15px] font-semibold text-ink">Nothing open yet</p>
           <p className="max-w-[36ch] text-[14px] leading-6 text-muted">
             Pick a message from the list to see its contents, classification
             reason, and any deadline found in the text.
@@ -91,7 +91,7 @@ export function EmailDetail({
       <article className="mx-auto flex w-full min-w-0 max-w-[720px] flex-1 flex-col p-5 sm:p-8 lg:px-12 lg:py-10">
         <div className="flex items-start gap-3">
           <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line font-display text-[15px] font-medium text-ink/70"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-muted text-[13px] font-semibold text-ink/60"
             aria-hidden="true"
           >
             {senderInitials(sender.name)}
@@ -105,14 +105,14 @@ export function EmailDetail({
             </p>
           </div>
           <time
-            className="hidden shrink-0 pt-1 font-mono text-[11px] text-muted sm:block"
+            className="hidden shrink-0 pt-0.5 text-[13px] text-muted sm:block"
             dateTime={receivedAt}
           >
             {formatFullDate(receivedAt)}
           </time>
         </div>
 
-        <p className="mt-2 font-mono text-[11px] text-muted sm:hidden">
+        <p className="mt-2 text-[13px] text-muted sm:hidden">
           {formatFullDate(receivedAt)}
         </p>
 
@@ -120,7 +120,7 @@ export function EmailDetail({
           id="email-detail-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="mt-6 font-display text-[28px] leading-[1.15] font-medium tracking-[-0.015em] text-balance text-ink focus:outline-none sm:text-[34px]"
+          className="mt-5 text-[24px] leading-[1.25] font-semibold tracking-[-0.02em] text-balance text-ink focus:outline-none sm:text-[28px]"
         >
           {subject}
         </h2>

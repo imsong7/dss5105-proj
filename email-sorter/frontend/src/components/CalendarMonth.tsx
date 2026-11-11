@@ -112,7 +112,7 @@ export function CalendarMonth({
           </p>
           <h2
             data-role="month-title"
-            className="mt-1 font-display text-[28px] leading-none font-medium tracking-[-0.015em] text-ink"
+            className="mt-0.5 text-[21px] font-semibold tracking-[-0.01em] text-ink"
             aria-live="polite"
           >
             {monthTitle(month)}

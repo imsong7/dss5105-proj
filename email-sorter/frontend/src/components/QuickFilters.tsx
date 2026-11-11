@@ -68,7 +68,7 @@ export function QuickFilters({
               />
             ) : null}
             <span>{label}</span>
-            <span className="font-mono text-[11px] text-muted tabular-nums">{count}</span>
+            <span className="text-[12px] text-muted tabular-nums">{count}</span>
           </button>
         );
       })}
@@ -76,7 +76,7 @@ export function QuickFilters({
 
       <div className="flex items-center gap-2.5 sm:ml-auto sm:pb-1">
         <p
-          className="font-mono text-[11px] text-muted tabular-nums max-sm:hidden"
+          className="text-[12px] text-muted tabular-nums max-sm:hidden"
           aria-live="polite"
           aria-atomic="true"
         >

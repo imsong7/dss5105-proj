@@ -118,8 +118,8 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
           <span className="absolute -bottom-[14px] left-0">
             <LionMark size={52} mood={mood} />
           </span>
-          <span className="font-display text-[21px] leading-none font-medium tracking-[-0.01em] text-ink">
-            Inbox <em className="font-normal">sorter</em>
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+            Inbox sorter
           </span>
         </div>
 

@@ -62,7 +62,7 @@ export function EmailListItem({
         }`}
       >
         <span className="flex flex-col items-start gap-2 pt-[3px]">
-          <time className="font-mono text-[11px] leading-4 text-muted tabular-nums" dateTime={receivedAt}>
+          <time className="text-[12px] leading-4 text-muted tabular-nums" dateTime={receivedAt}>
             {formatListDate(receivedAt)}
           </time>
           {classification ? (

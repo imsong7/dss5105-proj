@@ -125,6 +125,24 @@ export function EmailDetail({
           {subject}
         </h2>
 
+        {classification ? (
+          <SortedAs
+            key={email.id}
+            email={email}
+            onCorrect={onCorrect}
+            onUndo={onUndoCorrection}
+            onRemoveRule={onRemoveRule}
+          />
+        ) : (
+          <p
+            className={`mt-1.5 text-[13px] ${email.classifyError ? "text-action-now-fg" : "text-muted"}`}
+          >
+            {email.classifyError
+              ? `Could not classify: ${email.classifyError}`
+              : "Not sorted yet. It is sorted with the next batch, or press Sort to do it now."}
+          </p>
+        )}
+
         {dates.length > 0 ? (
           <div className="mt-3 flex items-start gap-3 rounded-xl bg-highlight-soft px-3.5 py-2.5">
             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-highlight-dark" aria-hidden="true" />
@@ -185,24 +203,6 @@ export function EmailDetail({
           </div>
         ) : null}
 
-        {classification ? (
-          <SortedAs
-            key={email.id}
-            email={email}
-            onCorrect={onCorrect}
-            onUndo={onUndoCorrection}
-            onRemoveRule={onRemoveRule}
-          />
-        ) : (
-          <p
-            className={`mt-3 text-[13px] ${email.classifyError ? "text-action-now-fg" : "text-muted"}`}
-          >
-            {email.classifyError
-              ? `Could not classify: ${email.classifyError}`
-              : "Not sorted yet. It is sorted with the next batch, or press Sort to do it now."}
-          </p>
-        )}
-
         <DraftReply
           key={email.id}
           email={email}
@@ -233,7 +233,7 @@ function SortedAs(props: SortedAsProps) {
   if (!classification) return null;
 
   return (
-    <div className="mt-3 border-t border-line pt-2">
+    <div className="mt-1.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="label text-muted">Sorted as</span>
         <CategoryBadge category={classification.category} />

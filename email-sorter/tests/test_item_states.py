@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app import item_states as module
+from app.stores import item_states as module
 from app.server import create_app
 
 

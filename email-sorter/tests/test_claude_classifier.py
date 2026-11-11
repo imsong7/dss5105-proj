@@ -4,17 +4,17 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from app.backends import BACKEND_INFO, list_backends
-from app.claude_classifier import ClaudeClassifier
+from app.classifiers.backends import BACKEND_INFO, list_backends
+from app.classifiers.claude_classifier import ClaudeClassifier
 from app.schemas import Email
 from app.server import create_app
 
 
-def _classifier(pipeline_result, last_error=None):
+def _classifier(pipeline_result):
     classifier = ClaudeClassifier.__new__(ClaudeClassifier)
     classifier.my_address = ""
     classifier.cfg = {"preprocess": {"max_chars": 4000}}
-    classifier.clf = SimpleNamespace(last_error=last_error)
+    classifier.clf = SimpleNamespace(last_error='shared-state-must-not-be-used')
     classifier.modules = SimpleNamespace(
         preprocess=SimpleNamespace(
             to_record=lambda message, address, cfg: SimpleNamespace(text="record text")
@@ -68,8 +68,8 @@ class ClaudeBackendTests(unittest.TestCase):
                 source="fallback",
                 reason="classification failed",
                 rules_fired=[],
+                error="api_key_missing",
             ),
-            last_error="api_key_missing",
         )
 
         result = classifier.classify(Email(id="2", body="hello"))
@@ -85,8 +85,8 @@ class ClaudeServerTests(unittest.TestCase):
         with patch("app.server.install_multiuser", lambda app: None):
             client = create_app(backend="claude").test_client()
         with (
-            patch("app.server._ollama_status", return_value=(False, False)),
-            patch("app.server.claude_ready", return_value=False),
+            patch("app.routes.mail._ollama_status", return_value=(False, False)),
+            patch("app.routes.mail.claude_ready", return_value=False),
         ):
             backends = client.get("/api/backends").get_json()["backends"]
             health = client.get("/api/health?backend=claude").get_json()

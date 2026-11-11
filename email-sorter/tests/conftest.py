@@ -5,10 +5,13 @@ import os
 # Tests that do not pass a provider expect the no-sign-in Graph mode, whatever
 # the local .env says (load_dotenv does not override variables already set).
 os.environ["MAIL_PROVIDER"] = "graphtoken"
+# Never read or write the real saved mail while testing (empty turns saving off).
+os.environ["PUSHED_MAIL_FILE"] = ""
+os.environ["REFRESH_STATE_FILE"] = ""
 
 import pytest
 
-from app import calendar_feed, classification_store, item_states, profiles, saved_jobs, user_events
+from app.stores import calendar_feed, classification_store, item_states, profiles, saved_jobs, user_events
 
 
 @pytest.fixture(autouse=True)
@@ -55,3 +58,12 @@ def isolated_profiles(tmp_path, monkeypatch):
     monkeypatch.setattr(
         profiles, "profile_store", profiles.ProfileStore(tmp_path / "profiles.json")
     )
+
+
+@pytest.fixture(autouse=True)
+def clean_refresh_state():
+    from app.mail.pushed_store import refresh_state
+
+    refresh_state._data.clear()
+    yield
+    refresh_state._data.clear()

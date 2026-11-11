@@ -10,14 +10,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw
+from PIL import Image
 from werkzeug.security import generate_password_hash
 
-from app import poster
-from app.flow_package import _definition
-from app.ocr import prepare_text
-from app.providers.pushed import PushedProvider
-from app.pushed_store import pushed_images, pushed_store
+from app.extract import poster
+from app.mail.flow_package import _definition
+from app.extract.ocr import prepare_text
+from app.mail.providers.pushed import PushedProvider
+from app.mail.pushed_store import pushed_images, pushed_store
 from app.schemas import Email
 from app.server import create_app
 
@@ -93,8 +93,8 @@ class PipelineTests(unittest.TestCase):
         pushed_images.put("a@u.nus.edu", "m1", [("poster.png", png())])
         provider = PushedProvider("a@u.nus.edu")
 
-        with patch("app.ocr.find_tesseract", return_value="tesseract"), patch(
-            "app.ocr.read_image", return_value=(OCR_TEXT, 88.0)
+        with patch("app.extract.ocr.find_tesseract", return_value="tesseract"), patch(
+            "app.extract.ocr.read_image", return_value=(OCR_TEXT, 88.0)
         ) as read:
             prepare_text(email, provider, "a@u.nus.edu")
             prepare_text(email, provider, "a@u.nus.edu")  # the next poll
@@ -163,8 +163,8 @@ class ServerTests(unittest.TestCase):
         self.assertEqual([name for name, _ in pushed_images.get("a@u.nus.edu", "<p1@x>")], ["poster.png"])
 
         owner = self.client_for("a@u.nus.edu")
-        with patch("app.ocr.find_tesseract", return_value="tesseract"), patch(
-            "app.ocr.read_image", return_value=(OCR_TEXT, 90.0)
+        with patch("app.extract.ocr.find_tesseract", return_value="tesseract"), patch(
+            "app.extract.ocr.read_image", return_value=(OCR_TEXT, 90.0)
         ):
             data = owner.post("/api/emails", json={"provider": "powerautomate", "count": 10}).get_json()
         email = data["emails"][0]
@@ -176,15 +176,59 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.client_for("b@u.nus.edu").get(url).status_code, 404)
 
 
+def _flat():
+    with patch("app.mail.flow_package.BATCHES", 1):
+        return _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]
+
+
 class FlowTests(unittest.TestCase):
     def test_flow_sends_only_small_images_with_each_email(self):
-        flow = _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]
+        with patch("app.mail.flow_package.INCLUDE_IMAGES", True):
+            self._check_image_flow()
+
+    def test_flow_can_skip_images(self):
+        with patch("app.mail.flow_package.INCLUDE_IMAGES", False):
+            self._check_no_image_flow()
+
+    def _check_no_image_flow(self):
+        flow = _flat()
+        actions = flow["actions"]
+        self.assertFalse(actions["Get_emails_(V3)"]["inputs"]["parameters"]["includeAttachments"])
+        loop = actions["Send_each_email"]["actions"]
+        self.assertNotIn("Inline_images", loop)
+        self.assertNotIn("inlineImages", loop["HTTP"]["inputs"]["body"])
+        self.assertNotIn("runAfter", loop["HTTP"])
+
+    def _check_image_flow(self):
+        flow = _flat()
         actions = flow["actions"]
         self.assertTrue(actions["Get_emails_(V3)"]["inputs"]["parameters"]["includeAttachments"])
         loop = actions["Send_each_email"]["actions"]
         self.assertEqual(loop["Inline_images"]["type"], "Query")
         self.assertIn("image/", loop["Inline_images"]["inputs"]["where"])
-        self.assertEqual(loop["HTTP"]["inputs"]["body"]["inlineImages"], "@take(body('Inline_images'), 3)")
+        self.assertEqual(loop["HTTP"]["inputs"]["body"]["inlineImages"], "@take(body('Inline_images'), 1)")
+
+    def test_flow_settings_are_tunable(self):
+        with patch("app.mail.flow_package.TOP", 300), patch("app.mail.flow_package.DEFAULT_DAYS", 90), patch(
+            "app.mail.flow_package.FOREACH_PARALLEL", 5
+        ):
+            flow = _flat()
+        get = flow["actions"]["Get_emails_(V3)"]["inputs"]["parameters"]
+        self.assertEqual(get["top"], "@coalesce(triggerBody()?['top'], 300)")
+        self.assertIn("addDays(utcNow(), -90)", get["searchQuery"])
+        self.assertEqual(flow["actions"]["Send_each_email"]["runtimeConfiguration"]["concurrency"]["repetitions"], 5)
+
+
+    def test_flow_reads_date_slices_in_parallel(self):
+        flow = _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]
+        batch = flow["actions"]["Each_batch"]
+        self.assertEqual(batch["foreach"], "@createArray(0, 1, 2)")
+        self.assertEqual(batch["runtimeConfiguration"]["concurrency"]["repetitions"], 3)
+        get = batch["actions"]["Get_emails_(V3)"]["inputs"]["parameters"]
+        self.assertEqual(get["top"], "@div(coalesce(triggerBody()?['top'], 300), 3)")
+        self.assertIn("received>=", get["searchQuery"])
+        self.assertIn("received<", get["searchQuery"])
+        self.assertIn("Send_each_email", batch["actions"])
 
 
 if __name__ == "__main__":

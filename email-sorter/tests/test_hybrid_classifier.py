@@ -5,10 +5,10 @@ from unittest.mock import patch
 
 import joblib
 
-from app.backends import BACKEND_INFO, create_classifier, list_backends
-from app.hybrid_classifier import HybridClassifier
-from app.ml_classifier import MLClassifier
-from app.schemas import Classification, Email
+from app.classifiers.backends import BACKEND_INFO, create_classifier, list_backends
+from app.classifiers.hybrid_classifier import HybridClassifier
+from app.classifiers.ml_classifier import MLClassifier
+from app.schemas import Email
 from app.server import create_app
 
 
@@ -84,8 +84,8 @@ class HybridClassifierTests(unittest.TestCase):
             joblib.dump(FixedModel("FoS General"), model_dir / "email_category_model.joblib")
 
             with (
-                patch("app.hybrid_classifier.MLClassifier", wraps=MLClassifier) as ml_cls,
-                patch("app.hybrid_classifier.EncoderClassifier") as encoder_cls,
+                patch("app.classifiers.hybrid_classifier.MLClassifier", wraps=MLClassifier) as ml_cls,
+                patch("app.classifiers.hybrid_classifier.EncoderClassifier") as encoder_cls,
             ):
                 encoder_cls.return_value = FakeTaskModel("action", "reminder")
                 classifier = HybridClassifier(models_dir=model_dir)
@@ -100,8 +100,8 @@ class HybridClassifierTests(unittest.TestCase):
         self.assertIn("hybrid", list_backends())
         self.assertIn("hybrid", BACKEND_INFO)
         with (
-            patch("app.hybrid_classifier.MLClassifier"),
-            patch("app.hybrid_classifier.EncoderClassifier"),
+            patch("app.classifiers.hybrid_classifier.MLClassifier"),
+            patch("app.classifiers.hybrid_classifier.EncoderClassifier"),
         ):
             self.assertIsInstance(create_classifier("hybrid"), HybridClassifier)
 
@@ -115,9 +115,9 @@ class HybridClassifierTests(unittest.TestCase):
         self.assertEqual(backend["label"], "Hybrid (ML + text encoder)")
 
         with (
-            patch("app.server._ollama_status", return_value=(False, False)),
-            patch("app.server._ml_ready", return_value=True) as ml_ready,
-            patch("app.server._encoder_ready", return_value=True) as encoder_ready,
+            patch("app.routes.mail._ollama_status", return_value=(False, False)),
+            patch("app.routes.mail._ml_ready", return_value=True) as ml_ready,
+            patch("app.routes.mail._encoder_ready", return_value=True) as encoder_ready,
         ):
             health = client.get("/api/health?backend=hybrid").get_json()
 
@@ -129,9 +129,9 @@ class HybridClassifierTests(unittest.TestCase):
     def test_api_reports_hybrid_not_ready_when_a_model_family_is_missing(self):
         client = create_app(backend="hybrid").test_client()
         with (
-            patch("app.server._ollama_status", return_value=(False, False)),
-            patch("app.server._ml_ready", return_value=True),
-            patch("app.server._encoder_ready", return_value=False),
+            patch("app.routes.mail._ollama_status", return_value=(False, False)),
+            patch("app.routes.mail._ml_ready", return_value=True),
+            patch("app.routes.mail._encoder_ready", return_value=False),
         ):
             health = client.get("/api/health?backend=hybrid").get_json()
 

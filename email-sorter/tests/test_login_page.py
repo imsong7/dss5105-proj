@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 from werkzeug.security import generate_password_hash
 
-from app.pushed_store import pushed_store
+from app.mail.pushed_store import pushed_store
 from app.server import create_app
 
 ACCOUNT_A = "alice@example.com"
@@ -258,7 +258,7 @@ class LoginPageTests(unittest.TestCase):
                 json.loads(archive.read(name))
 
         flow = json.loads(text)["properties"]["definition"]
-        http = flow["actions"]["Send_each_email"]["actions"]["HTTP"]["inputs"]
+        http = flow["actions"]["Each_batch"]["actions"]["Send_each_email"]["actions"]["HTTP"]["inputs"]
         self.assertEqual(http["uri"], "http://localhost/api/inbound/outlook")
         self.assertEqual(http["headers"]["X-User-Email"], ACCOUNT_A)
         self.assertEqual(http["headers"]["X-Webhook-Token"], TOKEN_A)
@@ -395,7 +395,7 @@ class LoginPageTests(unittest.TestCase):
         self.assertIn("/login", response.headers["Location"])
 
     def test_emails_come_back_with_saved_results_after_a_reload(self):
-        from app import classification_store
+        from app.stores import classification_store
         self.sign_in()
         self.client.post(
             "/api/inbound/outlook",

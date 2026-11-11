@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from app.calendar import extract_deadline, extract_deadlines
+from app.extract.calendar import extract_deadline, extract_deadlines
 from app.schemas import Email
 from app.server import create_app
 
@@ -107,8 +107,8 @@ class DeadlineExtractorTests(unittest.TestCase):
 
         self.assertIsNone(candidate)
 
-    @patch("app.server.prepare_text", side_effect=lambda email, _provider, *_owner: email)
-    @patch("app.server.build_provider")
+    @patch("app.routes.mail.prepare_text", side_effect=lambda email, _provider, *_owner: email)
+    @patch("app.routes.mail.build_provider")
     def test_email_fetch_route_returns_deadline_candidate(
         self, build_provider, _prepare_text
     ):
@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
 class LinkAddressTests(unittest.TestCase):
     def test_a_link_between_cue_and_date_does_not_hide_the_deadline(self):
-        from app.calendar import extract_deadlines
+        from app.extract.calendar import extract_deadlines
         email = Email(
             id="x",
             subject="Form",

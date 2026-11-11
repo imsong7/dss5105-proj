@@ -4,16 +4,18 @@ import json
 import os
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import requests
 from werkzeug.security import generate_password_hash
 
-from app.pushed_store import PushedStore, pushed_store
+from app.config import settings
+from app.mail.pushed_store import PushedStore, pushed_store
 from app.schemas import Email
-from app.providers import build_provider
-from app.providers.base import MailQuery
+from app.mail.providers import build_provider
+from app.mail.providers.base import MailQuery
 from app.server import create_app
 
 ACCOUNT_A = "alice@example.com"
@@ -164,9 +166,20 @@ class InboundWebhookTests(unittest.TestCase):
         self.assertEqual(attempts[0]["status"], 200)
         self.assertEqual(attempts[0]["owner"], ACCOUNT_A)
 
+    def test_refresh_forwards_configured_top(self):
+        upstream = MagicMock(status_code=202)
+        with patch("app.routes.inbound.requests.post", return_value=upstream) as post, patch(
+            "app.routes.inbound.settings", replace(settings, flow_refresh_top=300)
+        ):
+            self.client.post("/api/inbound/refresh", json={}, auth=(ACCOUNT_A, PASSWORD))
+
+        self.assertEqual(post.call_args.kwargs["json"]["top"], 300)
+
     def test_refresh_forwards_owner_and_window(self):
         upstream = MagicMock(status_code=202)
-        with patch("app.server.requests.post", return_value=upstream) as post:
+        with patch("app.routes.inbound.requests.post", return_value=upstream) as post, patch(
+            "app.routes.inbound.settings", replace(settings, flow_refresh_top=0)
+        ):
             response = self.client.post(
                 "/api/inbound/refresh",
                 json={
@@ -197,7 +210,7 @@ class InboundWebhookTests(unittest.TestCase):
 
     def test_refresh_reports_an_expired_trigger(self):
         with patch(
-            "app.server.requests.post", return_value=MagicMock(status_code=401)
+            "app.routes.inbound.requests.post", return_value=MagicMock(status_code=401)
         ):
             response = self.client.post(
                 "/api/inbound/refresh", json={}, auth=(ACCOUNT_A, PASSWORD)
@@ -208,7 +221,7 @@ class InboundWebhookTests(unittest.TestCase):
 
     def test_refresh_reports_an_unreachable_trigger(self):
         with patch(
-            "app.server.requests.post",
+            "app.routes.inbound.requests.post",
             side_effect=requests.ConnectionError("boom"),
         ):
             response = self.client.post(

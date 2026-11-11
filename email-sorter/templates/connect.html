@@ -35,7 +35,7 @@
     <ol class="connect-steps">
       <li>
         <strong>Download your flow.</strong> It already has your address, email and private token, so do not share the file.
-        <a class="btn btn-primary connect-download" href="{{ url_for('setup_flow_package') }}" download="inbox-sorter-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
+        <a class="btn btn-primary connect-download" href="{{ url_for('account.setup_flow_package') }}" download="inbox-sorter-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
       </li>
       <li>
         <strong>Import it.</strong> In <a href="https://make.powerautomate.com/manage/flows" target="_blank" rel="noopener noreferrer">Power Automate</a>:
@@ -44,7 +44,7 @@
       <li>
         <strong>Paste the flow's address.</strong> In the flow, open the first step <em>When a HTTP request is received</em> and copy its HTTP URL.
         {% if flow_saved %}<span class="connect-saved">Saved ✓</span>{% endif %}
-        <form method="post" action="{{ url_for('register_connect') }}" class="connect-url" autocomplete="off">
+        <form method="post" action="{{ url_for('account.register_connect') }}" class="connect-url" autocomplete="off">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="action" value="flow-url">
           <label class="visually-hidden" for="flow-url">HTTP URL</label>
@@ -64,14 +64,14 @@
     <p class="connect-text">No flow to build. Each visit you paste a token from
       <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>
       (sign in, open the <strong>Access token</strong> tab, copy it). The app asks for it when it opens.</p>
-    <form method="post" action="{{ url_for('register_connect') }}">
+    <form method="post" action="{{ url_for('account.register_connect') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="token">
       <button class="btn btn-outline-primary" type="submit">Use a token instead</button>
     </form>
   </details>
 
-  <form method="post" action="{{ url_for('register_connect') }}">
+  <form method="post" action="{{ url_for('account.register_connect') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="action" value="done">
     <button class="btn btn-primary" type="submit">{% if flow_saved %}Open the app{% else %}Do this later and open the app{% endif %}</button>

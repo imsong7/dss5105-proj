@@ -10,10 +10,10 @@ from unittest.mock import patch
 
 from werkzeug.security import generate_password_hash
 
-from app.listings import parse_jobs
-from app.pushed_store import pushed_store
+from app.extract.listings import parse_jobs
+from app.mail.pushed_store import pushed_store
 from app.server import create_app
-from app.text_utils import clean, strip_html, without_link_addresses
+from app.mail.text_utils import clean, strip_html, without_link_addresses
 
 BASE = "https://nus-talentconnect.app.kinobi.asia/jobs/"
 DIGEST = (

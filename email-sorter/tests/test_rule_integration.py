@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.backends import BaseClassifier
+from app.classifiers.backends import BaseClassifier
 from app.schemas import Classification, Email
 from app.server import create_app
 
@@ -29,7 +29,7 @@ class SenderRuleIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.stub_classifier = StubClassifier()
         self.patcher = patch(
-            "app.server.create_classifier", return_value=self.stub_classifier
+            "app.routes.mail.create_classifier", return_value=self.stub_classifier
         )
         self.patcher.start()
         self.addCleanup(self.patcher.stop)

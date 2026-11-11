@@ -3,12 +3,12 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from app.schemas import Email
-from app.providers.graph import GRAPH_URL, GraphProvider
-from app.providers.base import MailQuery, ProviderError
+from app.mail.providers.graph import GRAPH_URL, GraphProvider
+from app.mail.providers.base import MailQuery, ProviderError
 
 
 class GraphProviderTests(unittest.TestCase):
-    @patch("app.providers.graph.requests.get")
+    @patch("app.mail.providers.graph.requests.get")
     def test_fetch_sends_bearer_token(self, get):
         get.return_value.ok = True
         get.return_value.json.return_value = {"value": []}
@@ -26,7 +26,7 @@ class GraphProviderTests(unittest.TestCase):
 
         self.assertEqual(provider.token, "test-token")
 
-    @patch("app.providers.graph.requests.get")
+    @patch("app.mail.providers.graph.requests.get")
     def test_fetch_applies_inclusive_received_window(self, get):
         get.return_value.ok = True
         get.return_value.json.return_value = {"value": []}
@@ -48,7 +48,7 @@ class GraphProviderTests(unittest.TestCase):
             "receivedDateTime le 2026-11-13T23:59:59Z",
         )
 
-    @patch("app.providers.graph.requests.get")
+    @patch("app.mail.providers.graph.requests.get")
     def test_fetch_without_window_omits_filter(self, get):
         get.return_value.ok = True
         get.return_value.json.return_value = {"value": []}
@@ -59,7 +59,7 @@ class GraphProviderTests(unittest.TestCase):
         self.assertNotIn("$filter", params)
         self.assertEqual(params["$top"], 15)
 
-    @patch("app.providers.graph.requests.get")
+    @patch("app.mail.providers.graph.requests.get")
     def test_fetches_only_small_inline_images(self, get):
         image_bytes = b"small-image"
         metadata_response = Mock()
@@ -113,7 +113,7 @@ class GraphProviderTests(unittest.TestCase):
             "id,name,contentType,size,isInline",
         )
 
-    @patch("app.providers.graph.requests.get")
+    @patch("app.mail.providers.graph.requests.get")
     def test_attachment_listing_includes_graph_error_detail(self, get):
         response = Mock()
         response.status_code = 400

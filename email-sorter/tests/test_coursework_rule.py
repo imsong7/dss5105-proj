@@ -1,6 +1,6 @@
 import unittest
 
-from app.sender_rules import coursework_by_rule
+from app.classifiers.sender_rules import coursework_by_rule
 from app.server import create_app
 
 

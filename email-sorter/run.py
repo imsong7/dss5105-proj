@@ -21,7 +21,7 @@ import signal
 import subprocess
 from pathlib import Path
 
-from app.backends import list_backends
+from app.classifiers.backends import list_backends
 from app.config import settings
 from app.ngrok import start as start_tunnel
 from app.ngrok import stop as stop_tunnel
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         parser.error(str(error))
 
     if args.compare:
-        from app.compare_cli import parse_backends, run_compare
+        from app.classifiers.compare_cli import parse_backends, run_compare
 
         try:
             backends = parse_backends(args.backends)

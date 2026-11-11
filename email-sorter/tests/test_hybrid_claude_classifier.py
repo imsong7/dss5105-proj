@@ -3,8 +3,8 @@
 import unittest
 from types import SimpleNamespace
 
-from app.backends import BACKEND_INFO, list_backends
-from app.hybrid_classifier import HybridClaudeClassifier
+from app.classifiers.backends import BACKEND_INFO, list_backends
+from app.classifiers.hybrid_classifier import HybridClaudeClassifier
 from app.schemas import Email
 
 

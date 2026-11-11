@@ -1,7 +1,8 @@
+import os
 import unittest
 from unittest.mock import patch
 
-from app.reply_drafting import ReplyDraftError
+from app.mail.reply_drafting import ReplyDraftError
 from app.server import create_app
 
 EMAIL = {
@@ -18,7 +19,7 @@ class DraftReplyApiTests(unittest.TestCase):
     def setUp(self):
         self.client = create_app(backend="llama", provider="graphtoken").test_client()
 
-    @patch("app.server.generate_reply")
+    @patch("app.routes.replies.generate_reply")
     def test_returns_draft_and_maps_the_email(self, generate):
         generate.return_value = {
             "reply": "I would like to request an extension for the assignment due on Friday.",
@@ -38,7 +39,7 @@ class DraftReplyApiTests(unittest.TestCase):
         self.assertEqual(sent_email.id, "m1")
         self.assertEqual(sent_email.subject, "Assignment extension request")
 
-    @patch("app.server.generate_reply")
+    @patch("app.routes.replies.generate_reply")
     def test_reports_configuration_errors(self, generate):
         generate.side_effect = ReplyDraftError("Reply drafting is not configured.", 503)
 
@@ -51,6 +52,40 @@ class DraftReplyApiTests(unittest.TestCase):
         response = self.client.post("/api/draft-reply", json={})
 
         self.assertEqual(response.status_code, 400)
+
+
+class SharedKeyTests(unittest.TestCase):
+    def _run(self, claude_env_text, existing=None):
+        import tempfile
+        from pathlib import Path
+
+        from app.mail import reply_drafting
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".env"
+            if claude_env_text is not None:
+                path.write_text(claude_env_text, encoding="utf-8")
+            env = {} if existing is None else {"ANTHROPIC_API_KEY": existing}
+            with patch.dict("os.environ", env, clear=False), patch.object(
+                reply_drafting, "CLAUDE_ENV_PATH", path
+            ):
+                if existing is None:
+                    os.environ.pop("ANTHROPIC_API_KEY", None)
+                reply_drafting._use_shared_anthropic_key()
+                return os.environ.get("ANTHROPIC_API_KEY"), os.environ.get("CLAUDE_MODEL")
+
+    def test_key_is_taken_from_the_shared_file_only(self):
+        key, other = self._run("ANTHROPIC_API_KEY=shared-key\nCLAUDE_MODEL=something\n")
+        self.assertEqual(key, "shared-key")
+        self.assertIsNone(other)  # nothing else from that file leaks in
+
+    def test_an_existing_key_wins(self):
+        key, _ = self._run("ANTHROPIC_API_KEY=shared-key\n", existing="own-key")
+        self.assertEqual(key, "own-key")
+
+    def test_missing_file_or_key_is_not_an_error(self):
+        self.assertIsNone(self._run(None)[0])
+        self.assertIsNone(self._run("OTHER=1\n")[0])
 
 
 if __name__ == "__main__":

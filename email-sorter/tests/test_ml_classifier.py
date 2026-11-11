@@ -8,8 +8,8 @@ import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 
-from app.backends import create_classifier, list_backends
-from app.ml_classifier import BalancedComplementNB, MLClassifier
+from app.classifiers.backends import create_classifier, list_backends
+from app.classifiers.ml_classifier import BalancedComplementNB, MLClassifier
 from app.schemas import Email
 from app.server import create_app
 
@@ -139,14 +139,14 @@ class MLClassifierTests(unittest.TestCase):
             model_dir = Path(directory)
             joblib.dump(FixedModel("FoS General"), model_dir / "email_category_model.joblib")
             joblib.dump(FixedModel("Reminder"), model_dir / "required_action_model.joblib")
-            with patch("app.ml_classifier.ML_MODELS_DIR", model_dir):
+            with patch("app.classifiers.ml_classifier.ML_MODELS_DIR", model_dir):
                 self.assertIsInstance(create_classifier("ml"), MLClassifier)
 
     def test_api_advertises_ml_and_reports_missing_models(self):
         client = create_app(backend="ml").test_client()
         with (
-            patch("app.server._ollama_status", return_value=(False, False)),
-            patch("app.server._ml_ready", return_value=False),
+            patch("app.routes.mail._ollama_status", return_value=(False, False)),
+            patch("app.routes.mail._ml_ready", return_value=False),
         ):
             backends = client.get("/api/backends").get_json()["backends"]
             health = client.get("/api/health?backend=ml").get_json()
@@ -161,7 +161,7 @@ class MLClassifierTests(unittest.TestCase):
         classifier._category_model = FixedModel("FoS General")
         classifier._action_model = FixedModel("Reminder")
 
-        with patch("app.server.create_classifier", return_value=classifier):
+        with patch("app.routes.mail.create_classifier", return_value=classifier):
             client = create_app(backend="ml").test_client()
             rule_response = client.post(
                 "/api/classify",

@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from app import calendar_feed
+from app.stores import calendar_feed
 from app.server import create_app
 
 

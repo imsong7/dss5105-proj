@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app import classification_store as store
-from app.backends import BaseClassifier
+from app.stores import classification_store as store
+from app.classifiers.backends import BaseClassifier
 from app.schemas import Classification
 from app.server import create_app
 
@@ -41,7 +41,7 @@ class ClassifyApiTests(unittest.TestCase):
             patcher = patch.object(store, target, value)
             patcher.start()
             self.addCleanup(patcher.stop)
-        patcher = patch("app.server.create_classifier", return_value=self.stub)
+        patcher = patch("app.routes.mail.create_classifier", return_value=self.stub)
         patcher.start()
         self.addCleanup(patcher.stop)
         self.client = create_app(backend="llama", provider="graphtoken").test_client()

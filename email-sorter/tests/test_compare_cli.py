@@ -6,8 +6,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from app.backends import list_backends
-from app.compare_cli import compare_emails, parse_backends, print_report, run_compare, write_csv
+from app.classifiers.backends import list_backends
+from app.classifiers.compare_cli import compare_emails, parse_backends, print_report, run_compare, write_csv
 from app.schemas import Classification, Email
 
 
@@ -166,7 +166,7 @@ class RunCompareTests(unittest.TestCase):
         self.assertIn("--owner", stderr.getvalue())
 
     def test_empty_batch_returns_one(self):
-        with patch("app.compare_cli.fetch_emails", return_value=[]) as fetch:
+        with patch("app.classifiers.compare_cli.fetch_emails", return_value=[]) as fetch:
             with redirect_stdout(io.StringIO()) as out:
                 code = self.call(days=0)
         self.assertEqual(code, 1)
@@ -176,8 +176,8 @@ class RunCompareTests(unittest.TestCase):
     def test_successful_compare_returns_zero(self):
         emails = [make_email(1)]
         results = {"ml": {"m1": Classification(content_category="general", reply_nature="reminder")}}
-        with patch("app.compare_cli.fetch_emails", return_value=emails), patch(
-            "app.compare_cli.compare_emails", return_value=(results, {"ml": {"m1": 3.0}}, {"ml": {}}, {})
+        with patch("app.classifiers.compare_cli.fetch_emails", return_value=emails), patch(
+            "app.classifiers.compare_cli.compare_emails", return_value=(results, {"ml": {"m1": 3.0}}, {"ml": {}}, {})
         ):
             with redirect_stdout(io.StringIO()) as out:
                 code = self.call()

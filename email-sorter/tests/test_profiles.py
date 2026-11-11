@@ -1,6 +1,6 @@
 import unittest
 
-from app import profiles
+from app.stores import profiles
 from app.server import create_app
 
 

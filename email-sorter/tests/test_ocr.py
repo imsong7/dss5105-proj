@@ -5,8 +5,8 @@ from unittest.mock import patch
 from PIL import Image
 
 from app.schemas import Email
-from app.ocr import prepare_text
-from app.providers.base import EmailProvider, InlineImage
+from app.extract.ocr import prepare_text
+from app.mail.providers.base import EmailProvider, InlineImage
 from app.server import create_app
 
 
@@ -31,9 +31,9 @@ class InlineImageProvider(EmailProvider):
 
 
 class OcrPipelineTests(unittest.TestCase):
-    @patch("app.ocr.read_image", return_value=("Submit the form by Friday", 82.5))
-    @patch("app.ocr.find_tesseract", return_value="/usr/bin/tesseract")
-    @patch("app.ocr.OCR_ENABLED", True)
+    @patch("app.extract.ocr.read_image", return_value=("Submit the form by Friday", 82.5))
+    @patch("app.extract.ocr.find_tesseract", return_value="/usr/bin/tesseract")
+    @patch("app.extract.ocr.OCR_ENABLED", True)
     def test_extracts_inline_image_text_and_metadata(self, _command, _ocr):
         provider = InlineImageProvider()
         email = prepare_text(Email(id="1"), provider)
@@ -43,18 +43,18 @@ class OcrPipelineTests(unittest.TestCase):
         self.assertEqual(email.ocr_confidence, 82.5)
         self.assertEqual(provider.images_requested, 1)
 
-    @patch("app.ocr.find_tesseract", return_value=None)
-    @patch("app.ocr.OCR_ENABLED", True)
+    @patch("app.extract.ocr.find_tesseract", return_value=None)
+    @patch("app.extract.ocr.OCR_ENABLED", True)
     def test_reports_missing_tesseract_without_failing(self, _command):
         email = prepare_text(Email(id="1"), InlineImageProvider())
 
         self.assertEqual(email.text_source, "empty")
         self.assertTrue(any("Tesseract is not installed" in note for note in email.ocr_notes))
 
-    @patch("app.ocr.read_image", return_value=("Image text extracted", 90.0))
-    @patch("app.ocr.find_tesseract", return_value="/usr/bin/tesseract")
-    @patch("app.ocr.OCR_ENABLED", True)
-    @patch("app.server.build_provider")
+    @patch("app.extract.ocr.read_image", return_value=("Image text extracted", 90.0))
+    @patch("app.extract.ocr.find_tesseract", return_value="/usr/bin/tesseract")
+    @patch("app.extract.ocr.OCR_ENABLED", True)
+    @patch("app.routes.mail.build_provider")
     def test_email_fetch_route_runs_ocr_before_returning(
         self, build_provider, _command, _ocr
     ):

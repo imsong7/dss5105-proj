@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from app.reply_sending import ReplySendError, send_reply
+from app.mail.reply_sending import ReplySendError, send_reply
 from app.schemas import Email
 from app.server import create_app
 
@@ -15,7 +15,7 @@ EMAIL = Email(
 
 
 class ReplySendingTests(unittest.TestCase):
-    @patch("app.reply_sending.requests.post")
+    @patch("app.mail.reply_sending.requests.post")
     def test_sends_a_reply_to_the_original_sender(self, post):
         post.return_value = Mock(status_code=202, ok=True, reason="Accepted")
 
@@ -40,7 +40,7 @@ class ReplySendingTests(unittest.TestCase):
             send_reply(EMAIL, "Hello", "")
         self.assertEqual(raised.exception.status_code, 400)
 
-    @patch("app.reply_sending.requests.post")
+    @patch("app.mail.reply_sending.requests.post")
     def test_reports_a_missing_send_permission(self, post):
         post.return_value = Mock(
             status_code=403,
@@ -59,8 +59,8 @@ class SendReplyApiTests(unittest.TestCase):
     def setUp(self):
         self.client = create_app(backend="llama", provider="graphtoken").test_client()
 
-    @patch("app.server.remember_session_graph_token")
-    @patch("app.server.send_graph_reply")
+    @patch("app.routes.replies.remember_session_graph_token")
+    @patch("app.routes.replies.send_graph_reply")
     def test_endpoint_returns_the_receipt_and_remembers_the_token(self, send, remember):
         send.return_value = {"sent": True, "to": "lim@nus.edu.sg", "subject": "Re: Consultation slot"}
 
@@ -81,8 +81,8 @@ class SendReplyApiTests(unittest.TestCase):
         self.assertEqual(token, "token-123")
         remember.assert_called_once_with("token-123")
 
-    @patch("app.server.remember_session_graph_token")
-    @patch("app.server.send_graph_reply")
+    @patch("app.routes.replies.remember_session_graph_token")
+    @patch("app.routes.replies.send_graph_reply")
     def test_endpoint_reports_send_errors(self, send, remember):
         send.side_effect = ReplySendError("The token is missing Mail.Send permission.", 403)
 

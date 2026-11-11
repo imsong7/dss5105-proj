@@ -9,6 +9,7 @@ from pathlib import Path
 from threading import Lock
 from urllib.parse import urlparse
 
+import requests
 from flask import (
     current_app,
     g,
@@ -19,7 +20,6 @@ from flask import (
     session,
     url_for,
 )
-import requests
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # ---- failed sign-in limit ---------------------------------------------------
@@ -81,7 +81,7 @@ class LoginLimiter:
 SESSION_OWNER_KEY = "mail_owner"
 # Paths that do not carry dashboard identity: the login page itself, the
 # sign-out action, and the Power Automate webhook (authenticated by its token).
-PUBLIC_PATHS = {"/login", "/login/token", "/logout", "/register", "/api/inbound/outlook"}
+PUBLIC_PATHS = {"/login", "/login/token", "/logout", "/register", "/api/inbound/outlook", "/api/inbound/refresh-done"}
 
 # ---- sign in with an Outlook (Microsoft Graph) token -----------------------
 # A student may skip the account and paste a Graph token instead. Graph itself
@@ -525,7 +525,7 @@ def install_multiuser(app):
             return redirect(url_for("login"))
         if session_owner():
             # Already signed in: carry on with step 2 (connect Outlook).
-            return redirect(url_for("register_connect") if not is_token_session() else "/")
+            return redirect(url_for("account.register_connect") if not is_token_session() else "/")
         if request.method == "GET":
             session.permanent = True
             return render_signup()
@@ -585,7 +585,7 @@ def install_multiuser(app):
         session.permanent = True
         session[SESSION_OWNER_KEY] = email
         # Step 2 of sign-up: connect Outlook before opening the app.
-        return redirect(url_for("register_connect"))
+        return redirect(url_for("account.register_connect"))
 
     @app.post("/api/setup/flow-url")
     def save_flow_url_api():

@@ -390,7 +390,7 @@ class LlamaBackend:
     name = "llama"
 
     def __init__(self) -> None:
-        from app.llama_classifier import build_chain
+        from app.classifiers.llama_classifier import build_chain
 
         self.chain = build_chain(include_raw=True)
 
@@ -491,7 +491,7 @@ class EncoderBackend:
     name = "encoder"
 
     def __init__(self) -> None:
-        from app.encoder_classifier import EncoderClassifier
+        from app.classifiers.encoder_classifier import EncoderClassifier
 
         self.clf = EncoderClassifier()
         if not self.clf.available:
@@ -510,7 +510,7 @@ class EncoderBackend:
     def _count_tokens(self, predictor, email: Email) -> int:
         if predictor is None:
             return 0
-        from app.encoder_classifier import _model_text
+        from app.classifiers.encoder_classifier import _model_text
 
         text = predictor.enc.prefix + build_text(
             email.subject, email.sender, _model_text(email)
@@ -521,7 +521,7 @@ class EncoderBackend:
         return len(ids)
 
     def token_usage(self, email: Email, pred: Prediction) -> tuple:
-        from app.sender_rules import category_by_rule
+        from app.classifiers.sender_rules import category_by_rule
 
         category_tokens = 0
         if not category_by_rule(email.sender):
@@ -583,7 +583,7 @@ class MLBackend:
     name = "ml"
 
     def __init__(self) -> None:
-        from app.ml_classifier import MLClassifier
+        from app.classifiers.ml_classifier import MLClassifier
 
         self.clf = MLClassifier()
 

@@ -21,7 +21,7 @@ class CapturingProvider:
 class EmailWindowApiTests(unittest.TestCase):
     def setUp(self):
         patcher = patch(
-            "app.server.prepare_text",
+            "app.routes.mail.prepare_text",
             side_effect=lambda email, _provider, *_owner: email,
         )
         patcher.start()
@@ -30,7 +30,7 @@ class EmailWindowApiTests(unittest.TestCase):
     def _post(self, payload):
         return create_app(backend="llama").test_client().post("/api/emails", json=payload)
 
-    @patch("app.server.build_provider")
+    @patch("app.routes.mail.build_provider")
     def test_forwards_window_as_mail_query(self, build_provider):
         provider = CapturingProvider()
         build_provider.return_value = provider
@@ -56,7 +56,7 @@ class EmailWindowApiTests(unittest.TestCase):
         )
         self.assertEqual(response.get_json()["window"]["limit"], 5)
 
-    @patch("app.server.build_provider")
+    @patch("app.routes.mail.build_provider")
     def test_no_window_keeps_newest_n_behaviour(self, build_provider):
         provider = CapturingProvider()
         build_provider.return_value = provider

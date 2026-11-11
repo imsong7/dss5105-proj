@@ -16,7 +16,8 @@ Use the shared environment from the repo root:
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt          # the app (default hybrid_claude backend)
+# pip install -r requirements-encoders.txt   # also the `encoder` and `hybrid` backends (torch)
 
 cp email-sorter/.env.example email-sorter/.env
 ```
@@ -29,7 +30,11 @@ Edit `email-sorter/.env` if needed:
 | `MODEL_BACKEND` | `hybrid_claude` | default classifier backend |
 | `PORT` | `5001` | 5000 clashes with macOS AirPlay Receiver (it answers with 403) |
 | `MAX_EMAILS` | `500` | load cap per batch |
-| `INBOUND_MAX_EMAILS` | `500` | pushed-mail memory cap |
+| `INBOUND_MAX_EMAILS` | `500` | pushed-mail cap per account |
+| `FLOW_REFRESH_TOP` | `0` | emails the flow reads per refresh, sent with each refresh (0 = the flow's own default, 300). Changing it needs a restart, not a flow re-import |
+| `FLOW_INCREMENTAL` | `1` | after one complete refresh, later refreshes only read newer mail; `0` always reads the whole window |
+| `PUSHED_MAIL_FILE` | `private/pushed_mail.json` | where pushed mail is saved so a restart keeps it (empty turns saving off) |
+| `CLASSIFICATION_METRICS` | off | set to `1` to log JSON timing lines for each classification |
 | `ALLOW_SIGNUP` | `1` | lets new students create their own account at `/register` (Power Automate mode); `0` turns it off |
 | `ALLOW_TOKEN_LOGIN` | `1` | sign-in page offers "Use an Outlook token instead": no account, Microsoft Graph checks the token and the allowed email domains apply; `0` turns it off |
 | `ALLOWED_EMAIL_DOMAINS` | `u.nus.edu,nus.edu.sg` | only these email domains may sign up |
@@ -85,7 +90,7 @@ The first time, create the private account file:
 
 ```bash
 cd email-sorter
-python tools/configure_multiuser.py
+python configure_multiuser.py
 ```
 
 It asks for:
@@ -110,7 +115,7 @@ PY
 
 Students do not need this section: after signing in, **Connect Outlook** (Today page, the account menu, or Ctrl/Cmd+K) opens a step-by-step guide with their own address, headers and token filled in, plus copy buttons.
 
-The guide's **Download my flow** button (`GET /api/setup/flow.zip`) gives each signed-in student a ready-made import package built by `app/flow_package.py` with their own webhook address, email and token. They import it in Power Automate (**My flows > Import > Import Package (Legacy)**), pick their Outlook connection, then paste the flow's trigger **HTTP URL** back into the guide (`POST /api/setup/flow-url`, only `*.logic.azure.com` or `*.powerplatform.com` addresses are accepted). The app then asks that flow for mail each time it opens. Never share your own exported flow .zip: it contains your webhook token.
+The guide's **Download my flow** button (`GET /api/setup/flow.zip`) gives each signed-in student a ready-made import package built by `app/mail/flow_package.py` with their own webhook address, email and token. They import it in Power Automate (**My flows > Import > Import Package (Legacy)**), pick their Outlook connection, then paste the flow's trigger **HTTP URL** back into the guide (`POST /api/setup/flow-url`, only `*.logic.azure.com` or `*.powerplatform.com` addresses are accepted). The app then asks that flow for mail each time it opens. Never share your own exported flow .zip: it contains your webhook token.
 
 Build a flow that collects a window of mail and posts each message to the app.
 The HTTP action needs a Power Automate premium connector.
@@ -160,7 +165,7 @@ match that account, the push is rejected.
 
 A flow that starts with **When an HTTP request is received** can be started by
 the dashboard. Put its URL in the account's `refresh_url` field (rerun
-`tools/configure_multiuser.py` or edit `private/multiuser.json`) and restart the
+`configure_multiuser.py` or edit `private/multiuser.json`) and restart the
 app. The trigger body may include:
 
 ```json
@@ -240,7 +245,7 @@ The Claude backend loads `claude/` under an alias and keeps its pipeline:
 sender rules → Claude API → guardrails → fallback. It needs the key in
 `claude/.env`.
 
-Sender category rules in `app/sender_rules.py` apply to every backend. A matching rule
+Sender category rules in `app/classifiers/sender_rules.py` apply to every backend. A matching rule
 overrides only the category; the backend still classifies action, deadline, and
 reason.
 
@@ -313,23 +318,17 @@ targets a Graph-token instance.
 
 ## Key files
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
-| `app/server.py` | Flask routes, auth, health |
-| `app/backends.py` | Backend registry and factory |
-| `app/schemas.py` | Email and classification schemas |
-| `app/encoder_classifier.py` | Text-encoder heads |
-| `app/ml_classifier.py` | Classical ML pipelines |
-| `app/llama_classifier.py` | Ollama backend |
-| `app/claude_classifier.py` | Claude backend |
-| `app/hybrid_classifier.py` | ML + encoder/Claude hybrids |
+| `app/server.py` | App factory: sign-in, CSRF and security headers, dashboard and error pages |
+| `app/routes/` | HTTP routes, one blueprint per area (account, inbound, mail, corrections, replies, planner) |
+| `app/classifiers/` | Backend registry (`backends.py`), the ML, Claude, encoder, Llama and hybrid backends, sender rules, timing logs |
+| `app/extract/` | Deadlines and the NUS academic calendar, poster OCR and QR codes, job listings |
+| `app/mail/` | Mail providers (Graph, pushed), pushed-mail store, Power Automate flow package, reply drafting and sending |
+| `app/stores/` | Per-user data under `private/`: corrections and cache, profiles, item states, events, feed, saved jobs |
 | `app/accounts.py` | Login page, sessions, and account lookup |
-| `app/pushed_store.py` | Per-user pushed-mail store |
-| `app/sender_rules.py` | Sender-based category overrides |
-| `app/calendar.py` | Deadline extraction and the NUS academic calendar |
-| `app/ocr.py` | Inline-image OCR |
+| `app/config.py`, `app/schemas.py`, `app/taxonomy.py` | Settings, data shapes, and the category/action labels |
 | `app/ngrok.py` | Automatic ngrok tunnel |
-| `app/providers/` | Graph and pushed-mail sources |
 | `templates/` | Dashboard pages |
 | `static/` | JavaScript and CSS |
 | `static/vendor/tabler/` | Locally hosted Tabler CSS + license (no build step) |

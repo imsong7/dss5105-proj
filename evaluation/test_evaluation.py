@@ -19,7 +19,7 @@ for _path in (REPO_ROOT, EMAIL_DIR):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from app.encoder_classifier import EncoderClassifier, _model_text  # noqa: E402
+from app.classifiers.encoder_classifier import EncoderClassifier, _model_text  # noqa: E402
 from app.schemas import Email  # noqa: E402
 from evaluation import bootstrap_proportion  # noqa: E402
 from evaluation.quality import (  # noqa: E402

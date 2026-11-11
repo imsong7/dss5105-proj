@@ -4,12 +4,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
-from .taxonomy import (
-    CONTENT_CATEGORIES,
-    DEFAULT_CONTENT,
-    DEFAULT_REPLY,
-    REPLY_NATURE,
-)
+from app.taxonomy import CONTENT_CATEGORIES, DEFAULT_CONTENT, DEFAULT_REPLY, REPLY_NATURE
 
 
 class Email(BaseModel):

@@ -301,7 +301,7 @@ def ml_oof_for_task(
     from sklearn.base import clone
     from sklearn.model_selection import StratifiedKFold
 
-    from app.ml_classifier import ACTION_LABELS, CATEGORY_LABELS
+    from app.classifiers.ml_classifier import ACTION_LABELS, CATEGORY_LABELS
     from train_email_ml import (
         ACTION_VALUE_MAP,
         CATEGORY_VALUE_MAP,
@@ -431,7 +431,7 @@ def inference_predictions(
     from app.schemas import Email
 
     if predictor is None:
-        from app.llama_classifier import EmailClassifier
+        from app.classifiers.llama_classifier import EmailClassifier
 
         predictor = EmailClassifier()
 

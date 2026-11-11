@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app import user_events
+from app.stores import user_events
 from app.server import create_app
 
 

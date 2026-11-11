@@ -49,7 +49,7 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
   return (
     <ul
       aria-label="Your courses"
-      className="flex gap-[3px] overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex gap-[3px] overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tiles.map((tile) => {
         const nextText = tile.next ? `next ${shortWhen(tile.next, today)}` : "nothing due";
@@ -62,7 +62,7 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
               title={`${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               aria-label={`Open course ${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               style={courseStyle(tile.hue)}
-              className="flex h-8 w-full items-center justify-center rounded-[5px] bg-[var(--course-bg)] px-2 text-[11px] font-bold tracking-[0.02em] whitespace-nowrap text-[var(--course-text)] transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="flex h-8 w-full items-center justify-center rounded-lg bg-[var(--course-bg)] px-2 text-[11px] font-bold tracking-[0.02em] whitespace-nowrap text-[var(--course-text)] transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               {tile.code}
             </button>

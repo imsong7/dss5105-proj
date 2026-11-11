@@ -24,10 +24,10 @@ const WINDOWS: readonly { value: WindowDays; label: string }[] = [
 ];
 
 const SELECT =
-  "h-11 w-full appearance-none rounded-lg border border-line bg-surface pr-8 pl-3 text-[13px] font-medium sm:h-9 text-ink hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-line bg-surface pr-8 pl-3 text-[13px] font-medium sm:h-9 text-ink hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none";
 
 const BUTTON =
-  "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3.5 text-[13px] font-semibold sm:h-9 transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold sm:h-9 transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60";
 
 const MENU_ITEM =
   "flex min-h-11 w-full items-center rounded-lg px-2.5 text-left text-[14px] text-ink hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50";
@@ -182,7 +182,7 @@ function OptionsMenu({ view, className = "" }: { view: InboxView; className?: st
               id="inbox-model"
               value={backend}
               onChange={(event) => view.setBackend(event.target.value)}
-              className="mt-1 h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
+              className="mt-1 h-11 w-full rounded-xl border border-line bg-surface px-3 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
             >
               {backends.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -391,14 +391,14 @@ export function InboxToolbar({ view }: { view: InboxView }) {
             placeholder="Search sender, subject or message"
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-lg border border-line bg-surface pr-10 pl-9 text-[13px] text-ink sm:h-9 placeholder:text-muted/80 hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+            className="h-11 w-full rounded-xl border border-line bg-surface pr-10 pl-9 text-[13px] text-ink sm:h-9 placeholder:text-muted/80 hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
           />
           {view.query ? (
             <button
               type="button"
               onClick={() => view.setQuery("")}
               aria-label="Clear search"
-              className="absolute top-0 right-0 grid h-11 w-10 place-items-center rounded-lg sm:h-9 text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="absolute top-0 right-0 grid h-11 w-10 place-items-center rounded-xl sm:h-9 text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -456,7 +456,7 @@ export function InboxToolbar({ view }: { view: InboxView }) {
               onChange={(event) =>
                 view.setRange({ ...view.range, since: event.target.value })
               }
-              className="h-11 rounded-[10px] border border-line bg-surface px-2.5 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
+              className="h-11 rounded-xl border border-line bg-surface px-2.5 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
             />
           </label>
           <label className="flex items-center gap-2 text-[13px] font-medium text-muted">
@@ -468,7 +468,7 @@ export function InboxToolbar({ view }: { view: InboxView }) {
               onChange={(event) =>
                 view.setRange({ ...view.range, before: event.target.value })
               }
-              className="h-11 rounded-[10px] border border-line bg-surface px-2.5 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
+              className="h-11 rounded-xl border border-line bg-surface px-2.5 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
             />
           </label>
           {view.rangeInvalid ? (

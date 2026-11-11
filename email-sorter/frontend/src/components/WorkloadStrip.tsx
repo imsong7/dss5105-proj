@@ -107,7 +107,7 @@ export function WorkloadStrip({
   return (
     <section
       aria-label="Workload for the next six weeks"
-      className="rounded-xl border border-line bg-surface px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+      className="rounded-2xl border border-line bg-surface px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
     >
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <p className="text-[12px] font-medium text-muted">Due per week</p>

@@ -117,7 +117,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface ${
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface ${
           showMobileDetail ? "" : "max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent"
         }`}
       >

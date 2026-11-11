@@ -55,10 +55,10 @@ interface TodayPageProps {
 }
 
 const ROW =
-  "flex min-h-11 min-w-0 flex-1 items-start gap-3 rounded-[10px] px-2 py-2.5 text-left transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
+  "flex min-h-11 min-w-0 flex-1 items-start gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
 
 const ICON_BUTTON =
-  "grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-muted transition-colors hover:bg-surface-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
+  "grid h-11 w-11 shrink-0 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none";
 
 const SECTION_LIMIT = 5;
 
@@ -113,7 +113,7 @@ function Section({
   const shown = all ? items : items.slice(0, SECTION_LIMIT);
 
   return (
-    <section className="rounded-md border border-line bg-surface p-2">
+    <section className="rounded-2xl border border-line bg-surface p-2">
       <h2 className="flex items-baseline gap-2 border-b border-line px-2 pt-1.5 pb-2.5">
         <span className={`label ${tone || "text-ink"}`}>{title}</span>
         <span className="text-[12px] text-muted tabular-nums">
@@ -270,7 +270,7 @@ function Actions({
           <button
             type="button"
             onClick={onRestore}
-            className="mt-0.5 min-h-11 shrink-0 rounded-[10px] px-3 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            className="mt-0.5 min-h-11 shrink-0 rounded-xl px-3 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
             {hiddenLabel} · Restore
           </button>
@@ -636,7 +636,7 @@ export function TodayPage({
             {exams.length > 0 ? (
               <ul
                 aria-label="Exam countdown"
-                className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface"
+                className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface"
               >
                 {exams.map((exam) => {
                   const days = daysBetween(today, exam.date);
@@ -689,7 +689,7 @@ export function TodayPage({
             ) : null}
 
             {inbox.loading && !inbox.hasLoaded ? (
-              <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface">
                 <SkeletonRows count={4} />
               </div>
             ) : null}
@@ -697,7 +697,7 @@ export function TodayPage({
             {inbox.notice?.error ? (
               <p
                 role="alert"
-                className="rounded-[10px] border border-action-now-line bg-action-now-bg px-3.5 py-2.5 text-[13px] text-action-now-fg"
+                className="rounded-xl border border-action-now-line bg-action-now-bg px-3.5 py-2.5 text-[13px] text-action-now-fg"
               >
                 {inbox.notice.text}
               </p>
@@ -717,7 +717,7 @@ export function TodayPage({
               <button
                 type="button"
                 onClick={() => void inbox.classifyPending()}
-                className="min-h-11 self-start rounded-[10px] bg-accent px-4 text-[14px] font-semibold text-white hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
+                className="min-h-11 self-start rounded-xl bg-accent px-4 text-[14px] font-semibold text-white hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 Sort {unsorted} email{unsorted === 1 ? "" : "s"}
               </button>
@@ -780,7 +780,7 @@ export function TodayPage({
             !reveal &&
             !sorting &&
             unsorted === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-line bg-surface px-6 py-12 text-center">
+              <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface px-6 py-12 text-center">
                 <LionMark size={80} mood="cheer" />
                 <p className="text-[15px] font-semibold text-ink">
                   You are all caught up
@@ -827,7 +827,7 @@ function RowTip({ show }: { show: boolean }) {
   }
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-accent/20 bg-accent-soft px-4 py-3">
+    <div className="flex items-start gap-3 rounded-2xl border border-accent/20 bg-accent-soft px-4 py-3">
       <p className="min-w-0 flex-1 text-[13px] leading-5 text-ink">
         {touch
           ? "Tip: swipe a row right when it is done, or left to hide it until tomorrow. The clock picks another day."

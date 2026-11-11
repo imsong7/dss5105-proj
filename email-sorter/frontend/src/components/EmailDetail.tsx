@@ -81,7 +81,7 @@ export function EmailDetail({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-accent transition-colors hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[13px] font-medium text-accent transition-colors hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {backLabel}
@@ -126,7 +126,7 @@ export function EmailDetail({
         </h2>
 
         {dates.length > 0 ? (
-          <div className="mt-4 flex items-start gap-3 rounded-md bg-highlight-soft px-4 py-3">
+          <div className="mt-4 flex items-start gap-3 rounded-xl bg-highlight-soft px-4 py-3">
             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-highlight-dark" aria-hidden="true" />
             <ul className="flex min-w-0 flex-1 flex-col gap-2">
               {dates.map((item, index) => (
@@ -156,7 +156,7 @@ export function EmailDetail({
               href={links[0].url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-ink/80 bg-surface px-3.5 text-[14px] font-semibold text-ink hover:bg-ink hover:text-page focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-ink/80 bg-surface px-3.5 text-[14px] font-semibold text-ink hover:bg-ink hover:text-page focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               {links[0].label}
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />

@@ -47,7 +47,7 @@ export function CalendarDayPanel({
   return (
     <aside
       aria-label="Items for the selected day"
-      className={`flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
+      className={`flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
     >
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {formatDayLong(selectedDate)} — {dayCountLabel}
@@ -66,7 +66,7 @@ export function CalendarDayPanel({
         <button
           type="button"
           onClick={onAddEvent}
-          className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-2.5 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add event on this day
@@ -87,7 +87,7 @@ export function CalendarDayPanel({
                     : onOpenEmail(deadline.emailId)
                 }
                 style={courseStyle(deadline.hue)}
-                className="group flex w-full flex-col gap-1.5 rounded-[10px] border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none"
+                className="group flex w-full flex-col gap-1.5 rounded-xl border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none"
               >
                 <span className="flex flex-wrap items-center gap-1.5">
                   {deadline.course ? (

@@ -46,7 +46,7 @@ export function EmailListItem({
   return (
     <li className="group relative">
       <SwipeRow
-        frameClassName="rounded-none max-sm:rounded-md"
+        frameClassName="rounded-none max-sm:rounded-xl"
         onSwipeRight={done ? undefined : () => onToggleDone(email.id, true)}
         rightLabel="Done"
       >
@@ -57,7 +57,7 @@ export function EmailListItem({
         }}
         onClick={() => onSelect(email.id)}
         aria-current={selected ? "true" : undefined}
-        className={`grid w-full grid-cols-[52px_minmax(0,1fr)] gap-x-3 border-b border-b-line py-3.5 pr-12 pl-4 text-left transition-colors max-sm:rounded-md max-sm:border max-sm:border-line max-sm:bg-surface ${done ? "opacity-50" : ""} focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-visible:outline-none ${
+        className={`grid w-full grid-cols-[52px_minmax(0,1fr)] gap-x-3 border-b border-b-line py-3.5 pr-12 pl-4 text-left transition-colors max-sm:rounded-xl max-sm:border max-sm:border-line max-sm:bg-surface ${done ? "opacity-50" : ""} focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-visible:outline-none ${
           selected ? "bg-surface-muted max-sm:bg-surface max-sm:ring-1 max-sm:ring-ink/30" : "hover:bg-surface-muted/60"
         }`}
       >

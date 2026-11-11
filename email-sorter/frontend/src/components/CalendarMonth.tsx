@@ -33,7 +33,7 @@ interface CalendarMonthProps {
 }
 
 const CONTROL =
-  "inline-flex h-11 items-center justify-center rounded-[10px] border border-line bg-surface text-[13px] font-medium text-ink transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none";
+  "inline-flex h-11 items-center justify-center rounded-xl border border-line bg-surface text-[13px] font-medium text-ink transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none";
 
 export function CalendarMonth({
   month,
@@ -101,7 +101,7 @@ export function CalendarMonth({
   return (
     <section
       aria-label="Month calendar"
-      className="flex min-w-0 flex-col rounded-md border border-line bg-surface p-3 sm:p-5"
+      className="flex min-w-0 flex-col rounded-2xl border border-line bg-surface p-3 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
@@ -189,7 +189,7 @@ export function CalendarMonth({
               onDoubleClick={() => onAddOnDate(cell.date)}
               title="Double-click to add an event"
               onKeyDown={(event) => handleDayKeyDown(event, cell.date)}
-              className={`relative flex min-h-[58px] flex-col gap-1 rounded-[8px] p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none lg:min-h-[78px] ${
+              className={`relative flex min-h-[58px] flex-col gap-1 rounded-[10px] p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none lg:min-h-[78px] ${
                 !cell.inMonth
                   ? "bg-transparent hover:bg-surface-muted/60"
                   : isSelected
@@ -230,7 +230,7 @@ export function CalendarMonth({
                       key={deadline.id}
                       title={deadline.subject}
                       style={courseStyle(deadline.hue)}
-                      className={`min-w-0 rounded-[5px] px-1.5 py-0.5 ${
+                      className={`min-w-0 rounded-md px-1.5 py-0.5 ${
                         deadline.hue !== undefined
                           ? "bg-[var(--course-bg)]"
                           : deadline.personal

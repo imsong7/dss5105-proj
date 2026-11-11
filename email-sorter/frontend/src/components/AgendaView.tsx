@@ -93,7 +93,7 @@ export function AgendaView({
     return (
       <section
         aria-label="Agenda"
-        className="rounded-xl border border-line bg-surface px-6 py-12 text-center"
+        className="rounded-2xl border border-line bg-surface px-6 py-12 text-center"
       >
         <p className="text-[15px] font-semibold text-ink">Nothing coming up</p>
         <p className="mx-auto mt-1.5 max-w-[40ch] text-[14px] text-muted">
@@ -120,7 +120,7 @@ export function AgendaView({
         const count = week.days.reduce((sum, day) => sum + day.deadlines.length, 0);
 
         return (
-          <div key={week.start} className="rounded-xl border border-line bg-surface">
+          <div key={week.start} className="rounded-2xl border border-line bg-surface">
             <h2 className="flex flex-wrap items-baseline gap-x-2 border-b border-line px-4 py-3">
               <span className="text-[15px] font-semibold text-ink">{title}</span>
               <span className="text-[12px] text-muted tabular-nums">

@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 import type { AcademicEvent } from "./calendar";
 import { addDays, daysBetween } from "./calendar";
 
@@ -32,16 +30,6 @@ export function academicTone(category: string): AcademicTone {
   if (text.includes("vacation")) return "vacation";
   if (text.includes("orientation")) return "orientation";
   return "semester";
-}
-
-export function academicStyle(tone: AcademicTone): CSSProperties {
-  const { bg, ink, accent } = ACADEMIC_TONES[tone];
-
-  return {
-    "--ac-bg": bg,
-    "--ac-ink": ink,
-    "--ac-accent": accent,
-  } as CSSProperties;
 }
 
 /** Short label for a tight calendar cell, e.g. "Sem 1" or "1A Exam". */

@@ -241,3 +241,15 @@ class RelativeDateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LinkAddressTests(unittest.TestCase):
+    def test_a_link_between_cue_and_date_does_not_hide_the_deadline(self):
+        from app.calendar import extract_deadlines
+        email = Email(
+            id="x",
+            subject="Form",
+            body="Please submit<https://forms.gle/abc> by 16 Nov 2026.",
+            received="2026-11-11T03:00:00Z",
+        )
+        self.assertEqual(extract_deadlines(email)[0]["date"], "2026-11-16")

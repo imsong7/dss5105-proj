@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 
 JOB_LINK = re.compile(r"<(https://nus-talentconnect\.app\.kinobi\.asia/jobs/[^>\s]+)>")
+LINK_ADDRESS = re.compile(r"<https?://[^>\s]+>")
 MORE_LINK = re.compile(r"view\s+more\s+jobs\s*<(https?://[^>\s]+)>", re.IGNORECASE)
 MAX_JOBS = 30
 
@@ -81,12 +82,21 @@ def _split_company_title(tokens: list[str], slug_words: list[str]) -> tuple[str,
         company_words = _words(" ".join(tokens[:k]))
         if company_words and all(_in_link(word, rest_words) for word in company_words):
             return " ".join(tokens[:k]), " ".join(tokens[k:])
+    # Some layouts put the title first: "Channel Manager OPPO" (longest title first).
+    for k in range(len(tokens) - 1, 0, -1):
+        title = "-".join(_words(" ".join(tokens[:k])))
+        if not title or not slug.startswith(title):
+            continue
+        rest_words = slug[len(title):].strip("-").split("-")
+        company_words = _words(" ".join(tokens[k:]))
+        if company_words and all(_in_link(word, rest_words) for word in company_words):
+            return " ".join(tokens[k:]), " ".join(tokens[:k])
     return "", " ".join(tokens)
 
 
 def _tidy_company(name: str) -> str:
     name = name.strip(" -–:")
-    if name.isupper():
+    if name.isupper() and len(name.split()) > 1:  # "ASTER CHEMICALS ..." but not "OPPO"
         name = name.title()
         name = re.sub(r"\b(And|Of|The|For|In)\b", lambda m: m.group(1).lower(), name)
         name = name[:1].upper() + name[1:]
@@ -117,9 +127,81 @@ def _details(text: str) -> dict:
     return found
 
 
-def parse_jobs(text: str) -> dict | None:
-    """``{"jobs": [...], "more_url": str}`` for a TalentConnect digest, else None."""
-    if "nus-talentconnect.app.kinobi.asia/jobs" not in text:
+_GENERIC_LABELS = {"apply", "apply now", "easy apply", "view", "view job", "view details", "details", "learn more"}
+_DETAIL_WORDS = re.compile(
+    r"\b(?:easy\s+apply|remote|hybrid|work\s+from\s+office|full[\s-]*time|part[\s-]*time|"
+    r"academic\s+year|semester|sgd|monthly)\b",
+    re.IGNORECASE,
+)
+
+
+def _clean_label(span: str) -> str:
+    return " ".join(LINK_ADDRESS.sub(" ", span).replace("[logo]", " ").split()).strip(" -–|·")
+
+
+def _prefix_score(label: str, slug_words: list[str]) -> int:
+    """How many words of the link address this label spells from its start."""
+    count = 0
+    for word, slug_word in zip(_words(label), slug_words):
+        if word != slug_word:
+            break
+        count += 1
+    return count
+
+
+def _from_labels(text: str, group: list[re.Match], slug_words: list[str]) -> tuple[str, str]:
+    """(company, title) from the clean labels between a job's own links."""
+    labels: list[str] = []
+    for previous, match in zip(group, group[1:]):
+        label = _clean_label(text[previous.end():match.start()])
+        if (
+            label
+            and label.lower() not in _GENERIC_LABELS
+            and len(label) <= 160
+            and not _DETAIL_WORDS.search(label)
+            and label not in labels
+        ):
+            labels.append(label)
+    if not labels:
+        return "", ""
+    title = max(labels, key=lambda label: _prefix_score(label, slug_words))
+    if _prefix_score(title, slug_words) == 0:
+        return "", ""
+    others = [label for label in labels if label != title]
+    return (others[0] if others else ""), title
+
+
+def _title_from_slug(slug_words: list[str]) -> str:
+    """Last resort: the link's words, e.g. "Data Analyst Acme Sg" -> "Data analyst acme"."""
+    words = slug_words[:-1] if len(slug_words) > 1 else slug_words
+    text = " ".join(words)
+    return text[:1].upper() + text[1:] if text else "Job"
+
+
+def _job_id(url: str) -> str:
+    return url.rsplit("/", 1)[-1].split("-", 1)[0]
+
+
+# Only "new jobs posted" and "jobs alert" digests become job cards ("4 new job(s) has been
+# posted!", subject "New Jobs Posted"); other TalentConnect mail stays mail.
+NEW_JOBS = re.compile(
+    r"\bnew\s+job(?:\(s\)|s)?\b[^\n]{0,40}?\bposted\b|\bjobs?\s+alerts?\b", re.IGNORECASE
+)
+
+
+def is_new_jobs_digest(subject: str, text: str) -> bool:
+    return bool(NEW_JOBS.search(subject or "") or NEW_JOBS.search((text or "")[:1500]))
+
+
+def parse_jobs(text: str, subject: str = "") -> dict | None:
+    """``{"jobs": [...], "more_url": str}`` for a TalentConnect digest, else None.
+
+    In the HTML email one job usually has several links to the same page (the
+    logo, the company name, the title, an Apply button). Links are grouped by
+    job id: their labels together give company and title, and the details are
+    read from the text up to the next job.
+    """
+    if "nus-talentconnect.app.kinobi.asia/jobs" not in text or not is_new_jobs_digest(subject, text):
         return None
     links = [m for m in JOB_LINK.finditer(text) if _SLUG.search(m.group(1))]
     if not links:
@@ -127,27 +209,59 @@ def parse_jobs(text: str) -> dict | None:
     more = MORE_LINK.search(text)
     end_of_list = more.start() if more else len(text)
 
+    # Group consecutive links that point at the same job.
+    groups: list[list[re.Match]] = []
+    for match in links:
+        if groups and _job_id(groups[-1][0].group(1)) == _job_id(match.group(1)):
+            groups[-1].append(match)
+        else:
+            groups.append([match])
+
     jobs: list[dict] = []
-    names: list[tuple[int, int]] = []  # where each job's name starts / its link ends
-    for index, match in enumerate(links[:MAX_JOBS]):
-        url = match.group(1)
+    bounds: list[tuple[int, int]] = []  # (where the job's name starts, where its first link ends)
+    previous_end = 0
+    for group in groups[:MAX_JOBS]:
+        url = group[0].group(1)
         slug_words = _words(_SLUG.search(url).group("words"))
-        start = links[index - 1].end() if index else 0
-        span = text[start:match.start()]
-        tokens = _name_tokens(span, slug_words)
+        tokens: list[str] = []
+        name_start = group[0].start()
+        company = title = ""
+        span_start = previous_end
+        for match in group:
+            found = _name_tokens(text[span_start:match.start()], slug_words)
+            if found and found != tokens[-len(found):]:
+                if not tokens:
+                    span = text[span_start:match.start()]
+                    name_start = span_start + span.rfind(found[0])
+                tokens += found
+            span_start = match.end()
+            covered = {word for token in tokens for word in _words(token)}
+            # Stop once the name spells the whole link (its last word may be a
+            # country code or cut short); later links (logo, Apply) add nothing.
+            if all(word in covered for word in slug_words[:-1] if word != "copy"):
+                break
         company, title = _split_company_title(tokens, slug_words)
-        name_text = " ".join(tokens)
-        name_start = span.rfind(tokens[0]) + start if tokens else match.start()
-        names.append((name_start, match.end()))
+        # Labels of the later links in the group are clean (just the company
+        # or just the title) and may spell the company differently from the
+        # link ("EY" vs "Ernst & Young LLP"); prefer them when they exist.
+        label_company, label_title = _from_labels(text, group, slug_words)
+        if label_title:
+            title = label_title
+            company = label_company or (company if company != label_title else "")
+        if not title:
+            title = _title_from_slug(slug_words)
+        previous_end = group[-1].end()
+        bounds.append((name_start, group[0].end()))
         jobs.append({
-            "id": url.rsplit("/", 1)[-1].split("-", 1)[0],
+            "id": _job_id(url),
             "url": url,
-            "title": title or name_text or "Job",
+            "title": title,
             "company": _tidy_company(company),
         })
 
     for index, job in enumerate(jobs):
-        details_end = names[index + 1][0] if index + 1 < len(jobs) else end_of_list
-        job.update(_details(text[names[index][1]:details_end][:600]))
+        details_end = bounds[index + 1][0] if index + 1 < len(jobs) else end_of_list
+        details = LINK_ADDRESS.sub(" ", text[bounds[index][1]:details_end])
+        job.update(_details(details[:800]))
 
     return {"jobs": jobs, "more_url": more.group(1) if more else ""}

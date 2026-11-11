@@ -1012,7 +1012,7 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
             serialized["deadline_candidate"] = found[0] if found else None
             serialized["deadline_candidates"] = found
             # A job digest becomes a list of jobs (None for other mail).
-            serialized["jobs"] = parse_jobs(email.body)
+            serialized["jobs"] = parse_jobs(email.body, email.subject)
             emails_with_deadlines.append(serialized)
         return jsonify(
             {

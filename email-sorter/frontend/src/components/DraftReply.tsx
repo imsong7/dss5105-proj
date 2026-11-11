@@ -91,6 +91,23 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
     }
   }
 
+  if (!draft && !loading && !error) {
+    // Idle: one small button; the full panel opens only once it is used.
+    return (
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => void generate()}
+          title="Nothing is sent until you press Send"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-[13px] font-semibold text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          Draft a reply
+        </button>
+      </div>
+    );
+  }
+
   return (
     <section
       aria-label="Draft reply"

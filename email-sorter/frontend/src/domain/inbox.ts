@@ -1,5 +1,4 @@
 import type {
-  ActionFilter,
   InboxEmail,
   DateRange,
   InboxFilters,
@@ -88,18 +87,6 @@ export function withinWindow(
     const time = Date.parse(email.receivedAt);
     return Number.isNaN(time) || time >= cutoff;
   });
-}
-
-export function selectEmails(
-  emails: readonly InboxEmail[],
-  filters: InboxFilters,
-  order: SortOrder,
-): InboxEmail[] {
-  return sortEmails(filterEmails(emails, filters), order);
-}
-
-export function isActionFilter(value: string): value is ActionFilter {
-  return value === "all" || (ACTION_KEYS as string[]).includes(value);
 }
 
 const HONORIFICS = new Set(["dr.", "prof.", "mr.", "mrs.", "ms.", "mx."]);

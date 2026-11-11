@@ -6,9 +6,14 @@ import type { ActionKey, CategoryKey } from "../domain/taxonomy";
 import { senderInitials } from "../domain/inbox";
 import { formatDeadline, formatFullDate } from "../lib/format";
 import { CategoryBadge } from "./CategoryBadge";
+import { cleanBody } from "../domain/cleanBody";
+import { keyFacts } from "../domain/keyFacts";
+import { WHEN, labelValue, markWhen, toBlocks } from "../domain/readable";
+import type { Block } from "../domain/readable";
 import { emailLinks } from "../domain/links";
 import { CorrectionControl } from "./CorrectionControl";
 import { DraftReply } from "./DraftReply";
+import { FactsStrip } from "./FactsStrip";
 import { JobsCard } from "./JobsCard";
 import { PosterCard } from "./PosterCard";
 import { StatusBadge } from "./StatusBadge";
@@ -65,7 +70,6 @@ export function EmailDetail({
   const { sender, subject, body, receivedAt, classification, deadline } = email;
   // Every date found, shown in one card; tap a date to see where it came from.
   const dates = email.deadlines?.length ? email.deadlines : deadline ? [deadline] : [];
-  const links = emailLinks(email);
 
   // Blank lines are paragraph breaks in the synthetic copy; render them as
   // real paragraphs so spacing stays tight and consistent.
@@ -78,6 +82,19 @@ export function EmailDetail({
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
+  // The message without signature, footer and quoted history (for the facts strip).
+  const readableText = cleanBody(bodyParagraphs).main.join("\n");
+  // Posters and job digests have their own cards with these facts.
+  const facts =
+    email.poster || email.jobs
+      ? []
+      : keyFacts(subject, readableText, {
+          hasDateCard: dates.length > 0,
+          when: readableText.match(WHEN)?.[0],
+        });
+  // A meeting link already sits in the facts strip as "Join Zoom".
+  const meeting = facts.find((fact) => fact.kind === "meeting")?.href;
+  const links = emailLinks(email).filter((link) => link.url !== meeting);
 
   return (
     <section
@@ -148,18 +165,20 @@ export function EmailDetail({
           >
             {email.classifyError
               ? `Could not classify: ${email.classifyError}`
-              : "Not sorted yet. It is sorted with the next batch, or press Sort to do it now."}
+              : "Not sorted yet"}
           </p>
         )}
 
+        {email.jobs ? null : <FactsStrip facts={facts} link={email.poster ? undefined : links[0]} />}
+
         {dates.length > 0 ? (
-          <div className="mt-3 flex items-start gap-3 rounded-xl bg-highlight-soft px-3.5 py-2.5">
-            <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-highlight-dark" aria-hidden="true" />
-            <ul className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="mt-2 flex items-start gap-2 rounded-lg bg-highlight-soft px-3 py-1.5">
+            <CalendarClock className="mt-[3px] h-3.5 w-3.5 shrink-0 text-highlight-dark" aria-hidden="true" />
+            <ul className="flex min-w-0 flex-1 flex-col gap-1">
               {dates.map((item, index) => (
                 <li key={`${item.date}-${index}`}>
                   <details className="group">
-                    <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 text-[14px] [&::-webkit-details-marker]:hidden">
+                    <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 text-[13px] [&::-webkit-details-marker]:hidden">
                       <span className="font-semibold text-ink">{item.label}</span>
                       <span className="text-ink">{formatDeadline(item)}</span>
                       {item.fromImage ? (
@@ -183,48 +202,6 @@ export function EmailDetail({
         <PosterCard email={email} />
         {email.jobs ? <JobsCard jobs={email.jobs.items} moreUrl={email.jobs.moreUrl} /> : null}
 
-        {links.length > 0 && !email.jobs ? (
-          <div className="mt-3">
-            <a
-              href={links[0].url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-ink/80 bg-surface px-3.5 text-[14px] font-semibold text-ink hover:bg-ink hover:text-page focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-            >
-              {links[0].label}
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-            {links.length > 1 ? (
-              <details className="mt-1">
-                <summary className="inline-flex min-h-11 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
-                  {links.length - 1} more link{links.length === 2 ? "" : "s"}
-                </summary>
-                <ul className="flex flex-col gap-1 pb-1">
-                  {links.slice(1, 8).map((link) => (
-                    <li key={link.url} className="min-w-0">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block truncate text-[13px] text-accent underline-offset-2 hover:underline"
-                      >
-                        {link.label}: {link.url}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-          </div>
-        ) : null}
-
-        <DraftReply
-          key={`draft-${email.id}`}
-          email={email}
-          onDraft={onDraftReply}
-          onSend={onSendReply}
-        />
-
         {bodyParagraphs.length > 0 && email.jobs ? (
           // The job list above is the useful part; the flattened digest text folds away.
           <details className="mt-4 rounded-xl border border-line px-3.5 py-2">
@@ -240,13 +217,29 @@ export function EmailDetail({
             </div>
           </details>
         ) : bodyParagraphs.length > 0 ? (
-          <div className="mt-5 border-t border-line pt-5 text-[15px] leading-7 break-words text-ink/90 space-y-4 sm:text-[16px]">
-            {bodyParagraphs.map((paragraph, index) => (
-              <p key={index} className="whitespace-pre-wrap">
-                <LinkedText text={paragraph} />
-              </p>
-            ))}
-          </div>
+          <CleanBodyView paragraphs={bodyParagraphs} />
+        ) : null}
+
+        {links.length > 1 && !email.jobs ? (
+          <details className="mt-3 rounded-xl border border-line px-3.5 py-2">
+            <summary className="flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
+              {links.length - 1} more link{links.length === 2 ? "" : "s"} in this email
+            </summary>
+            <ul className="flex flex-col gap-1 pb-1">
+              {links.slice(1, 8).map((link) => (
+                <li key={link.url} className="min-w-0">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-[13px] text-accent underline-offset-2 hover:underline"
+                  >
+                    {link.label}: {link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
         ) : null}
 
         {ocrText ? (
@@ -260,6 +253,15 @@ export function EmailDetail({
           </details>
         ) : null}
 
+        {/* After reading comes replying. A job digest is an automated alert: no reply. */}
+        {email.jobs ? null : (
+          <DraftReply
+            key={`draft-${email.id}`}
+            email={email}
+            onDraft={onDraftReply}
+            onSend={onSendReply}
+          />
+        )}
       </article>
     </section>
   );
@@ -332,6 +334,119 @@ function LinkedText({ text }: { text: string }) {
           </a>
         ) : (
           <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+const FOLD =
+  "mt-3 rounded-xl border border-line px-3.5 py-2 [&[open]>summary]:mb-1";
+const FOLD_SUMMARY =
+  "flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink";
+
+/**
+ * The message itself first; the signature, footer boilerplate and quoted older
+ * messages fold away (see domain/cleanBody.ts). Nothing is removed.
+ */
+function CleanBodyView({ paragraphs }: { paragraphs: readonly string[] }) {
+  const { main, footer, earlier } = cleanBody(paragraphs);
+
+  return (
+    <>
+      <div className="mt-5 max-w-[68ch] border-t border-line pt-5 text-[15px] leading-7 break-words text-ink/90 space-y-4 sm:text-[16px]">
+        {toBlocks(main).map((block, index) => (
+          <BodyBlock key={index} block={block} />
+        ))}
+      </div>
+
+      {footer.length > 0 ? (
+        <details className={FOLD}>
+          <summary className={FOLD_SUMMARY}>Show signature and footer</summary>
+          <div className="space-y-2 pb-2 text-[13px] leading-5 break-words text-ink/70">
+            {footer.map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-wrap">
+                <LinkedText text={paragraph} />
+              </p>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {earlier.length > 0 ? (
+        <details className={FOLD}>
+          <summary className={FOLD_SUMMARY}>Show earlier messages in this thread</summary>
+          <div className="space-y-2 border-l-2 border-line pb-2 pl-3 text-[13px] leading-5 break-words text-ink/70">
+            {earlier.map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-wrap">
+                <LinkedText text={paragraph} />
+              </p>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+/** One readable block: a heading, a list, or a paragraph with "Label: value" lines. */
+function BodyBlock({ block }: { block: Block }) {
+  if (block.kind === "h") {
+    return (
+      <h3 className="pt-1 text-[12px] font-semibold tracking-[0.06em] text-muted uppercase">{block.text}</h3>
+    );
+  }
+  if (block.kind !== "p") {
+    const List = block.kind;
+    return (
+      <List className={`space-y-1 pl-5 ${block.kind === "ul" ? "list-disc" : "list-decimal"} marker:text-muted`}>
+        {block.items.map((item, index) => (
+          <li key={index}>
+            <RichText text={item} />
+          </li>
+        ))}
+      </List>
+    );
+  }
+  return (
+    <p className="whitespace-pre-wrap">
+      {block.text.split("\n").map((line, index) => {
+        const pair = labelValue(line);
+        return (
+          <span key={index}>
+            {index > 0 ? "\n" : null}
+            {pair ? (
+              <>
+                <strong className="font-semibold text-ink">{pair[0]}:</strong> <RichText text={pair[1]} />
+              </>
+            ) : (
+              <RichText text={line} />
+            )}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+/** Links as small icons, dates and times softly marked. */
+function RichText({ text }: { text: string }) {
+  const parts = text.split(/<(https?:\/\/[^>\s]+)>/g);
+  return (
+    <>
+      {parts.map((part, index) =>
+        index % 2 === 1 ? (
+          <LinkedText key={index} text={`<${part}>`} />
+        ) : (
+          markWhen(part).map((piece, at) =>
+            piece.mark ? (
+              <mark key={`${index}-${at}`} className="rounded bg-highlight-soft px-0.5 text-ink">
+                {piece.text}
+              </mark>
+            ) : (
+              <span key={`${index}-${at}`}>{piece.text}</span>
+            ),
+          )
         ),
       )}
     </>

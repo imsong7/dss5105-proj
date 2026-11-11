@@ -17,7 +17,7 @@ from app.text_utils import clean, strip_html, without_link_addresses
 
 BASE = "https://nus-talentconnect.app.kinobi.asia/jobs/"
 DIGEST = (
-    "Applied Filters:\nJob List: [logo] Singapore General Hospital Research Intern"
+    "4 new job(s) has been posted!\nApplied Filters:\nJob List: [logo] Singapore General Hospital Research Intern"
     f"<{BASE}1793848831156-6aebf5ffc8a950001da92fb9-research-intern-singapore-general-hospital-sg>"
     " Easy Apply Internship Programme Singapore Remote - Internship Academic Year 2026/2027 Semester 2"
     " (Dec '26 - May/Jun '27) FoS - Semester Undergraduate Professional Internship Programme (UPIP)"
@@ -51,6 +51,44 @@ class ParseTests(unittest.TestCase):
         self.assertEqual((jobs[1]["type"], jobs[1]["mode"], jobs[1]["pay"]), ("Full time", "Office", ""))
         self.assertEqual((jobs[2]["pay"], jobs[2]["programme"]), ("SGD 1,800/mo", "BI3712"))
 
+    def test_html_digest_with_several_links_per_job_gives_one_job_each(self):
+        def job(job_id, slug, first, second, details):
+            url = f"{BASE}{job_id}-6aebf5ffc8a950001da92fb9-{slug}"
+            return f" <{url}> {first}<{url}> {second}<{url}> {details} Apply<{url}>"
+
+        text = (
+            "New jobs posted. Job List:"
+            + job("11", "channel-manager-oppo-sg", "OPPO", "Channel Manager", "Easy Apply Singapore Hybrid - Full time Job")
+            + job("12", "junior-quant-researcher-squarepoint-sg", "Junior Quant Researcher", "Squarepoint",
+                  "Singapore Remote - Internship SGD 3000 - 4000 (Monthly)")
+        )
+        jobs = parse_jobs(text)["jobs"]
+
+        self.assertEqual([(j["company"], j["title"]) for j in jobs], [
+            ("OPPO", "Channel Manager"),
+            ("Squarepoint", "Junior Quant Researcher"),
+        ])
+        self.assertTrue(jobs[0]["easy_apply"])
+        self.assertEqual((jobs[1]["type"], jobs[1]["pay"]), ("Internship", "SGD 3,000–4,000/mo"))
+
+    def test_company_spelled_differently_from_the_link_comes_from_its_label(self):
+        url = f"{BASE}21-6aebf5ffc8a950001da92fb9-associate-assurance-2027-graduates-ey-sg"
+        text = f"New jobs posted. Job List: <{url}> Ernst & Young LLP<{url}> Associate - Assurance (2027 Graduates)<{url}> Singapore Work from Office - Full time Job"
+        job = parse_jobs(text)["jobs"][0]
+        self.assertEqual((job["company"], job["title"]), ("Ernst & Young LLP", "Associate - Assurance (2027 Graduates)"))
+
+    def test_job_without_any_label_takes_its_title_from_the_link(self):
+        url = f"{BASE}22-6aebf5ffc8a950001da92fb9-data-analyst-acme-sg"
+        job = parse_jobs(f"Job List: <{url}> Singapore Hybrid - Internship", "New Jobs Posted")["jobs"][0]
+        self.assertEqual(job["title"], "Data analyst acme")
+
+    def test_only_new_jobs_posted_mail_becomes_job_cards(self):
+        url = f"{BASE}31-6aebf5ffc8a950001da92fb9-data-analyst-acme-sg"
+        notice = f"Your application for Data Analyst<{url}> was received."
+        self.assertIsNone(parse_jobs(notice, "Application received"))
+        self.assertIsNotNone(parse_jobs(notice, "New Jobs Posted"))
+        self.assertIsNotNone(parse_jobs(notice, "NUS TalentConnect - Jobs Alert (Masters)"))
+
     def test_other_mail_has_no_jobs(self):
         self.assertIsNone(parse_jobs("Assignment 1 due Friday <https://canvas.nus.edu.sg/x>"))
 
@@ -64,6 +102,10 @@ class LinkTextTests(unittest.TestCase):
         text = clean(strip_html(html))
         self.assertIn("Research Intern <https://example.org/job>", text)
         self.assertNotIn("x.org", text)  # an image-only link adds nothing
+
+    def test_html_list_items_stay_a_bulleted_list(self):
+        text = clean(strip_html("<p>Bring:</p><ul><li>Student card</li><li>Laptop</li></ul><p>Register by 16 Nov.</p>"))
+        self.assertEqual(text, "Bring:\n\n• Student card\n• Laptop\n\nRegister by 16 Nov.")
 
     def test_addresses_are_dropped_for_the_model(self):
         self.assertEqual(without_link_addresses("Open<https://a.b/c> now"), "Open now")

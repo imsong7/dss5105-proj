@@ -38,7 +38,10 @@ def strip_html(text: str) -> str:
     text = LINK_IN_TEXT.sub(lambda m: f"{_OPEN}{m.group(1)}{_CLOSE}", text)
     text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", text)
     text = _ANCHOR.sub(_keep_link, text)
-    text = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</tr>|</li>", "\n", text)
+    # A line break is one newline; the end of a block is a paragraph break.
+    text = re.sub(r"(?i)<li\b[^>]*>", "\n• ", text)  # list items stay a list
+    text = re.sub(r"(?i)<br\s*/?>|</tr>", "\n", text)
+    text = re.sub(r"(?i)</p>|</div>|</h[1-6]>|</table>|</blockquote>|</ul>|</ol>", "\n\n", text)
     text = re.sub(r"(?s)<[^>]+>", " ", text)
     return unescape(text).replace(_OPEN, "<").replace(_CLOSE, ">")
 
@@ -51,6 +54,7 @@ def without_link_addresses(text: str) -> str:
 def clean(text: str, limit: int | None = None) -> str:
     text = text.replace("\r", "")
     text = re.sub(r"[ \t\u00a0]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)  # no stray spaces at line starts and ends
     # A removed tag leaves a space behind: "23:59</b>." must not become "23:59 .".
     text = re.sub(r"[ \t]+([,.;:!?])", r"\1", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text).strip()

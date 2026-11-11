@@ -3,8 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchItemStates, saveItemState } from "../services/flask";
 import type { ItemState } from "../services/flask";
 
-/** Key used for a personal calendar event; emails use their own id. */
-export const eventKey = (id: string) => `event:${id}`;
 
 export function useItemStates() {
   const [states, setStates] = useState<Readonly<Record<string, ItemState>>>({});

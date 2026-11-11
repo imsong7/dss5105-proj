@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 
 from .config import ROOT
 from .schemas import Email
+from .text_utils import without_link_addresses
 
 TIMEZONE = ZoneInfo("Asia/Singapore")
 
@@ -243,7 +244,10 @@ def extract_deadlines(email: Email) -> list[dict]:
     Subject and body often repeat the same date, so a date is listed once per
     kind. At most ``MAX_CANDIDATES`` are returned.
     """
-    content = "\n".join(filter(None, (email.subject, email.body, email.preview)))
+    # Link addresses ("Submit<https://...> by Fri") would split a cue from its date.
+    content = without_link_addresses(
+        "\n".join(filter(None, (email.subject, email.body, email.preview)))
+    )
     hits: list[tuple[int, dict]] = []
 
     for match in DATE_EVENT_PATTERN.finditer(content):

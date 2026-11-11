@@ -4,13 +4,8 @@ Usage::
 
     python run.py                           # start the app on this computer only
     python run.py --tunnel                  # also share it publicly through ngrok (live app)
-    python run.py --backend encoder         # category + action from text-encoder heads
     python run.py --backend hybrid_claude   # ML category + Claude action (default)
-    python run.py --backend hybrid          # ML category + text-encoder action
-    python run.py --backend claude          # Claude backend
-    python run.py --backend llama --port 8080
     python run.py --provider powerautomate  # sign-in; each student picks flow or token (default)
-    python run.py --provider graphtoken     # no sign-in, Outlook Graph token only (single user)
 
 Compare classifiers from a terminal while the app is running::
 
@@ -21,13 +16,49 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import signal
+import subprocess
+from pathlib import Path
 
 from app.backends import list_backends
 from app.config import settings
 from app.ngrok import start as start_tunnel
 from app.ngrok import stop as stop_tunnel
 from app.server import create_app, normalize_provider
+
+
+FRONTEND = Path(__file__).resolve().parent / "frontend"
+BUILD_INDEX = Path(__file__).resolve().parent / "static" / "app" / "index.html"
+
+
+def frontend_is_stale() -> bool:
+    """True when frontend/ has changed since static/app/ was last built."""
+    if not BUILD_INDEX.is_file():
+        return True
+    built = BUILD_INDEX.stat().st_mtime
+    sources = [FRONTEND / "index.html", FRONTEND / "package.json", FRONTEND / "vite.config.ts"]
+    sources += [path for path in (FRONTEND / "src").rglob("*") if path.is_file()]
+    sources += [path for path in (FRONTEND / "public").rglob("*") if path.is_file()]
+    return any(path.exists() and path.stat().st_mtime > built for path in sources)
+
+
+def build_frontend_if_needed() -> None:
+    """Rebuild the React app when its code is newer than the build, so
+    `python run.py` always serves the current screens (e.g. the Figma work)."""
+    if not frontend_is_stale():
+        return
+    npm = shutil.which("npm")
+    if not npm or not (FRONTEND / "node_modules").is_dir():
+        print("[frontend] The app screens are out of date. Run: cd frontend && npm install && npm run build")
+        return
+    print("[frontend] Code changed since the last build; building the app (about 10 seconds)...")
+    result = subprocess.run([npm, "run", "build"], cwd=FRONTEND, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("[frontend] Build failed; serving the previous build. Last lines:")
+        print("\n".join((result.stdout + result.stderr).strip().splitlines()[-15:]))
+    else:
+        print("[frontend] Build ready.")
 
 
 if __name__ == "__main__":
@@ -117,6 +148,11 @@ if __name__ == "__main__":
         help="ngrok static domain (default: NGROK_DOMAIN env or "
              "tubular-colony-caboose.ngrok-free.dev).",
     )
+    parser.add_argument(
+        "--no-build",
+        action="store_true",
+        help="Do not rebuild the React app even if frontend/ changed (default: rebuild when needed).",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
@@ -154,6 +190,10 @@ if __name__ == "__main__":
                 output=args.output,
             )
         )
+
+    # With Flask's reloader the script runs twice; build only in the parent.
+    if not args.no_build and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        build_frontend_if_needed()
 
     app = create_app(
         backend=args.backend,

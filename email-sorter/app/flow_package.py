@@ -27,6 +27,9 @@ FLOW_NAME = "6c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
 DISPLAY_NAME = "Inbox sorter"
 GET_EMAILS = "Get_emails_(V3)"
 EACH_EMAIL = "Send_each_email"
+INLINE_IMAGES = "Inline_images"
+IMAGE_MAX_BYTES = 1_500_000  # per image; 3 of them stay under the 8 MB request cap
+IMAGE_COUNT = 3
 TOP = 100
 DEFAULT_DAYS = 30
 
@@ -80,7 +83,10 @@ def _definition(endpoint: str, email: str, token: str) -> dict:
                                 "fetchOnlyWithAttachment": False,
                                 "folderPath": "Inbox",
                                 "fetchOnlyUnread": False,
-                                "includeAttachments": False,
+                                # Images are needed to read posters; the step
+                                # below keeps only small images, so the push
+                                # stays under the server's request limit.
+                                "includeAttachments": True,
                                 "searchQuery": since,
                                 "top": TOP,
                             },
@@ -95,7 +101,19 @@ def _definition(endpoint: str, email: str, token: str) -> dict:
                     EACH_EMAIL: {
                         "foreach": f"@outputs('{GET_EMAILS}')?['body/value']",
                         "actions": {
+                            INLINE_IMAGES: {
+                                "type": "Query",
+                                "inputs": {
+                                    "from": f"@coalesce(items('{EACH_EMAIL}')?['attachments'], json('[]'))",
+                                    "where": (
+                                        "@and(startsWith(toLower(coalesce(item()?['contentType'], '')), 'image/'), "
+                                        f"less(int(coalesce(item()?['size'], 0)), {IMAGE_MAX_BYTES}))"
+                                    ),
+                                },
+                                "runAfter": {},
+                            },
                             "HTTP": {
+                                "runAfter": {INLINE_IMAGES: ["Succeeded"]},
                                 "type": "Http",
                                 "inputs": {
                                     "uri": endpoint,
@@ -113,6 +131,8 @@ def _definition(endpoint: str, email: str, token: str) -> dict:
                                         "receivedDateTime": "@{item()?['receivedDateTime']}",
                                         "bodyPreview": "@{item()?['bodyPreview']}",
                                         "body": "@{item()?['body']}",
+                                        # Up to 3 poster-sized images (base64), read on the server.
+                                        "inlineImages": f"@take(body('{INLINE_IMAGES}'), {IMAGE_COUNT})",
                                     },
                                 },
                                 "runtimeConfiguration": {

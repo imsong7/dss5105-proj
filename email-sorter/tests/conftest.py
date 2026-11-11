@@ -8,13 +8,16 @@ os.environ["MAIL_PROVIDER"] = "graphtoken"
 
 import pytest
 
-from app import calendar_feed, classification_store, item_states, profiles, user_events
+from app import calendar_feed, classification_store, item_states, profiles, saved_jobs, user_events
 
 
 @pytest.fixture(autouse=True)
 def isolated_private_stores(tmp_path, monkeypatch):
     monkeypatch.setattr(
         user_events, "event_store", user_events.EventStore(tmp_path / "events.json")
+    )
+    monkeypatch.setattr(
+        saved_jobs, "saved_job_store", saved_jobs.SavedJobStore(tmp_path / "saved_jobs.json")
     )
     monkeypatch.setattr(
         classification_store,

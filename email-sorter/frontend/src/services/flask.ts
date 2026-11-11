@@ -2,6 +2,7 @@ import type {
   DeadlineCandidate,
   EmailClassification,
   InboxEmail,
+  Job,
   ReplyDraft,
 } from "../domain/email";
 import type {
@@ -23,6 +24,80 @@ export interface FlaskDeadline {
   year_inferred: boolean;
   event_type: "exam" | "deadline";
   due_at?: string;
+  /** True when the date was read off a poster image. */
+  from_image?: boolean;
+}
+
+/** One job from a digest (app/listings.py). */
+export interface FlaskJob {
+  id: string;
+  url: string;
+  title: string;
+  company: string;
+  easy_apply: boolean;
+  type: string;
+  mode: string;
+  location: string;
+  period: string;
+  pay: string;
+  programme: string;
+}
+
+function mapJob(raw: FlaskJob): Job {
+  return {
+    id: raw.id,
+    url: raw.url,
+    title: raw.title,
+    company: raw.company,
+    easyApply: Boolean(raw.easy_apply),
+    type: raw.type || "",
+    mode: raw.mode || "",
+    location: raw.location || "",
+    period: raw.period || "",
+    pay: raw.pay || "",
+    programme: raw.programme || "",
+  };
+}
+
+function jobToFlask(job: Job): FlaskJob {
+  return {
+    id: job.id,
+    url: job.url,
+    title: job.title,
+    company: job.company,
+    easy_apply: job.easyApply,
+    type: job.type,
+    mode: job.mode,
+    location: job.location,
+    period: job.period,
+    pay: job.pay,
+    programme: job.programme,
+  };
+}
+
+/* ---- Saved jobs ---- */
+
+export async function fetchSavedJobs(signal?: AbortSignal): Promise<Job[]> {
+  const data = await api<{ jobs: FlaskJob[] }>("/api/saved-jobs", undefined, { signal, timeoutMs: 10_000 });
+  return data.jobs.map(mapJob);
+}
+
+export async function saveJob(job: Job): Promise<Job> {
+  const data = await api<{ job: FlaskJob }>("/api/saved-jobs", jobToFlask(job), { timeoutMs: 10_000 });
+  return mapJob(data.job);
+}
+
+export async function removeSavedJob(id: string): Promise<void> {
+  await api(`/api/saved-jobs/${encodeURIComponent(id)}`, undefined, { method: "DELETE", timeoutMs: 10_000 });
+}
+
+/** Facts read off a poster image (app/poster.py). */
+export interface FlaskPoster {
+  title: string;
+  when: { date: string; time?: string; year_inferred?: boolean } | null;
+  venue: string;
+  links: { url: string; source: "qr" | "text" }[];
+  has_image: boolean;
 }
 
 export interface FlaskEmail {
@@ -37,6 +112,10 @@ export interface FlaskEmail {
   text_source?: string;
   ocr_confidence?: number | null;
   ocr_notes?: string[];
+  /** The OCR part of `body`; shown folded away, not as body text. */
+  ocr_text?: string;
+  poster?: FlaskPoster | null;
+  jobs?: { jobs: FlaskJob[]; more_url: string } | null;
   deadline_candidate?: FlaskDeadline | null;
   deadline_candidates?: FlaskDeadline[];
 }
@@ -122,6 +201,7 @@ function mapDeadline(candidate: FlaskDeadline | null | undefined): DeadlineCandi
       candidate.timezone === "Asia/Singapore" ? "SGT" : candidate.timezone,
     evidence: candidate.text,
     yearInferred: candidate.year_inferred,
+    fromImage: candidate.from_image || undefined,
   };
 }
 
@@ -133,6 +213,20 @@ export function mapEmail(raw: FlaskEmail): InboxEmail {
     preview: raw.preview || "",
     body: raw.body || raw.preview || "",
     receivedAt: raw.received,
+    ocrText: raw.ocr_text || undefined,
+    poster: raw.poster
+      ? {
+          title: raw.poster.title,
+          date: raw.poster.when?.date,
+          time: raw.poster.when?.time,
+          venue: raw.poster.venue,
+          links: raw.poster.links,
+          hasImage: raw.poster.has_image,
+        }
+      : undefined,
+    jobs: raw.jobs?.jobs.length
+      ? { items: raw.jobs.jobs.map(mapJob), moreUrl: raw.jobs.more_url }
+      : undefined,
     deadline: mapDeadline(raw.deadline_candidate),
     deadlines: (raw.deadline_candidates ?? [])
       .map(mapDeadline)

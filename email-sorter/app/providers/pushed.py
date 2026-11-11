@@ -2,9 +2,9 @@
 
 from datetime import datetime, timezone
 
-from ..pushed_store import pushed_store
+from ..pushed_store import pushed_images, pushed_store
 from ..schemas import Email
-from .base import EmailProvider, MailQuery
+from .base import EmailProvider, InlineImage, MailQuery
 
 
 def _aware(value: datetime) -> datetime:
@@ -39,3 +39,15 @@ class PushedProvider(EmailProvider):
 
         matches.sort(key=lambda pair: pair[0], reverse=True)
         return [email for _, email in matches[: max(1, int(query.limit))]]
+
+    def fetch_images(self, email: Email, max_images: int, max_bytes: int) -> list[InlineImage]:
+        """Images the flow sent with this email (pushed mail cannot be fetched later)."""
+        images = [
+            InlineImage(name=name, data=data)
+            for name, data in pushed_images.get(self.owner, email.id)
+            if len(data) <= max_bytes
+        ]
+        return images[:max_images]
+
+    def done_with_images(self, email: Email) -> None:
+        pushed_images.drop(self.owner, email.id)

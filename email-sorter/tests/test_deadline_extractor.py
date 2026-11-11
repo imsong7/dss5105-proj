@@ -107,7 +107,7 @@ class DeadlineExtractorTests(unittest.TestCase):
 
         self.assertIsNone(candidate)
 
-    @patch("app.server.prepare_text", side_effect=lambda email, _provider: email)
+    @patch("app.server.prepare_text", side_effect=lambda email, _provider, *_owner: email)
     @patch("app.server.build_provider")
     def test_email_fetch_route_returns_deadline_candidate(
         self, build_provider, _prepare_text

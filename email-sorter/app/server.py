@@ -65,7 +65,7 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
     # Only pushed mail is filed per account. A Graph token is a single mailbox
     # and needs no app login, so do not show the Basic auth prompt for it.
     if mail_provider == "powerautomate":
-        install_multiuser(app)
+        install_multiuser(app)  # also adds the sign-in pages (app/routes/auth.py)
 
     app.extensions["sorter"] = SorterState(default_backend=backend, mail_provider=mail_provider)
     _install_protection(app)

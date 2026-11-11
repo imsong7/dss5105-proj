@@ -27,7 +27,7 @@
   <p class="login-error" role="alert">{{ error }}</p>
   {% endif %}
 
-  <form method="post" action="{{ url_for('login') }}" autocomplete="on">
+  <form method="post" action="{{ url_for('auth.login') }}" autocomplete="on">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="next" value="{{ next_url }}">
 
@@ -45,7 +45,7 @@
   </form>
 
   {% if signup %}
-  <p class="login-switch">New here? <a href="{{ url_for('register') }}">Create an account</a></p>
+  <p class="login-switch">New here? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
   {% endif %}
 
   {% if token_login %}
@@ -56,7 +56,7 @@
       <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>,
       sign in with your university Microsoft account, open the <strong>Access token</strong> tab and copy it.
       It lasts about an hour, then you paste a new one.</p>
-    <form method="post" action="{{ url_for('login_token') }}" autocomplete="off">
+    <form method="post" action="{{ url_for('auth.login_token') }}" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="next" value="{{ next_url }}">
       <label for="graph-token">Access token</label>

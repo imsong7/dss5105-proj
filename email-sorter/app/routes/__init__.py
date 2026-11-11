@@ -1,5 +1,6 @@
 """HTTP routes, one Flask blueprint per area.
 
+    auth         /login, /login/token, /register, /logout  (added by install_multiuser)
     account      /api/session, /api/profile, /api/setup*, /register/connect
     inbound      /api/inbound/*  (Power Automate webhook and refreshes)
     mail         /api/emails, /api/classify, /api/backends, /api/health, ...

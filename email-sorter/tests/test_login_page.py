@@ -202,7 +202,7 @@ class LoginPageTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_repeated_wrong_passwords_lock_the_account_for_a_while(self):
-        with patch("app.accounts.time.sleep"):
+        with patch("app.routes.auth.time.sleep"):
             for _ in range(5):
                 self.assertEqual(self.sign_in(password="wrong-password").status_code, 401)
 
@@ -214,14 +214,14 @@ class LoginPageTests(unittest.TestCase):
             self.assertEqual(self.sign_in().status_code, 429)
 
     def test_another_account_is_not_locked_out(self):
-        with patch("app.accounts.time.sleep"):
+        with patch("app.routes.auth.time.sleep"):
             for _ in range(5):
                 self.sign_in(password="wrong-password")
 
             self.assertEqual(self.sign_in(email=ACCOUNT_B).status_code, 302)
 
     def test_a_good_sign_in_clears_earlier_failures(self):
-        with patch("app.accounts.time.sleep"):
+        with patch("app.routes.auth.time.sleep"):
             for _ in range(4):
                 self.sign_in(password="wrong-password")
             self.assertEqual(self.sign_in().status_code, 302)

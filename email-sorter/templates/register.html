@@ -28,7 +28,7 @@
   <p class="login-error" role="alert">{{ error }}</p>
   {% endif %}
 
-  <form method="post" action="{{ url_for('register') }}" autocomplete="on">
+  <form method="post" action="{{ url_for('auth.register') }}" autocomplete="on">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
     <label for="name">Your name <span class="optional">(shown on Today)</span></label>
@@ -65,7 +65,7 @@
     </ul>
   </div>
 
-  <p class="login-switch">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+  <p class="login-switch">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
 </main>
 {% include "_login_showcase.html" %}
 </div>

@@ -8,7 +8,7 @@ import secrets
 from flask import Blueprint, jsonify, redirect, render_template, request, send_file
 from flask import session as flask_session
 
-from app.accounts import authenticated_owner, flow_url_problem, is_account, save_flow_url, session_graph_token
+from app.accounts import authenticated_owner, flow_url_problem, is_account, save_flow_url, session_graph_token, users
 from app.config import settings
 from app.mail.flow_package import build_flow_package
 from app.routes.common import (
@@ -107,6 +107,23 @@ def setup_flow_package():
         download_name="inbox-sorter-flow.zip",
         max_age=0,
     )
+
+
+@bp.post("/api/setup/flow-url")
+def save_flow_url_api():
+    """Save the HTTP address of the student's imported flow (JSON)."""
+    if sorter().mail_provider != "powerautomate":
+        return error(SETUP_NOT_USED, 404)
+    owner = authenticated_owner()
+    data = request.get_json(silent=True) if request.is_json else None
+    if not owner or owner not in users() or not isinstance(data, dict):
+        return error("Expected a JSON object.", 400)
+    url = str(data.get("url") or "").strip()
+    problem = flow_url_problem(url)
+    if problem:
+        return error(problem, 400)
+    save_flow_url(owner, url)
+    return jsonify({"saved": bool(url)})
 
 
 @bp.route("/register/connect", methods=["GET", "POST"])

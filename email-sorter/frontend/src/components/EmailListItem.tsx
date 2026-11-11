@@ -75,7 +75,7 @@ export function EmailListItem({
             </span>
           ) : null}
 
-          <span className="mt-2 flex min-h-[18px] flex-wrap items-center gap-x-4 gap-y-1 pr-10">
+          <span className="mt-2 flex min-h-[18px] flex-wrap items-center gap-x-4 gap-y-1 pr-8">
             {classification ? (
               <>
                 <StatusBadge action={classification.action} />
@@ -105,13 +105,20 @@ export function EmailListItem({
         aria-label={done ? "Mark as not handled" : "Mark as handled"}
         title={done ? "Mark as not handled" : "Mark as handled"}
         onClick={() => onToggleDone(email.id, !done)}
-        className={`absolute right-2 bottom-1.5 grid h-9 w-9 place-items-center rounded-full border transition-opacity hover:border-ink hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-lg:opacity-100 ${
-          done
-            ? "border-ink bg-ink text-page opacity-100"
-            : "border-line text-muted opacity-0 group-hover:opacity-100"
+        className={`group/done absolute right-1 bottom-0.5 grid h-9 w-9 place-items-center rounded-full transition-opacity focus-visible:opacity-100 focus-visible:outline-none max-lg:opacity-100 ${
+          done ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
       >
-        <Check className="h-4 w-4" aria-hidden="true" />
+        <span
+          className={`grid h-6 w-6 place-items-center rounded-full border transition-colors group-focus-visible/done:ring-2 group-focus-visible/done:ring-accent ${
+            done
+              ? "border-ink bg-ink text-page"
+              : "border-line text-muted group-hover/done:border-ink group-hover/done:text-ink"
+          }`}
+          aria-hidden="true"
+        >
+          <Check className="h-3.5 w-3.5" strokeWidth={2.25} />
+        </span>
       </button>
     </li>
   );

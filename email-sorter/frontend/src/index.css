@@ -97,6 +97,46 @@
   font-weight: 600;
 }
 
+/* ---- The top-bar lion. All of it stops under the reduced-motion rule. ---- */
+.lion-button .lion-svg {
+  transform-origin: 30% 95%;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (hover: hover) {
+  .lion-button:hover .lion-svg {
+    transform: rotate(-4deg) translateY(-1px);
+  }
+}
+@keyframes lion-hop {
+  0% { transform: none; }
+  30% { transform: translateY(-8px) rotate(-3deg); }
+  55% { transform: none; }
+  75% { transform: translateY(-2px); }
+  100% { transform: none; }
+}
+.lion-hop .lion-svg {
+  animation: lion-hop 0.6s ease-out;
+}
+@keyframes tail-flick {
+  0%, 90%, 100% { transform: none; }
+  93% { transform: rotate(-16deg); }
+  96% { transform: rotate(7deg); }
+}
+.lion-tail {
+  transform-box: view-box;
+  transform-origin: 99px 66px;
+  animation: tail-flick 7s ease-in-out infinite;
+}
+@keyframes lion-blink {
+  0%, 93%, 100% { transform: scaleY(0); }
+  95%, 96.5% { transform: scaleY(1); }
+}
+.lion-lid {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: lion-blink 5.3s ease-in-out infinite;
+}
+
 /* Apple-style hairline scrollbars. */
 @media (min-width: 1024px) {
   .inbox-scroll {

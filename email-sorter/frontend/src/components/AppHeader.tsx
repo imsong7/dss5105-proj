@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CalendarDays, Inbox, ListChecks, Monitor, Moon, Search, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -81,13 +81,67 @@ interface AppHeaderProps {
   overlay?: boolean;
   progress: { done: number; total: number } | null;
   mood?: Mood;
+  /** One line the lion says when clicked, e.g. "2 things due today." */
+  status?: string;
   onShowHelp: () => void;
   onOpenPalette: () => void;
   view: WorkspaceView;
   onViewChange: (view: WorkspaceView) => void;
 }
 
-export function AppHeader({ userEmail, userName, overlay = false, progress, mood, onShowHelp, onOpenPalette, view, onViewChange }: AppHeaderProps) {
+const LION_SIZE = 68;
+
+/** The mascot in the top bar: tilts on hover, hops and speaks on click, hops when its mood changes. */
+function HeaderLion({ mood, status }: { mood?: Mood; status?: string }) {
+  const [hop, setHop] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
+  const firstMood = useRef(true);
+
+  // A new mood (something became overdue, or the list cleared) gets a small hop.
+  useEffect(() => {
+    if (firstMood.current) {
+      firstMood.current = false;
+      return;
+    }
+    setHop((count) => count + 1);
+  }, [mood]);
+
+  useEffect(() => {
+    if (!speaking) {
+      return;
+    }
+    const timer = window.setTimeout(() => setSpeaking(false), 3500);
+    return () => window.clearTimeout(timer);
+  }, [speaking, hop]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setHop((count) => count + 1);
+          setSpeaking(true);
+        }}
+        aria-label={status ? `Lion: ${status}` : "Lion"}
+        className="lion-button absolute -bottom-[18px] left-0 rounded-lg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+      >
+        <span key={hop} className={hop > 0 ? "lion-hop block" : "block"}>
+          <LionMark size={LION_SIZE} mood={mood} animated />
+        </span>
+      </button>
+      {speaking && status ? (
+        <p
+          role="status"
+          className="toast-enter absolute top-[calc(100%+22px)] left-[54px] z-30 rounded-xl rounded-tl-sm border border-line bg-surface px-3 py-2 text-[13px] font-medium whitespace-nowrap text-ink shadow-[0_6px_20px_rgba(0,0,0,0.10)]"
+        >
+          {status}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+export function AppHeader({ userEmail, userName, overlay = false, progress, mood, status, onShowHelp, onOpenPalette, view, onViewChange }: AppHeaderProps) {
   const list = useRef<HTMLUListElement>(null);
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
 
@@ -114,10 +168,8 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-3 px-4 py-2.5 sm:px-6 lg:px-8">
         <div className="relative flex items-center gap-2 self-stretch">
           {/* The lion lies on the bottom edge of the bar; the spacer keeps its width. */}
-          <span aria-hidden="true" className="w-[78px] shrink-0" />
-          <span className="absolute -bottom-[14px] left-0">
-            <LionMark size={52} mood={mood} />
-          </span>
+          <span aria-hidden="true" className="w-[106px] shrink-0" />
+          <HeaderLion mood={mood} status={status} />
           <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
             Inbox sorter
           </span>

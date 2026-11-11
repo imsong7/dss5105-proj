@@ -137,6 +137,20 @@ function Workspace({ session }: { session: SessionInfo }) {
           : "happy";
   useFeedSync(calendar.deadlines, states.isDone, inbox.hasLoaded);
 
+  const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const recentOverdue = todaySections.overdue.filter((item) => item.date >= recentCutoff).length;
+  const lionStatus = !inbox.hasLoaded
+    ? "Load your mail and I'll sort it for you."
+    : recentOverdue > 0
+      ? `${plural(recentOverdue, "thing")} slipped past. Let's catch up.`
+      : todaySections.today.length > 0
+        ? `${plural(todaySections.today.length, "thing")} due today.`
+        : todaySections.reply.length > 0
+          ? `${plural(todaySections.reply.length, "email")} waiting for your reply.`
+          : todaySections.soon.length > 0
+            ? `Nothing today. ${plural(todaySections.soon.length, "deadline")} this week.`
+            : "All clear. Nice work.";
+
   useEffect(() => {
     const abort = new AbortController();
     void fetchAcademicCalendar(abort.signal).then((data) =>
@@ -228,6 +242,7 @@ function Workspace({ session }: { session: SessionInfo }) {
         userName={name}
         progress={inbox.loading || inbox.receiving ? null : inbox.progress}
         mood={mood}
+        status={lionStatus}
         onShowHelp={() => setHelpOpen(true)}
         onOpenPalette={() => setPaletteOpen(true)}
         view={view}

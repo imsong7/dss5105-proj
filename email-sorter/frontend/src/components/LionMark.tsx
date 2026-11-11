@@ -63,7 +63,26 @@ function Face({ mood }: { mood: Mood }) {
   );
 }
 
-export function LionMark({ size = 36, mood = "happy" }: { size?: number; mood?: Mood }) {
+// The tail (stroke + tuft) is the first part of the artwork; split it off so it can flick.
+const TAIL_END = LION_BODY.indexOf('<path d="M42 50');
+const LION_TAIL = LION_BODY.slice(0, TAIL_END);
+const LION_REST = LION_BODY.slice(TAIL_END);
+
+/**
+ * `animated` adds the idle life used in the top bar: an occasional tail flick
+ * and blink. Both stop under prefers-reduced-motion (see index.css).
+ */
+export function LionMark({
+  size = 36,
+  mood = "happy",
+  animated = false,
+}: {
+  size?: number;
+  mood?: Mood;
+  animated?: boolean;
+}) {
+  const eyesOpen = mood === "happy" || mood === "worried";
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -72,11 +91,18 @@ export function LionMark({ size = 36, mood = "happy" }: { size?: number; mood?: 
       height={size}
       aria-hidden="true"
       focusable="false"
-      style={{ transition: "transform 0.3s ease" }}
+      className="lion-svg"
     >
       {/* Fixed artwork (constant markup from lionArt.ts), then the mood. */}
-      <g dangerouslySetInnerHTML={{ __html: LION_BODY }} />
+      <g className={animated ? "lion-tail" : undefined} dangerouslySetInnerHTML={{ __html: LION_TAIL }} />
+      <g dangerouslySetInnerHTML={{ __html: LION_REST }} />
       <Face mood={mood} />
+      {animated && eyesOpen ? (
+        <g className="lion-lid" fill="#F9C86A">
+          <ellipse cx="34.6" cy="28.4" rx="3.3" ry="3.7" />
+          <ellipse cx="45.4" cy="28.4" rx="3.3" ry="3.7" />
+        </g>
+      ) : null}
     </svg>
   );
 }

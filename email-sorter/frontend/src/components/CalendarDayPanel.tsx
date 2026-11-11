@@ -7,6 +7,7 @@ import type {
 } from "../domain/calendar";
 import {
   formatDayLong,
+  formatDayPanel,
   formatDayShort,
   formatItemCount,
   formatTime,
@@ -55,7 +56,7 @@ export function CalendarDayPanel({
           data-role="selected-day"
           className="text-[17px] leading-snug font-semibold tracking-[-0.01em] text-ink"
         >
-          {formatDayLong(selectedDate)}
+          {formatDayPanel(selectedDate)}
         </h2>
         <button
           type="button"

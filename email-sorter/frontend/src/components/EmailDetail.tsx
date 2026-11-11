@@ -127,7 +127,9 @@ export function EmailDetail({
 
         {classification ? (
           <SortedAs
-            key={email.id}
+            // Keys must differ between siblings: a shared key (with DraftReply)
+            // left old "Sorted as" rows on screen after opening another email.
+            key={`sorted-${email.id}`}
             email={email}
             onCorrect={onCorrect}
             onUndo={onUndoCorrection}
@@ -204,7 +206,7 @@ export function EmailDetail({
         ) : null}
 
         <DraftReply
-          key={email.id}
+          key={`draft-${email.id}`}
           email={email}
           onDraft={onDraftReply}
           onSend={onSendReply}

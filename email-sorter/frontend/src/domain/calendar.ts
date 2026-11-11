@@ -103,6 +103,15 @@ const LONG_DATE = new Intl.DateTimeFormat("en-SG", {
   timeZone: "UTC",
 });
 
+// The calendar's side panel sits next to the month grid, which already shows
+// the year: "Wednesday, 4 Nov".
+const PANEL_DATE = new Intl.DateTimeFormat("en-SG", {
+  weekday: "long",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
 const SHORT_DATE = new Intl.DateTimeFormat("en-SG", {
   weekday: "short",
   day: "numeric",
@@ -289,6 +298,10 @@ export function buildMonthCells(monthKey: string): MonthCell[] {
 
 export function formatDayLong(date: string): string {
   return LONG_DATE.format(toUtcDate(date));
+}
+
+export function formatDayPanel(date: string): string {
+  return PANEL_DATE.format(toUtcDate(date));
 }
 
 export function formatDayShort(date: string): string {

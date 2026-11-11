@@ -233,10 +233,10 @@ export function CalendarMonth({
                       style={courseStyle(deadline.hue)}
                       className={`min-w-0 rounded-[5px] px-1.5 py-1 ${
                         deadline.hue !== undefined
-                          ? "border-l-[3px] border-l-[var(--course-border)] bg-[var(--course-bg)]"
+                          ? "bg-[var(--course-bg)]"
                           : deadline.personal
-                            ? "border-l-[3px] border-l-accent bg-accent-soft"
-                            : "border-l-[3px] border-l-highlight bg-highlight-soft"
+                            ? "bg-accent-soft"
+                            : "bg-highlight-soft"
                       }`}
                     >
                       <span

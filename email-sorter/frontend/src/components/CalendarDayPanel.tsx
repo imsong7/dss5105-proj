@@ -87,11 +87,7 @@ export function CalendarDayPanel({
                     : onOpenEmail(deadline.emailId)
                 }
                 style={courseStyle(deadline.hue)}
-                className={`group flex w-full flex-col gap-1.5 rounded-[10px] border border-line bg-surface p-3.5 text-left ${
-                  deadline.hue !== undefined
-                    ? "border-l-[4px] border-l-[var(--course-border)]"
-                    : ""
-                }  transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none`}
+                className="group flex w-full flex-col gap-1.5 rounded-[10px] border border-line bg-surface p-3.5 text-left transition-colors hover:border-accent/30 hover:bg-surface-muted/50 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none"
               >
                 <span className="flex flex-wrap items-center gap-1.5">
                   {deadline.course ? (

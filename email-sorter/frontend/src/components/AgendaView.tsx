@@ -106,14 +106,24 @@ export function AgendaView({
                       item.personal ? onEditEvent(item.personal) : onOpenEmail(item.emailId)
                     }
                     style={courseStyle(item.hue)}
-                    className={`flex min-h-11 w-full items-center gap-3 rounded-[10px] border-l-[4px] px-3 py-2 text-left transition-colors hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                    className={`flex min-h-11 w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left transition-colors hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                       item.hue !== undefined
-                        ? "border-l-[var(--course-border)] bg-[var(--course-bg)]"
+                        ? "bg-[var(--course-bg)]"
                         : item.personal
-                          ? "border-l-accent bg-accent-soft"
-                          : "border-l-highlight bg-highlight-soft"
+                          ? "bg-accent-soft"
+                          : "bg-highlight-soft"
                     }`}
                   >
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 shrink-0 rounded-full ${
+                        item.hue !== undefined
+                          ? "bg-[var(--course-border)]"
+                          : item.personal
+                            ? "bg-accent"
+                            : "bg-highlight"
+                      }`}
+                    />
                     <span className="w-[64px] shrink-0 text-[13px] font-medium text-ink/70">
                       {formatTime(item.time)}
                     </span>

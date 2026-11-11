@@ -39,7 +39,7 @@ for production selection.
 
 See `reports/model_comparison.md`, `reports/hyperparameter_tuning.md`, and
 `reports/ablation_synthetic.md` for model comparisons, tuning results, and the
-synthetic-data ablation. [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md)
+synthetic-data ablation. [`../docs/MODEL_COMPARISON.md`](../docs/MODEL_COMPARISON.md)
 collects these with the encoder and end-to-end results.
 
 ### Balancing
@@ -64,7 +64,7 @@ always contain real emails only.
 - `reports/`: committed aggregate experiment reports.
 - `artifacts/`: ignored models and generated evaluation files; includes real
   email text and should not be committed.
-- `../requirements.txt`: shared Python dependencies for the whole repo.
+- `../requirements-research.txt`: dependencies for retraining and reports (no torch; the app itself only needs `../requirements.txt`).
 
 ## Data
 
@@ -102,7 +102,7 @@ Python 3.10+ is recommended. From the repo root:
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-research.txt
 ```
 
 On macOS, XGBoost needs `libomp` (e.g. `brew install libomp`). If it is

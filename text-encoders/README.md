@@ -120,7 +120,7 @@ directly. The recorded head comparison uses two seeds, while the example
 commands above use five.
 
 Results are preliminary because the dataset and number of runs are small.
-See [`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md) for full comparisons
+See [`../docs/MODEL_COMPARISON.md`](../docs/MODEL_COMPARISON.md) for full comparisons
 and evaluation details.
 
 ## Synthetic data

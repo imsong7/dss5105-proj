@@ -1,0 +1,7 @@
+# The text-encoder backends: `encoder` and `hybrid` (frozen BGE/E5 heads and
+# DistilBERT fine-tunes). Large downloads; the default app does not need them.
+#     pip install -r requirements-encoders.txt
+-r requirements.txt
+
+torch>=2.0
+transformers>=5.0

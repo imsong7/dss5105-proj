@@ -11,7 +11,7 @@ This repository compares four ways to sort a student's email:
 
 `email-sorter/` is the shared Flask app: it hosts the dashboard, the mail
 sources, and every classifier backend. `evaluation/` scores all four methods
-on the same emails. `llm-reply/` is an optional utility that drafts replies for
+on the same emails. `email-sorter/llm-reply/` is an optional utility that drafts replies for
 emails the Claude action classifier marks as `Needs a reply`; it never sends.
 
 ---
@@ -23,7 +23,9 @@ Use one virtual environment at the repo root.
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt          # the app (default hybrid_claude backend)
+# pip install -r requirements-encoders.txt   # also the `encoder` and `hybrid` backends (torch)
+# pip install -r requirements-research.txt   # also retraining classical-ml, evaluation and plots (no torch)
 
 cp email-sorter/.env.example email-sorter/.env
 python email-sorter/run.py
@@ -113,19 +115,19 @@ needed. See [`claude/README.md`](claude/README.md).
 
 ### Reply drafts
 
-`llm-reply/` drafts replies for emails classified as `Needs a reply` and writes
+`email-sorter/llm-reply/` drafts replies for emails classified as `Needs a reply` and writes
 local `.json` / `.eml` drafts only. It filters offline by default (local ML or
 keywords) and uses an LLM only to generate the draft; the Claude action
-classifier is optional. It needs `ANTHROPIC_API_KEY` in `llm-reply/.env` unless
+classifier is optional. It needs `ANTHROPIC_API_KEY` in `email-sorter/llm-reply/.env` unless
 you use Ollama. It never sends or modifies the mailbox. See
-[`llm-reply/README.md`](llm-reply/README.md).
+[`email-sorter/llm-reply/README.md`](email-sorter/llm-reply/README.md).
 
 ---
 
 ## Results
 
 All committed comparison tables are in
-[`MODEL_COMPARISON.md`](MODEL_COMPARISON.md):
+[`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md):
 
 - classical-ML model comparison (8 models, category and action),
 - synthetic-data ablation,
@@ -154,10 +156,10 @@ email-sorter/     Flask app, dashboard, auth, mail sources, backends
 text-encoders/    BGE/E5 heads and DistilBERT fine-tunes
 classical-ml/     TF-IDF + LinearSVC / ComplementNB
 claude/           Claude backend (rules -> Claude -> guardrails)
-llm-reply/        Optional reply-draft generator (no sending)
+email-sorter/llm-reply/  Optional reply-draft generator (inside the app folder)
 evaluation/       Shared quality and operational evaluation
 data/             Shared synthetic.csv and local labels.csv (labels gitignored)
-requirements.txt  One dependency file for the whole repo
+requirements*.txt  Dependencies: app, encoder backends, and research (training/evaluation)
 ```
 
 Details:
@@ -169,11 +171,22 @@ Details:
 - [`claude/README.md`](claude/README.md) — Claude backend.
 - [`evaluation/README.md`](evaluation/README.md) — quality and performance
   evaluation for all four methods.
-- [`MODEL_COMPARISON.md`](MODEL_COMPARISON.md) — all result tables.
+- [`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md) — all result tables.
 
 ---
 
 ## Tests
+
+With the virtual environment active, `make` runs the common tasks from the repo root:
+
+```bash
+make test    # all Python tests (app, Claude backend, reply drafts)
+make lint    # ruff: undefined names and unused imports
+make build   # typecheck and build the frontend
+make check   # lint + test + build, the same as CI
+```
+
+Or run each part yourself:
 
 ```bash
 # app
@@ -183,8 +196,8 @@ Details:
 (cd claude && pytest -q)
 
 # reply drafts
-(cd llm-reply && python -m unittest discover -s tests)
-(cd llm-reply && python eval_replies.py --use-ideal)
+(cd email-sorter/llm-reply && python -m unittest discover -s tests)
+(cd email-sorter/llm-reply && python eval_replies.py --use-ideal)
 
 # evaluation
 python -m unittest evaluation.test_evaluation

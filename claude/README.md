@@ -10,7 +10,7 @@ sender rules -> Claude API -> guardrails -> fallback
 The standalone Streamlit dashboard, Graph token fetcher, sync worker and
 dataset/evaluation tools were removed. Use `email-sorter` for the UI and
 `evaluation/` for scoring; Claude results are also collected in
-[`../MODEL_COMPARISON.md`](../MODEL_COMPARISON.md).
+[`../docs/MODEL_COMPARISON.md`](../docs/MODEL_COMPARISON.md).
 
 ## Files
 

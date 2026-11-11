@@ -214,11 +214,11 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
               onClick={onOpenPalette}
               aria-label="Search and jump (Ctrl or Command K)"
               title="Jump to anything (⌘K)"
-              className="hidden min-h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-[13px] text-muted hover:border-ink/30 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none lg:inline-flex"
+              className="hidden min-h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-[13px] text-muted hover:border-ink/30 hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none lg:inline-flex"
             >
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
               Jump to…
-              <kbd className="rounded border border-line bg-surface-muted px-1.5 font-mono text-[11px]">⌘K</kbd>
+              <kbd className="rounded-md border border-line bg-surface-muted px-1.5 font-mono text-[11px]">⌘K</kbd>
             </button>
             <button
               type="button"

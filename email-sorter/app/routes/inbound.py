@@ -194,7 +194,7 @@ def record_inbound_attempt(response):
     """Remember webhook calls so the dashboard can show what arrived."""
     is_page_post = (
         request.method == "POST"
-        and request.path in ("/", "/dashboard-v2")
+        and request.path == "/"
         and bool(inbound_token())
     )
     if request.path == WEBHOOK_PATH or response.status_code == 405 or is_page_post:

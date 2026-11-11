@@ -47,7 +47,7 @@ you train those, start with `--backend encoder`, or use
 - **Mail source:** `graphtoken` — paste a Microsoft Graph token in the dashboard
   popup. No app login is needed.
 - **Backend:** `hybrid_claude` — classical-ML category + Claude action.
-- **Home page:** dashboard v2 (`/dashboard-v2` is also available).
+- **Home page:** the React dashboard at `/`.
 
 For Power Automate instead:
 

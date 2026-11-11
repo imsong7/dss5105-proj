@@ -12,7 +12,7 @@ tabler.min.css
             override layer. Only CSS is vendored; no Tabler/Bootstrap
             JavaScript is used.
 
-Inline SVG icons (see templates/_icons.html and static/dashboard_v2.js)
+Inline SVG icons (see templates/_icons.html)
   Project:  Tabler Icons (https://tabler.io/icons), github.com/tabler/tabler-icons
   License:  MIT
   Note:     A small set of icons (mail, search, chevrons, alert, calendar)

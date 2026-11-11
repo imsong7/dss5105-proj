@@ -115,15 +115,6 @@ class PushedStore:
             return [email for (item_owner, _), email in reversed(self._items.items())
                     if item_owner == owner]
 
-    def owners(self) -> list[str]:
-        """Owner addresses currently holding mail, newest first."""
-        with self._lock:
-            seen = []
-            for item_owner, _ in reversed(self._items):
-                if item_owner not in seen:
-                    seen.append(item_owner)
-            return seen
-
     def clear(self) -> None:
         with self._lock:
             self._items.clear()

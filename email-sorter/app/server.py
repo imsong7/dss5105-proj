@@ -133,12 +133,7 @@ def _install_pages(app: Flask) -> None:
     def index():
         return _react_dashboard()
 
-    @app.get("/dashboard-v2")
-    def dashboard_v2():
-        return _react_dashboard()
-
     @app.post("/")
-    @app.post("/dashboard-v2")
     def inbound_on_wrong_path():
         abort(405)
 
@@ -159,7 +154,7 @@ def _install_pages(app: Flask) -> None:
             )
         else:
             message = f"{path} does not accept a {request.method} request."
-            if request.method == "POST" and path in ("/", "/dashboard-v2"):
+            if request.method == "POST" and path == "/":
                 message = (
                     "This is the dashboard page, not the webhook. Add "
                     f"{WEBHOOK_PATH} to the end of the tunnel URL in the HTTP "

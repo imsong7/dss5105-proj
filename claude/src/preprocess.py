@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
 
@@ -50,9 +50,6 @@ class EmailRecord:
     feats: list[float]
     web_link: str
     conversation_id: str
-
-    def to_dict(self) -> dict:
-        return asdict(self)
 
 
 def _address(r: dict | None) -> str:

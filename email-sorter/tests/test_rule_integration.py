@@ -55,10 +55,9 @@ class SenderRuleIntegrationTests(unittest.TestCase):
             index.write_text('<div id="root"></div>', encoding="utf-8")
             with patch("app.server.REACT_INDEX", index):
                 client = create_app(backend="llama", provider="graphtoken").test_client()
-                for path in ("/", "/dashboard-v2"):
-                    response = client.get(path)
-                    self.assertEqual(response.status_code, 200)
-                    self.assertIn(b'id="root"', response.data)
+                response = client.get("/")
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'id="root"', response.data)
 
     def test_session_endpoint_reports_provider(self):
         data = self.client.get("/api/session").get_json()

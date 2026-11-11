@@ -151,12 +151,12 @@ class LoginPageTests(unittest.TestCase):
         self.assertIn("expired", response.get_data(as_text=True))
 
     def test_signed_in_session_reaches_the_dashboard_and_api(self):
-        login = self.sign_in(next_url="/dashboard-v2")
+        login = self.sign_in(next_url="/?view=today")
 
         self.assertEqual(login.status_code, 302)
-        self.assertEqual(login.headers["Location"], "/dashboard-v2")
+        self.assertEqual(login.headers["Location"], "/?view=today")
 
-        page = self.client.get("/dashboard-v2")
+        page = self.client.get("/")
         self.assertEqual(page.status_code, 200)
         session = self.client.get("/api/session").get_json()
         self.assertEqual(session["email"], ACCOUNT_A)

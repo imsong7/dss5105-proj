@@ -95,10 +95,6 @@ class EncoderClassifier(BaseClassifier):
             loaded.get(task) is not None for task in self.tasks
         )
 
-    def load_error(self) -> str | None:
-        """Return the load error message, if any."""
-        return self._load_error
-
     @property
     def model_name(self) -> str:
         encoders = []

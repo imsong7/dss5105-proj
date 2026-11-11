@@ -275,35 +275,11 @@ are read; ordinary attachments and linked images are ignored.
 
 ---
 
-## Compare backends from the CLI
-
-The browser comparison page is gone. Start the app, then run the CLI in a
-second terminal. The CLI fetches through the running app's `/api/emails`,
-classifies locally, and prints latency and agreement. It does not start a second
-Flask server.
-
-```bash
-# all backends, last 7 days (app running on port 5001)
-python email-sorter/run.py --compare --port 5001 \
-  --provider graphtoken --token "$GRAPH_TOKEN"
-
-# choose backends and save a CSV
-python email-sorter/run.py --compare --port 5001 \
-  --provider graphtoken --token "$GRAPH_TOKEN" \
-  --backends llama,ml --days 30 --output compare.csv
-```
-
-Pushed-mail instances require the login page, so the CLI comparison currently
-targets a Graph-token instance.
-
----
-
 ## API
 
 | Route | Purpose |
 |---|---|
 | `GET /` | Dashboard v2 (default) |
-| `GET /dashboard-v2` | Dashboard v2 |
 | `GET /api/backends` | Backends, labels, readiness |
 | `GET /api/taxonomy` | Category/action labels |
 | `GET /api/health?backend=` | Readiness for one backend |

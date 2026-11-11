@@ -1,7 +1,7 @@
 # Inbox sorter — React dashboard
 
 The main dashboard. React + TypeScript + Vite + Tailwind, served by Flask at
-`/dashboard-v2` (and `/`) from `../static/app/`. Without a build, Flask says how
+`/` from `../static/app/`. Without a build, Flask says how
 to make one.
 
 ## Build and run
@@ -13,7 +13,7 @@ npm run build      # writes ../static/app/ (git-ignored)
 
 cd ..
 ../.venv/bin/python run.py --port 5001 --no-tunnel
-# open http://127.0.0.1:5001/dashboard-v2
+# open http://127.0.0.1:5001/
 ```
 
 Live development with hot reload (Flask must be running on port 5001, or set

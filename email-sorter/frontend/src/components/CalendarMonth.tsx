@@ -102,17 +102,17 @@ export function CalendarMonth({
   return (
     <section
       aria-label="Month calendar"
-      className="flex min-w-0 flex-col rounded-xl border border-line bg-surface p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-5"
+      className="flex min-w-0 flex-col rounded-md border border-line bg-surface p-3 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[12px] font-medium tracking-[0.04em] text-muted max-sm:hidden">
+          <p className="label flex items-center gap-1.5 text-muted max-sm:hidden">
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             Calendar
           </p>
           <h2
             data-role="month-title"
-            className="mt-0.5 text-[21px] font-semibold tracking-[-0.01em] text-ink sm:text-[21px]"
+            className="mt-1 font-display text-[28px] leading-none font-medium tracking-[-0.015em] text-ink"
             aria-live="polite"
           >
             {monthTitle(month)}

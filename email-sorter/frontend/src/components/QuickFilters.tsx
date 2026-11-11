@@ -1,5 +1,3 @@
-import { Check } from "lucide-react";
-
 import type { ActionFilter } from "../domain/email";
 import type { ActionKey } from "../domain/taxonomy";
 
@@ -44,9 +42,9 @@ export function QuickFilters({
   return (
     <section
       aria-label="Quick filters"
-      className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-2"
+      className="flex flex-col gap-1 border-b border-line sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-2"
     >
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 flex gap-6 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
       {QUICK_FILTERS.map(({ key, label, dot }) => {
         const active = action === key;
         const count = key === "all" ? total : counts[key];
@@ -57,36 +55,28 @@ export function QuickFilters({
             type="button"
             aria-pressed={active}
             onClick={() => onActionChange(key)}
-            className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none ${
+            className={`-mb-px inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 text-[14px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
               active
-                ? "border-accent/25 bg-accent-soft text-accent-dark shadow-sm"
-                : "border-transparent bg-surface/65 text-ink/70 hover:border-line hover:bg-surface hover:text-ink"
+                ? "border-ink font-semibold text-ink"
+                : "border-transparent font-medium text-muted hover:text-ink"
             }`}
           >
-            {active ? (
-              <Check className="h-3.5 w-3.5" aria-hidden="true" />
-            ) : dot ? (
+            {dot ? (
               <span
                 className={`h-1.5 w-1.5 rounded-full ${dot}`}
                 aria-hidden="true"
               />
             ) : null}
             <span>{label}</span>
-            <span
-              className={`text-[12px] font-medium tabular-nums ${
-                active ? "text-accent-dark" : "text-muted"
-              }`}
-            >
-              {count}
-            </span>
+            <span className="font-mono text-[11px] text-muted tabular-nums">{count}</span>
           </button>
         );
       })}
       </div>
 
-      <div className="flex items-center gap-2.5 sm:ml-auto">
+      <div className="flex items-center gap-2.5 sm:ml-auto sm:pb-1">
         <p
-          className="text-[13px] text-muted tabular-nums max-sm:hidden"
+          className="font-mono text-[11px] text-muted tabular-nums max-sm:hidden"
           aria-live="polite"
           aria-atomic="true"
         >

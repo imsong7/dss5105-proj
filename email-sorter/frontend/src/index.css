@@ -1,23 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
 @theme {
-  /* Apple-style system stack: SF on Apple platforms, system UI elsewhere. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons",
-    "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  /* A graduate planner: serif headlines, a plain working sans, mono for dates and labels. */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Calm academic workspace: cool canvas, crisp paper surfaces, deep navy ink. */
-  --color-page: #f3f6fa;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f0f4f8;
-  --color-ink: #172033;
-  --color-muted: #667085;
-  --color-line: #dce3ec;
+  /* Warm paper, ink-black text, pencil-grey rules. */
+  --color-page: #f4f1ea;
+  --color-surface: #fdfcf8;
+  --color-surface-muted: #efebe1;
+  --color-ink: #1c1b18;
+  --color-muted: #6f6a5f;
+  --color-line: #e2dccf;
 
   /* NUS Blue (PMS 294 / #003D7C) is the primary interactive accent. */
-  --color-accent: #0756a3;
-  --color-accent-dark: #003d7c;
-  --color-accent-soft: #eaf3fc;
+  --color-accent: #003d7c;
+  --color-accent-dark: #002b5a;
+  --color-accent-soft: #e9edf2;
 
   /* NUS Orange (PMS 152 / #EF7C00) is a highlight, not a text colour. */
   --color-highlight: #ef7c00;
@@ -88,16 +89,16 @@
 }
 
 .app-shell {
-  background:
-    radial-gradient(circle at 8% 0%, rgba(7, 86, 163, 0.08), transparent 25rem),
-    radial-gradient(circle at 95% 12%, rgba(239, 124, 0, 0.055), transparent 22rem),
-    var(--color-page);
+  background: var(--color-page);
 }
 
-.workspace-card {
-  box-shadow:
-    0 1px 2px rgba(16, 24, 40, 0.04),
-    0 10px 32px rgba(16, 24, 40, 0.045);
+/* Small-caps style label used for dates, counts and section names. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Apple-style hairline scrollbars. */

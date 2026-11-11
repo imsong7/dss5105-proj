@@ -24,10 +24,10 @@ const WINDOWS: readonly { value: WindowDays; label: string }[] = [
 ];
 
 const SELECT =
-  "h-11 w-full appearance-none rounded-[10px] border border-line bg-surface pr-8 pl-3 text-[14px] font-medium text-ink shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none";
+  "h-11 w-full appearance-none rounded-md border border-line bg-surface pr-8 pl-3 text-[14px] font-medium text-ink hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none";
 
 const BUTTON =
-  "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-[10px] px-4 text-[14px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-md px-4 text-[14px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60";
 
 const MENU_ITEM =
   "flex min-h-11 w-full items-center rounded-lg px-2.5 text-left text-[14px] text-ink hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50";
@@ -373,7 +373,7 @@ function FiltersSheet({ view, className = "" }: { view: InboxView; className?: s
 
 export function InboxToolbar({ view }: { view: InboxView }) {
   return (
-    <section aria-label="Search, filter and sort mail" className="flex flex-col gap-2 rounded-2xl border border-line/80 bg-surface/70 p-2.5 shadow-sm backdrop-blur sm:p-3">
+    <section aria-label="Search, filter and sort mail" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative order-1 min-w-0 flex-1 basis-[calc(100%-56px)] sm:basis-[240px]">
           <label htmlFor="inbox-search" className="sr-only">
@@ -391,7 +391,7 @@ export function InboxToolbar({ view }: { view: InboxView }) {
             placeholder="Search sender, subject or message"
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-xl border border-line bg-surface pr-11 pl-9 text-[14px] text-ink shadow-sm placeholder:text-muted/70 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+            className="h-11 w-full rounded-md border border-line bg-surface pr-11 pl-9 text-[14px] text-ink placeholder:text-muted/80 hover:border-ink/30 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
           />
           {view.query ? (
             <button

@@ -48,15 +48,10 @@ export function EmailDetail({
         aria-label="Email details"
         className={`min-w-0 flex-1 flex-col lg:overflow-y-auto inbox-scroll ${className}`}
       >
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,rgba(7,86,163,0.06),transparent_55%)] p-10 text-center">
-          <span
-            className="grid h-14 w-14 place-items-center rounded-2xl bg-accent-soft text-accent ring-1 ring-accent/10"
-            aria-hidden="true"
-          >
-            <Mail className="h-5 w-5" />
-          </span>
-          <p className="text-[15px] font-bold text-ink">Choose a message to focus</p>
-          <p className="max-w-[36ch] text-[14px] leading-5 text-muted">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+          <Mail className="h-6 w-6 text-muted/70" aria-hidden="true" strokeWidth={1.5} />
+          <p className="font-display text-[22px] font-medium text-ink">Nothing open yet</p>
+          <p className="max-w-[36ch] text-[14px] leading-6 text-muted">
             Pick a message from the list to see its contents, classification
             reason, and any deadline found in the text.
           </p>
@@ -93,16 +88,16 @@ export function EmailDetail({
         </button>
       </div>
 
-      <article className="mx-auto flex min-w-0 w-full max-w-[760px] flex-1 flex-col p-5 sm:p-8 lg:p-10">
+      <article className="mx-auto flex w-full min-w-0 max-w-[720px] flex-1 flex-col p-5 sm:p-8 lg:px-12 lg:py-10">
         <div className="flex items-start gap-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-[14px] font-bold text-accent ring-1 ring-accent/10"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line font-display text-[15px] font-medium text-ink/70"
             aria-hidden="true"
           >
             {senderInitials(sender.name)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold text-ink">
+            <p className="text-[15px] font-semibold text-ink">
               {sender.name}
             </p>
             <p className="truncate text-[13px] text-muted">
@@ -110,14 +105,14 @@ export function EmailDetail({
             </p>
           </div>
           <time
-            className="hidden shrink-0 pt-0.5 text-[13px] text-muted sm:block"
+            className="hidden shrink-0 pt-1 font-mono text-[11px] text-muted sm:block"
             dateTime={receivedAt}
           >
             {formatFullDate(receivedAt)}
           </time>
         </div>
 
-        <p className="mt-2 text-[13px] text-muted sm:hidden">
+        <p className="mt-2 font-mono text-[11px] text-muted sm:hidden">
           {formatFullDate(receivedAt)}
         </p>
 
@@ -125,13 +120,13 @@ export function EmailDetail({
           id="email-detail-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="mt-5 text-[24px] leading-[1.25] font-bold tracking-[-0.025em] text-ink focus:outline-none sm:text-[30px]"
+          className="mt-6 font-display text-[28px] leading-[1.15] font-medium tracking-[-0.015em] text-balance text-ink focus:outline-none sm:text-[34px]"
         >
           {subject}
         </h2>
 
         {dates.length > 0 ? (
-          <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-highlight-line bg-highlight-soft px-3.5 py-3">
+          <div className="mt-5 flex items-start gap-3 rounded-md bg-highlight-soft px-4 py-3">
             <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-highlight-dark" aria-hidden="true" />
             <ul className="flex min-w-0 flex-1 flex-col gap-2">
               {dates.map((item, index) => (
@@ -161,7 +156,7 @@ export function EmailDetail({
               href={links[0].url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 text-[14px] font-semibold text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-ink/80 bg-surface px-3.5 text-[14px] font-semibold text-ink hover:bg-ink hover:text-page focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               {links[0].label}
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -192,7 +187,8 @@ export function EmailDetail({
 
         {classification ? (
           <>
-            <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-line/80 bg-surface-muted/55 p-3">
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4">
+              <span className="label text-muted">Sorted as</span>
               <CategoryBadge category={classification.category} size="md" />
               <StatusBadge action={classification.action} size="md" />
             </div>

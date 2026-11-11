@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from "react";
-import { AlertCircle, Inbox, Reply, Sparkles } from "lucide-react";
 
 import type { InboxView } from "../hooks/useInboxView";
 import type { ItemStates } from "../hooks/useItemStates";
@@ -9,6 +8,13 @@ import { MobileHero } from "./MobileHero";
 import { InboxToolbar } from "./InboxToolbar";
 import { NoticeBar } from "./NoticeBar";
 import { QuickFilters } from "./QuickFilters";
+
+const TODAY_LABEL = new Intl.DateTimeFormat("en-SG", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "Asia/Singapore",
+});
 
 interface InboxPageProps {
   view: InboxView;
@@ -98,36 +104,24 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
 
   return (
     <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 py-5 sm:px-6 lg:min-h-0 lg:px-8 lg:py-6">
-      <header className="hidden shrink-0 items-end justify-between gap-6 sm:flex">
+      <header className="hidden shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-2 border-b border-ink pb-3 sm:flex">
         <div>
-          <p className="mb-1 flex items-center gap-2 text-[12px] font-bold tracking-[0.1em] text-accent uppercase">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            AI-organised workspace
-          </p>
-          <h1 className="text-[30px] leading-tight font-bold tracking-[-0.035em] text-ink">Your inbox, prioritised</h1>
-          <p className="mt-1.5 text-[14px] text-muted">
-            Scan decisions, replies and deadlines without losing focus.
-          </p>
+          <p className="label text-muted">{TODAY_LABEL.format(new Date())}</p>
+          <h1 className="mt-1 font-display text-[40px] leading-none font-medium tracking-[-0.02em] text-ink">
+            Inbox
+          </h1>
         </div>
-        {view.hasLoaded ? (
-          <dl className="grid shrink-0 grid-cols-3 gap-2" aria-label="Inbox summary">
-            {[
-              { label: "All mail", value: view.total, icon: Inbox, tone: "text-accent bg-accent-soft" },
-              { label: "Action", value: view.counts.needs_action, icon: AlertCircle, tone: "text-action-now-fg bg-action-now-bg" },
-              { label: "Replies", value: view.counts.needs_reply, icon: Reply, tone: "text-action-reply-fg bg-action-reply-bg" },
-            ].map(({ label, value, icon: Icon, tone }) => (
-              <div key={label} className="flex min-w-[112px] items-center gap-2.5 rounded-xl border border-line/80 bg-surface/80 px-3 py-2.5 shadow-sm">
-                <span className={`grid h-8 w-8 place-items-center rounded-lg ${tone}`}>
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <span>
-                  <dt className="text-[11px] font-medium text-muted">{label}</dt>
-                  <dd className="text-[16px] font-bold leading-5 tabular-nums text-ink">{value}</dd>
-                </span>
-              </div>
-            ))}
-          </dl>
-        ) : null}
+        <p className="max-w-[46ch] text-[14px] leading-6 text-muted" aria-live="polite">
+          {view.hasLoaded ? (
+            <>
+              <span className="font-semibold text-ink tabular-nums">{view.total}</span> messages.{" "}
+              <span className="font-semibold text-action-now-fg tabular-nums">{view.counts.needs_action}</span> to act on,{" "}
+              <span className="font-semibold text-action-reply-fg tabular-nums">{view.counts.needs_reply}</span> waiting for your reply.
+            </>
+          ) : (
+            "Load your mail to see what needs you."
+          )}
+        </p>
       </header>
       {!showMobileDetail ? (
         <MobileHero
@@ -157,7 +151,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
       </div>
 
       <div
-        className={`workspace-card flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-line/90 bg-surface ${
+        className={`flex min-h-0 flex-1 overflow-hidden rounded-md border border-line bg-surface ${
           showMobileDetail ? "" : "max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none"
         }`}
       >

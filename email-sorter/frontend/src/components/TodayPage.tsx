@@ -113,10 +113,10 @@ function Section({
   const shown = all ? items : items.slice(0, SECTION_LIMIT);
 
   return (
-    <section className="lift rounded-xl border border-line bg-surface p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <h2 className="flex items-baseline gap-2 px-2 pt-2 pb-1 text-[14px] font-semibold text-ink">
-        <span className={tone}>{title}</span>
-        <span className="text-[12px] font-medium text-muted tabular-nums">
+    <section className="rounded-md border border-line bg-surface p-2">
+      <h2 className="flex items-baseline gap-2 border-b border-line px-2 pt-1.5 pb-2.5">
+        <span className={`label ${tone || "text-ink"}`}>{title}</span>
+        <span className="font-mono text-[11px] text-muted tabular-nums">
           {items.length}
         </span>
       </h2>
@@ -566,7 +566,7 @@ export function TodayPage({
                 </span>
               ) : null}
             </p>
-            <h1 className="mt-0.5 text-[27px] leading-tight font-semibold tracking-[-0.015em] sm:text-[24px]">
+            <h1 className="mt-1 font-display text-[30px] leading-tight font-medium tracking-[-0.015em] sm:text-[32px]">
               {theme.greeting}
               {name ? `, ${name}` : ""}
               <button

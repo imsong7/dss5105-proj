@@ -1,0 +1,10 @@
+{
+  "description": "Helps teams prepare newly imported projects for reliable deployment by verifying bootstrap setup and configuring deploy and preview workflows.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

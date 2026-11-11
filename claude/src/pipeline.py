@@ -19,12 +19,37 @@ class Result:
     source: str
     reason: str = ""
     rules_fired: list[str] = field(default_factory=list)
-    # Diagnostics propagated from the Claude API call (optional).
+    # Diagnostics of this call's Claude API invocation (none when no API call was made).
+    api_called: bool = False
     api_duration_ms: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    stop_reason: str | None = None
+    app_attempts: int = 0
     app_retry_attempts: int = 0
-    app_retry_wait_ms: int = 0
+    retry_call_ms: int = 0
+    retry_backoff_ms: int = 0
+    error: str | None = None
+    error_type: str | None = None
+
+
+def _diagnostics(info) -> dict:
+    """Result fields from a call's own CallInfo (empty when the callable gives none)."""
+    if info is None:
+        return {}
+    return dict(
+        api_called=info.api_called,
+        api_duration_ms=info.api_duration_ms,
+        input_tokens=info.input_tokens,
+        output_tokens=info.output_tokens,
+        stop_reason=info.stop_reason,
+        app_attempts=info.app_attempts,
+        app_retry_attempts=info.app_retry_attempts,
+        retry_call_ms=info.retry_call_ms,
+        retry_backoff_ms=info.retry_backoff_ms,
+        error=info.error,
+        error_type=info.error_type,
+    )
 
 
 def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None) -> Result:
@@ -34,11 +59,19 @@ def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None
     if rule.topic and rule.action:
         return Result(rule.topic, rule.action, 1.0, "shortcut", "matched a sender rule", rule.fired)
 
-    out = claude(rec.text) if claude else None
+    info = None
+    if claude is None:
+        out = None
+    elif hasattr(claude, "run"):        # returns its own per-call diagnostics
+        call = claude.run(rec.text)
+        out, info = call.labels, call.info
+    else:
+        out = claude(rec.text)
+    diag = _diagnostics(info)
     if out is None:
         # Claude unavailable or gave an invalid answer: send it up to review, never down.
         return Result(rule.topic or cfg["fallback_topic"], cfg["fallback_action"], 0.0, "fallback",
-                      "classification failed", rule.fired)
+                      "classification failed", rule.fired, **diag)
 
     topic = rule.topic or out.topic
     action = rule.action or out.action
@@ -46,16 +79,4 @@ def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None
         action = cfg["fallback_action"]
     if out.confidence < cfg["claude"].get("min_confidence", 0.5) and not rule.action:
         action = cfg["fallback_action"]          # unsure: send it up to review
-    return Result(
-        topic,
-        action,
-        out.confidence,
-        "claude",
-        out.reason,
-        rule.fired,
-        api_duration_ms=getattr(out, "api_duration_ms", None),
-        input_tokens=getattr(out, "input_tokens", None),
-        output_tokens=getattr(out, "output_tokens", None),
-        app_retry_attempts=getattr(out, "app_retry_attempts", 0),
-        app_retry_wait_ms=getattr(out, "app_retry_wait_ms", 0),
-    )
+    return Result(topic, action, out.confidence, "claude", out.reason, rule.fired, **diag)

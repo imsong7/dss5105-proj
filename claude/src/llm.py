@@ -23,12 +23,36 @@ class Labels:
     action: str
     confidence: float
     reason: str
-    # Diagnostics (optional, added without changing call sites).
-    api_duration_ms: int | None = None
+
+
+@dataclass
+class CallInfo:
+    """Diagnostics of ONE invocation. Local to the call, so concurrent calls never mix.
+
+    Holds no email content, addresses, ids or credentials.
+    """
+    api_called: bool = False              # set right before the API is invoked
+    api_failed: bool = False              # the call itself failed (key, quota, network)
+    api_duration_ms: int | None = None    # elapsed over all application attempts, kept on failure
+    app_attempts: int = 0                 # application-level API invocations (SDK retries not counted)
+    retry_call_ms: int = 0                # duration of the application retry call(s)
+    retry_backoff_ms: int = 0             # time slept between attempts (the app does not sleep)
     input_tokens: int | None = None
     output_tokens: int | None = None
-    app_retry_attempts: int = 0
-    app_retry_wait_ms: int = 0
+    stop_reason: str | None = None
+    error: str | None = None              # user-facing reason, as before
+    error_type: str | None = None         # exception class or parse failure kind, safe to log
+    raw_text: str = ""                    # model answer; never logged
+
+    @property
+    def app_retry_attempts(self) -> int:
+        return max(0, self.app_attempts - 1)
+
+
+@dataclass
+class CallResult:
+    labels: "Labels | None"
+    info: CallInfo
 
 
 def build_action_system_prompt(cfg: dict) -> str:
@@ -161,54 +185,64 @@ class ClaudeClassifier:
             **kwargs,
         )
 
-    def __call__(self, text: str) -> Labels | None:
-        self.api_failed = False
-        self.last_raw_text = ""
-        self.last_usage = {"input_tokens": None, "output_tokens": None}
-        self.last_stop_reason = None
+    def run(self, text: str) -> CallResult:
+        """Classify one email. All diagnostics are returned, none are read from shared state."""
+        info = CallInfo()
         if not self.enabled:
-            self.last_error = "ANTHROPIC_API_KEY or the model name is not set"
-            self.api_failed = True
-            return None
+            info.error = "ANTHROPIC_API_KEY or the model name is not set"
+            info.error_type = "not_configured"
+            info.api_failed = True
+            return CallResult(None, info)
         safe = text.replace("</email>", "</ email>")  # keep the email inside its tags
         api_start = time.perf_counter()
-        retry_attempts = 0
-        retry_wait_ms = 0
         try:
             try:
+                info.api_called = True
+                info.app_attempts = 1
                 resp = self._create(safe)
             except Exception as e:
                 # Models without the thinking parameter reject it: retry without.
                 if self._thinking_kwargs() and "thinking" in str(e).lower():
-                    retry_attempts = 1
                     retry_start = time.perf_counter()
-                    resp = self._create(safe, with_thinking=False)
-                    retry_wait_ms = int((time.perf_counter() - retry_start) * 1000)
+                    info.app_attempts = 2
+                    try:
+                        resp = self._create(safe, with_thinking=False)
+                    finally:
+                        info.retry_call_ms = int((time.perf_counter() - retry_start) * 1000)
                 else:
                     raise
-            api_duration_ms = int((time.perf_counter() - api_start) * 1000)
+            info.api_duration_ms = int((time.perf_counter() - api_start) * 1000)
             raw = self._answer_text(resp)
-            self.last_raw_text = raw
+            info.raw_text = raw
             usage = getattr(resp, "usage", None)
-            self.last_usage = {
-                "input_tokens": getattr(usage, "input_tokens", None),
-                "output_tokens": getattr(usage, "output_tokens", None),
-            }
-            self.last_stop_reason = getattr(resp, "stop_reason", None)
+            info.input_tokens = getattr(usage, "input_tokens", None)
+            info.output_tokens = getattr(usage, "output_tokens", None)
+            info.stop_reason = getattr(resp, "stop_reason", None)
             out = parse_labels(raw, self.cfg, self.action_only)
-            if out is None and self.last_stop_reason == "max_tokens":
-                self.last_error = "Claude's answer was cut off by max_tokens"
-            else:
-                self.last_error = None if out else "Claude's answer was not valid JSON with known labels"
-            if out is not None:
-                out.api_duration_ms = api_duration_ms
-                out.input_tokens = self.last_usage["input_tokens"]
-                out.output_tokens = self.last_usage["output_tokens"]
-                out.app_retry_attempts = retry_attempts
-                out.app_retry_wait_ms = retry_wait_ms
-            return out
+            if out is None and info.stop_reason == "max_tokens":
+                info.error = "Claude's answer was cut off by max_tokens"
+                info.error_type = "max_tokens"
+            elif out is None:
+                info.error = "Claude's answer was not valid JSON with known labels"
+                info.error_type = "invalid_response"
+            return CallResult(out, info)
         except Exception as e:  # auth, quota, network: never crash the sync
-            self.last_error = f"{type(e).__name__}: {str(e)[:200]}"
-            self.api_failed = True
-            log.warning("Claude call failed: %s", self.last_error)
-            return None
+            if info.api_duration_ms is None:
+                info.api_duration_ms = int((time.perf_counter() - api_start) * 1000)
+            info.error = f"{type(e).__name__}: {str(e)[:200]}"
+            info.error_type = type(e).__name__
+            info.api_failed = True
+            log.warning("Claude call failed: %s", info.error)
+            return CallResult(None, info)
+
+    def __call__(self, text: str) -> Labels | None:
+        """Labels only. The last_* attributes are a convenience copy of the latest call
+        for the benchmark and are NOT request-specific: use run() for per-call results."""
+        result = self.run(text)
+        info = result.info
+        self.api_failed = info.api_failed
+        self.last_error = info.error
+        self.last_raw_text = info.raw_text
+        self.last_usage = {"input_tokens": info.input_tokens, "output_tokens": info.output_tokens}
+        self.last_stop_reason = info.stop_reason
+        return result.labels

@@ -168,3 +168,124 @@ def test_shortcuts_off_by_default_but_work_when_on(cfg):
 
 
 
+
+
+# ---------- per-call diagnostics (no shared state, accurate metrics) ----------
+
+import threading
+import time
+
+
+def _enabled_clf(cfg, monkeypatch, client, **kw):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    clf = ClaudeClassifier(cfg, **kw)
+    clf._client = client
+    return clf
+
+
+def test_concurrent_calls_keep_their_own_diagnostics(cfg, monkeypatch):
+    """Two overlapping calls with different usage/errors must not see each other's values."""
+    barrier = threading.Barrier(2)
+
+    class Messages:
+        def create(self, **kw):
+            text = kw["messages"][0]["content"]
+            barrier.wait(timeout=5)             # force both calls to be in flight together
+            if "BAD" in text:
+                time.sleep(0.03)
+                raise RuntimeError("boom")
+            return fake_response(input_tokens=111, output_tokens=7)
+
+    clf = _enabled_clf(cfg, monkeypatch, SimpleNamespace(messages=Messages()))
+    results = {}
+
+    def go(key, text):
+        results[key] = classify(to_record(msg(body=text), ME, cfg), cfg, clf)
+
+    threads = [threading.Thread(target=go, args=("ok", "fine")), threading.Thread(target=go, args=("bad", "BAD"))]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+
+    ok, bad = results["ok"], results["bad"]
+    assert (ok.source, ok.input_tokens, ok.output_tokens, ok.error) == ("claude", 111, 7, None)
+    assert (bad.source, bad.input_tokens, bad.error_type) == ("fallback", None, "RuntimeError")
+    assert "boom" in bad.error and bad.api_called and bad.api_duration_ms >= 25
+
+
+def test_failure_keeps_elapsed_time_and_api_called(cfg, monkeypatch):
+    class Messages:
+        def create(self, **kw):
+            time.sleep(0.03)
+            raise ConnectionError("down")
+
+    clf = _enabled_clf(cfg, monkeypatch, SimpleNamespace(messages=Messages()))
+    r = classify(to_record(msg(), ME, cfg), cfg, clf)
+    assert r.source == "fallback" and r.api_called and r.app_attempts == 1
+    assert r.api_duration_ms >= 25 and r.error_type == "ConnectionError"
+
+
+def test_retry_separates_call_time_from_backoff(cfg, monkeypatch):
+    calls = []
+
+    class Messages:
+        def create(self, **kw):
+            calls.append(kw)
+            time.sleep(0.03)
+            if "thinking" in kw:
+                raise ValueError("thinking is not supported by this model")
+            return fake_response(input_tokens=50, output_tokens=5)
+
+    clf = _enabled_clf(cfg, monkeypatch, SimpleNamespace(messages=Messages()))
+    r = classify(to_record(msg(), ME, cfg), cfg, clf)
+    assert r.source == "claude" and len(calls) == 2
+    assert (r.app_attempts, r.app_retry_attempts) == (2, 1)
+    assert r.retry_call_ms >= 25 and r.retry_backoff_ms == 0      # the app never sleeps between attempts
+    assert r.api_duration_ms >= r.retry_call_ms + 25              # total covers the first attempt too
+
+
+def test_retry_that_also_fails_keeps_both_timings(cfg, monkeypatch):
+    class Messages:
+        def create(self, **kw):
+            time.sleep(0.02)
+            raise ValueError("thinking rejected" if "thinking" in kw else "still broken")
+
+    clf = _enabled_clf(cfg, monkeypatch, SimpleNamespace(messages=Messages()))
+    r = classify(to_record(msg(), ME, cfg), cfg, clf)
+    assert r.source == "fallback" and r.app_attempts == 2 and r.retry_call_ms >= 15
+    assert r.api_duration_ms >= 35 and r.error_type == "ValueError"
+
+
+def test_malformed_answer_keeps_usage_and_error_kind(cfg, monkeypatch):
+    client, _ = fake_client(fake_response(text="not json", input_tokens=80, output_tokens=3))
+    clf = _enabled_clf(cfg, monkeypatch, client)
+    r = classify(to_record(msg(), ME, cfg), cfg, clf)
+    assert r.source == "fallback" and r.api_called
+    assert (r.input_tokens, r.output_tokens, r.error_type) == (80, 3, "invalid_response")
+    assert r.api_duration_ms is not None
+
+
+def test_truncated_answer_reports_max_tokens_per_call(cfg, monkeypatch):
+    client, _ = fake_client(fake_response(text='{"topic": "Others", "action":', stop_reason="max_tokens"))
+    r = classify(to_record(msg(), ME, cfg), cfg, _enabled_clf(cfg, monkeypatch, client))
+    assert r.error_type == "max_tokens" and r.stop_reason == "max_tokens"
+
+
+def test_no_api_key_means_no_api_call(cfg, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    r = classify(to_record(msg(), ME, cfg), cfg, ClaudeClassifier(cfg))
+    assert r.source == "fallback" and r.api_called is False and r.api_duration_ms is None
+
+
+def test_shortcut_makes_no_api_call(cfg):
+    rec = to_record(msg(sender="notifications@instructure.com", subject="Assignment due tomorrow"), ME, cfg)
+    on = {**cfg, "rules": {**cfg["rules"], "use_shortcuts": True}}
+    r = classify(rec, on, FakeClaude(Labels("Others", "No action needed", 0.9, "")))
+    assert r.source == "shortcut" and r.api_called is False
+
+
+def test_action_only_prompt_and_parse(cfg, monkeypatch):
+    client, calls = fake_client(fake_response(text='{"action": "Needs a reply", "confidence": 0.8}'))
+    clf = _enabled_clf(cfg, monkeypatch, client, action_only=True)
+    r = classify(to_record(msg(), ME, cfg), cfg, clf)
+    assert (r.action, r.source) == ("Needs a reply", "claude")
+    assert "TOPICS" not in calls[0]["system"] and calls[0]["max_tokens"] == 64

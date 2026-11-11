@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { InboxEmail } from "../domain/email";
 import type { ActionKey, CategoryKey } from "../domain/taxonomy";
@@ -19,19 +19,22 @@ interface CorrectionControlProps {
   ) => Promise<void>;
   onUndo: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
+  /** Shown before the fix link while not editing, e.g. the "Why?" toggle. */
+  extra?: ReactNode;
 }
 
 const SELECT =
   "mt-1 h-11 w-full rounded-[10px] border border-line bg-surface px-3 text-[14px] text-ink focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none";
 
 const LINK =
-  "inline-flex min-h-11 items-center rounded-lg px-1 text-[13px] font-medium text-accent underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60";
+  "inline-flex min-h-11 items-center rounded-lg px-1.5 text-[13px] sm:min-h-8 font-medium text-accent underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60";
 
 export function CorrectionControl({
   email,
   onCorrect,
   onUndo,
   onRemoveRule,
+  extra,
 }: CorrectionControlProps) {
   const current = email.classification;
   const [editing, setEditing] = useState(false);
@@ -61,7 +64,7 @@ export function CorrectionControl({
 
   if (!editing) {
     return (
-      <div className="mt-2 flex flex-wrap items-center gap-x-3">
+      <div className="ml-auto flex flex-wrap items-center gap-x-1">
         {current.byRule ? (
           <>
             <span className="text-[13px] text-muted">Your rule for this sender</span>
@@ -88,6 +91,7 @@ export function CorrectionControl({
             </button>
           </>
         ) : null}
+        {extra}
         <button
           type="button"
           onClick={() => {
@@ -99,7 +103,7 @@ export function CorrectionControl({
           }}
           className={LINK}
         >
-          {current.corrected ? "Change again" : "Not right? Fix it"}
+          {current.corrected ? "Change again" : "Fix label"}
         </button>
         {error ? (
           <span role="alert" className="text-[13px] text-action-now-fg">
@@ -112,7 +116,7 @@ export function CorrectionControl({
 
   return (
     <form
-      className="mt-3 rounded-[10px] border border-line bg-surface p-3.5"
+      className="mt-2 w-full basis-full rounded-[10px] border border-line bg-surface p-3.5"
       onSubmit={(event) => {
         event.preventDefault();
         void run(

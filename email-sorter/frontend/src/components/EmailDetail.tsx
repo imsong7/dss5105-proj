@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useId, useState, type ComponentProps, type RefObject } from "react";
 import { ArrowLeft, CalendarClock, ExternalLink, Mail } from "lucide-react";
 
 import type { InboxEmail, ReplyDraft } from "../domain/email";
@@ -186,30 +186,13 @@ export function EmailDetail({
         ) : null}
 
         {classification ? (
-          <>
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3">
-              <span className="label text-muted">Sorted as</span>
-              <CategoryBadge category={classification.category} size="md" />
-              <StatusBadge action={classification.action} size="md" />
-            </div>
-
-            <CorrectionControl
-              key={email.id}
-              email={email}
-              onCorrect={onCorrect}
-              onUndo={onUndoCorrection}
-              onRemoveRule={onRemoveRule}
-            />
-
-            {classification.reason ? (
-              <details className="mt-1">
-                <summary className="inline-flex min-h-11 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
-                  Why this label?
-                </summary>
-                <p className="text-[14px] leading-6 text-ink/85">{classification.reason}</p>
-              </details>
-            ) : null}
-          </>
+          <SortedAs
+            key={email.id}
+            email={email}
+            onCorrect={onCorrect}
+            onUndo={onUndoCorrection}
+            onRemoveRule={onRemoveRule}
+          />
         ) : (
           <p
             className={`mt-3 text-[13px] ${email.classifyError ? "text-action-now-fg" : "text-muted"}`}
@@ -237,5 +220,46 @@ export function EmailDetail({
 
       </article>
     </section>
+  );
+}
+
+type SortedAsProps = Omit<ComponentProps<typeof CorrectionControl>, "extra">;
+
+/** One compact line: what the email was sorted as, plus "Why?" and "Fix label". */
+function SortedAs(props: SortedAsProps) {
+  const classification = props.email.classification;
+  const [showReason, setShowReason] = useState(false);
+  const reasonId = useId();
+  if (!classification) return null;
+
+  return (
+    <div className="mt-3 border-t border-line pt-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span className="label text-muted">Sorted as</span>
+        <CategoryBadge category={classification.category} />
+        <StatusBadge action={classification.action} />
+        <CorrectionControl
+          {...props}
+          extra={
+            classification.reason ? (
+              <button
+                type="button"
+                aria-expanded={showReason}
+                aria-controls={reasonId}
+                onClick={() => setShowReason((open) => !open)}
+                className="inline-flex min-h-11 items-center rounded-lg px-1.5 text-[13px] text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none sm:min-h-8"
+              >
+                Why?
+              </button>
+            ) : null
+          }
+        />
+      </div>
+      {classification.reason && showReason ? (
+        <p id={reasonId} className="mt-1 text-[13px] leading-5 text-ink/80">
+          {classification.reason}
+        </p>
+      ) : null}
+    </div>
   );
 }

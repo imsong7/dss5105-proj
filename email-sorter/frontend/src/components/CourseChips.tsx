@@ -52,7 +52,6 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
       className="flex gap-[3px] overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tiles.map((tile) => {
-        const soon = tile.next !== undefined && daysBetween(today, tile.next) <= 1;
         const nextText = tile.next ? `next ${shortWhen(tile.next, today)}` : "nothing due";
 
         return (
@@ -63,18 +62,9 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
               title={`${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               aria-label={`Open course ${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               style={courseStyle(tile.hue)}
-              className="flex h-8 w-full items-center justify-center gap-1 rounded-[5px] bg-[var(--course-bg)] px-2 text-[11px] font-bold tracking-[0.02em] whitespace-nowrap text-[var(--course-text)] transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              className="flex h-8 w-full items-center justify-center rounded-[5px] bg-[var(--course-bg)] px-2 text-[11px] font-bold tracking-[0.02em] whitespace-nowrap text-[var(--course-text)] transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
               {tile.code}
-              {tile.thisWeek > 0 ? (
-                <span
-                  className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] tabular-nums ${
-                    soon ? "bg-surface text-highlight-dark" : "opacity-70"
-                  }`}
-                >
-                  {tile.thisWeek}
-                </span>
-              ) : null}
             </button>
           </li>
         );

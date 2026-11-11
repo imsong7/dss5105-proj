@@ -13,7 +13,6 @@ import {
   addDays,
   formatDayLong,
   formatItemCount,
-  formatTime,
   monthTitle,
   WEEKDAY_LABELS,
 } from "../domain/calendar";
@@ -166,7 +165,7 @@ export function CalendarMonth({
         {cells.map((cell) => {
           const deadlines = deadlinesByDate.get(cell.date) ?? [];
           const markers = academicMarkers(cell.date);
-          const shownDeadlines = deadlines.slice(0, 2);
+          const shownDeadlines = deadlines.slice(0, 3);
           const hidden = deadlines.length - shownDeadlines.length;
           const isSelected = cell.date === selectedDate;
           const isToday = cell.date === todayKey;
@@ -231,7 +230,7 @@ export function CalendarMonth({
                       key={deadline.id}
                       title={deadline.subject}
                       style={courseStyle(deadline.hue)}
-                      className={`min-w-0 rounded-[5px] px-1.5 py-1 ${
+                      className={`min-w-0 rounded-[5px] px-1.5 py-0.5 ${
                         deadline.hue !== undefined
                           ? "bg-[var(--course-bg)]"
                           : deadline.personal
@@ -249,18 +248,6 @@ export function CalendarMonth({
                         {deadline.course
                           ? titleWithoutCourse(deadline.subject)
                           : deadline.subject}
-                      </span>
-                      <span
-                        className={`block truncate text-[11px] leading-[13px] ${
-                          deadline.hue !== undefined
-                            ? "text-[var(--course-text)]/80"
-                            : deadline.personal
-                              ? "text-accent-dark"
-                              : "text-highlight-dark"
-                        }`}
-                      >
-                        {deadline.course ?? deadline.label} ·{" "}
-                        {formatTime(deadline.time)}
                       </span>
                     </span>
                   ))}

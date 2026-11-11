@@ -634,10 +634,12 @@ export function TodayPage({
             />
 
             {exams.length > 0 ? (
-              <ul aria-label="Exam countdown" className="flex flex-col gap-2">
+              <ul
+                aria-label="Exam countdown"
+                className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface"
+              >
                 {exams.map((exam) => {
                   const days = daysBetween(today, exam.date);
-                  const close = days <= 7;
                   return (
                     <li key={exam.id}>
                       <button
@@ -645,34 +647,20 @@ export function TodayPage({
                         onClick={() =>
                           exam.emailId ? onOpenEmail(exam.emailId) : onOpenDate(exam.date)
                         }
-                        className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                        className="flex min-h-10 w-full items-center gap-2 px-3 text-left text-[12px] transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
                       >
-                        <span className="flex w-11 shrink-0 flex-col items-center leading-none">
-                          {days === 0 ? (
-                            <span className="text-[13px] font-bold text-action-now-fg">Today</span>
-                          ) : (
-                            <>
-                              <span
-                                className={`text-[22px] font-bold tabular-nums ${
-                                  close ? "text-action-now-fg" : "text-ink"
-                                }`}
-                              >
-                                {days}
-                              </span>
-                              <span className="mt-1 text-[10px] font-medium text-muted">
-                                {days === 1 ? "day" : "days"}
-                              </span>
-                            </>
-                          )}
-                        </span>
-                        <span className="h-8 w-px shrink-0 bg-line" aria-hidden="true" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-ink">
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="font-semibold text-ink">
                             {exam.course ? `${exam.course} exam` : examName(exam.subject)}
                           </span>
-                          <span className="block truncate text-[12px] text-muted">
-                            {formatDayShort(exam.date)} · {formatTime(exam.time)}
-                          </span>
+                          <span className="text-muted"> · {formatDayShort(exam.date)}</span>
+                        </span>
+                        <span
+                          className={`shrink-0 font-semibold tabular-nums ${
+                            days <= 7 ? "text-action-now-fg" : "text-muted"
+                          }`}
+                        >
+                          {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days} days`}
                         </span>
                       </button>
                     </li>

@@ -15,6 +15,7 @@ import {
 import type { CalendarDeadline } from "../domain/calendar";
 import {
   addDays,
+  daysBetween,
   formatDayShort,
   formatTime,
   relativeDay,
@@ -633,23 +634,47 @@ export function TodayPage({
             />
 
             {exams.length > 0 ? (
-              <ul aria-label="Exam countdown" className="flex flex-wrap gap-2">
+              <ul aria-label="Exam countdown" className="flex flex-col gap-2">
                 {exams.map((exam) => {
-                  const when = relativeDay(exam.date, today);
+                  const days = daysBetween(today, exam.date);
+                  const close = days <= 7;
                   return (
-                    <li
-                      key={exam.id}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-highlight-line bg-highlight-soft px-3.5 text-[13px] text-ink"
-                    >
-                      {exam.course ? (
-                        <CourseToken code={exam.course} hue={exam.hue} />
-                      ) : null}
-                      <span className="max-w-[200px] truncate font-semibold">
-                        {exam.course ? "Exam" : examName(exam.subject)}
-                      </span>
-                      <span className="shrink-0 text-highlight-dark">
-                        {when.text.toLowerCase()}
-                      </span>
+                    <li key={exam.id}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          exam.emailId ? onOpenEmail(exam.emailId) : onOpenDate(exam.date)
+                        }
+                        className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                      >
+                        <span className="flex w-11 shrink-0 flex-col items-center leading-none">
+                          {days === 0 ? (
+                            <span className="text-[13px] font-bold text-action-now-fg">Today</span>
+                          ) : (
+                            <>
+                              <span
+                                className={`text-[22px] font-bold tabular-nums ${
+                                  close ? "text-action-now-fg" : "text-ink"
+                                }`}
+                              >
+                                {days}
+                              </span>
+                              <span className="mt-1 text-[10px] font-medium text-muted">
+                                {days === 1 ? "day" : "days"}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                        <span className="h-8 w-px shrink-0 bg-line" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-semibold text-ink">
+                            {exam.course ? `${exam.course} exam` : examName(exam.subject)}
+                          </span>
+                          <span className="block truncate text-[12px] text-muted">
+                            {formatDayShort(exam.date)} · {formatTime(exam.time)}
+                          </span>
+                        </span>
+                      </button>
                     </li>
                   );
                 })}

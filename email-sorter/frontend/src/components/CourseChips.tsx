@@ -49,27 +49,28 @@ export function CourseChips({ courses, deadlines, isDone, today }: CourseChipsPr
   return (
     <ul
       aria-label="Your courses"
-      className="flex divide-x divide-line overflow-x-auto rounded-lg border border-line bg-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex gap-[3px] overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tiles.map((tile) => {
         const soon = tile.next !== undefined && daysBetween(today, tile.next) <= 1;
         const nextText = tile.next ? `next ${shortWhen(tile.next, today)}` : "nothing due";
 
         return (
-          <li key={tile.code} className="min-w-[76px] flex-1">
+          <li key={tile.code} className="min-w-[64px] flex-1">
             <button
               type="button"
               onClick={() => openCourse?.(tile.code)}
               title={`${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               aria-label={`Open course ${tile.code}: ${tile.thisWeek} due this week, ${nextText}`}
               style={courseStyle(tile.hue)}
-              className="flex h-10 w-full items-center justify-center gap-1.5 px-2 text-[12px] font-bold tracking-[0.02em] whitespace-nowrap text-ink transition-colors hover:bg-[var(--course-bg)] hover:text-[var(--course-text)] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+              className="flex h-8 w-full items-center justify-center gap-1 rounded-[5px] bg-[var(--course-bg)] px-2 text-[11px] font-bold tracking-[0.02em] whitespace-nowrap text-[var(--course-text)] transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--course-accent)]" aria-hidden="true" />
               {tile.code}
               {tile.thisWeek > 0 ? (
                 <span
-                  className={`text-[11px] tabular-nums ${soon ? "text-highlight-dark" : "font-semibold text-muted"}`}
+                  className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] tabular-nums ${
+                    soon ? "bg-surface text-highlight-dark" : "opacity-70"
+                  }`}
                 >
                   {tile.thisWeek}
                 </span>

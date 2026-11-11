@@ -2,19 +2,11 @@ import { Check } from "lucide-react";
 
 import { relativeDay, todayKey } from "../domain/calendar";
 import type { InboxEmail } from "../domain/email";
-import type { ActionKey } from "../domain/taxonomy";
-import { formatListDate } from "../lib/format";
+import { formatListTime } from "../lib/format";
 import { bodySnippet, highlight } from "../lib/highlight";
 import { CategoryBadge } from "./CategoryBadge";
 import { StatusBadge } from "./StatusBadge";
 import { SwipeRow } from "./SwipeRow";
-
-const ACTION_DOT: Record<ActionKey, string> = {
-  needs_action: "bg-action-now-fg",
-  needs_reply: "bg-action-reply-fg",
-  reminder: "bg-action-reminder-fg",
-  no_immediate_action: "bg-transparent ring-1 ring-muted/50",
-};
 
 interface EmailListItemProps {
   email: InboxEmail;
@@ -57,28 +49,19 @@ export function EmailListItem({
         }}
         onClick={() => onSelect(email.id)}
         aria-current={selected ? "true" : undefined}
-        className={`grid w-full grid-cols-[52px_minmax(0,1fr)] gap-x-3 border-b border-b-line py-3.5 pr-12 pl-4 text-left transition-colors max-sm:rounded-xl max-sm:border max-sm:border-line max-sm:bg-surface ${done ? "opacity-50" : ""} focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-visible:outline-none ${
+        className={`block w-full border-b border-b-line py-3 pr-4 pl-4 text-left transition-colors max-sm:rounded-xl max-sm:border max-sm:border-line max-sm:bg-surface ${done ? "opacity-50" : ""} focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-visible:outline-none ${
           selected ? "bg-surface-muted max-sm:bg-surface max-sm:ring-1 max-sm:ring-ink/30" : "hover:bg-surface-muted/60"
         }`}
       >
-        <span className="flex flex-col items-start gap-2 pt-[3px]">
-          <time className="text-[12px] leading-4 text-muted tabular-nums" dateTime={receivedAt}>
-            {formatListDate(receivedAt)}
-          </time>
-          {classification ? (
-            <span
-              className={`h-2 w-2 rounded-full ${ACTION_DOT[classification.action]}`}
-              aria-hidden="true"
-            />
-          ) : null}
-        </span>
-
-        <span className="min-w-0">
-          <span data-role="sender" className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-[13px] font-medium text-ink/80">
+        <span className="block min-w-0">
+          <span data-role="sender" className="flex min-w-0 items-baseline gap-3">
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink/80">
               {highlight(sender.name, query)}
             </span>
             {selected ? <span className="sr-only">(selected)</span> : null}
+            <time className="shrink-0 text-[12px] text-muted tabular-nums" dateTime={receivedAt}>
+              {formatListTime(receivedAt)}
+            </time>
           </span>
           <span
             data-role="subject"
@@ -92,7 +75,7 @@ export function EmailListItem({
             </span>
           ) : null}
 
-          <span className="mt-2 flex min-h-[18px] flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="mt-2 flex min-h-[18px] flex-wrap items-center gap-x-4 gap-y-1 pr-10">
             {classification ? (
               <>
                 <StatusBadge action={classification.action} />
@@ -122,7 +105,7 @@ export function EmailListItem({
         aria-label={done ? "Mark as not handled" : "Mark as handled"}
         title={done ? "Mark as not handled" : "Mark as handled"}
         onClick={() => onToggleDone(email.id, !done)}
-        className={`absolute top-3 right-2 grid h-10 w-10 place-items-center rounded-full border transition-opacity hover:border-ink hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-lg:opacity-100 ${
+        className={`absolute right-2 bottom-1.5 grid h-9 w-9 place-items-center rounded-full border transition-opacity hover:border-ink hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-lg:opacity-100 ${
           done
             ? "border-ink bg-ink text-page opacity-100"
             : "border-line text-muted opacity-0 group-hover:opacity-100"

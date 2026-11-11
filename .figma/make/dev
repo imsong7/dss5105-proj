@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export MODEL_BACKEND=encoder
+export MAIL_PROVIDER=graphtoken
+
+exec .venv/bin/python email-sorter/run.py \
+  --host 0.0.0.0 \
+  --port "$PORT" \
+  --backend encoder \
+  --provider graphtoken \
+  --no-tunnel

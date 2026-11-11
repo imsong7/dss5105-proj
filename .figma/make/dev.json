@@ -1,0 +1,10 @@
+{
+  "installOn": [
+    "requirements.txt",
+    "email-sorter/frontend/package.json",
+    "email-sorter/frontend/package-lock.json"
+  ],
+  "restartOn": [
+    "email-sorter/**/*.py"
+  ]
+}

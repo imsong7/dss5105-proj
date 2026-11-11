@@ -111,32 +111,28 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
         />
       ) : null}
 
-      {/* Wide screens: filter tabs and search share one row; narrower ones stack them. */}
       <div className={`flex shrink-0 flex-col gap-2.5 ${showMobileDetail ? "max-lg:hidden" : ""}`}>
-        <div className="flex flex-col gap-2.5 min-[1400px]:flex-row min-[1400px]:items-end min-[1400px]:gap-6">
-          <div className="order-2 min-w-0 min-[1400px]:order-1 min-[1400px]:flex-1">
-            <QuickFilters
-              action={view.action}
-              onActionChange={view.setAction}
-              counts={view.counts}
-              total={view.total}
-              visibleCount={view.visibleCount}
-              hasActiveFilters={view.hasActiveFilters}
-              onClearFilters={view.clearFilters}
-            />
-          </div>
-          <div className="order-1 min-[1400px]:order-2 min-[1400px]:w-[760px] min-[1400px]:shrink-0">
-            <InboxToolbar view={view} />
-          </div>
-        </div>
+        <InboxToolbar view={view} />
         <NoticeBar notice={view.notice} onDismiss={view.dismissNotice} />
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 overflow-hidden rounded-md border border-line bg-surface ${
-          showMobileDetail ? "" : "max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none"
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface ${
+          showMobileDetail ? "" : "max-sm:overflow-visible max-sm:border-0 max-sm:bg-transparent"
         }`}
       >
+        {/* The filter tabs head the mail card, lined up with the list below. */}
+        <QuickFilters
+          action={view.action}
+          onActionChange={view.setAction}
+          counts={view.counts}
+          total={view.total}
+          visibleCount={view.visibleCount}
+          hasActiveFilters={view.hasActiveFilters}
+          onClearFilters={view.clearFilters}
+          className={`shrink-0 max-sm:mb-2.5 ${showMobileDetail ? "max-lg:hidden" : ""}`}
+        />
+        <div className="flex min-h-0 flex-1">
         <EmailList
           emails={view.visibleEmails}
           selectedId={view.selectedId}
@@ -165,6 +161,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
           headingRef={headingRef}
           className={showMobileDetail ? "flex" : "hidden lg:flex"}
         />
+        </div>
       </div>
     </main>
   );

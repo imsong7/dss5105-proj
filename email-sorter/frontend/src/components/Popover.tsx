@@ -12,7 +12,7 @@ interface PopoverProps {
 }
 
 export const FIELD_BUTTON =
-  "inline-flex h-11 items-center gap-1.5 rounded-[10px] border bg-surface px-3 text-[14px] font-medium text-ink shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none";
+  "inline-flex h-11 items-center gap-1.5 rounded-lg border bg-surface px-3 text-[13px] font-medium text-ink transition-colors sm:h-9 hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none";
 
 /**
  * Small dropdown panel: closes on outside click or Escape. On a phone it opens

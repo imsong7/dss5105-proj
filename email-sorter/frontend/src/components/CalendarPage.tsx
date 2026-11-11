@@ -83,7 +83,7 @@ export function CalendarPage({
         <button
           type="button"
           onClick={() => setDialog({ mode: "new", date: view.selectedDate })}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[14px] font-semibold text-white transition-colors max-sm:hidden hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none"
+          className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-[13px] font-semibold sm:h-9 text-white transition-colors max-sm:hidden hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add event
@@ -91,7 +91,7 @@ export function CalendarPage({
         <div
           role="group"
           aria-label="Calendar layout"
-          className="inline-flex rounded-[10px] bg-surface-muted p-0.5 max-sm:flex-1"
+          className="inline-flex rounded-lg bg-surface-muted p-0.5 max-sm:flex-1"
         >
           {(["month", "agenda"] as const).map((option) => (
             <button
@@ -99,7 +99,7 @@ export function CalendarPage({
               type="button"
               aria-pressed={mode === option}
               onClick={() => chooseMode(option)}
-              className={`min-h-11 rounded-[8px] px-3.5 text-[13px] capitalize max-sm:flex-1 transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+              className={`h-10 rounded-md px-3.5 text-[13px] capitalize sm:h-8 max-sm:flex-1 transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                 mode === option
                   ? "bg-surface font-semibold text-accent shadow-[0_1px_3px_rgba(0,0,0,0.10)]"
                   : "font-medium text-muted hover:text-ink"

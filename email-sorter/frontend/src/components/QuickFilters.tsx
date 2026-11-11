@@ -9,6 +9,7 @@ interface QuickFiltersProps {
   visibleCount: number;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  className?: string;
 }
 
 const QUICK_FILTERS = [
@@ -38,11 +39,12 @@ export function QuickFilters({
   visibleCount,
   hasActiveFilters,
   onClearFilters,
+  className = "",
 }: QuickFiltersProps) {
   return (
     <section
       aria-label="Quick filters"
-      className="flex flex-col gap-1 border-b border-line sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-2"
+      className={`flex flex-col gap-1 border-b border-line sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:px-4 ${className}`}
     >
       <div className="-mx-4 flex gap-6 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
       {QUICK_FILTERS.map(({ key, label, dot }) => {
@@ -55,7 +57,7 @@ export function QuickFilters({
             type="button"
             aria-pressed={active}
             onClick={() => onActionChange(key)}
-            className={`-mb-px inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 text-[14px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+            className={`-mb-px inline-flex h-11 shrink-0 items-center gap-2 border-b-2 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
               active
                 ? "border-ink font-semibold text-ink"
                 : "border-transparent font-medium text-muted hover:text-ink"
@@ -74,7 +76,7 @@ export function QuickFilters({
       })}
       </div>
 
-      <div className="flex items-center gap-2.5 sm:ml-auto sm:pb-1">
+      <div className="flex items-center gap-3 sm:ml-auto">
         <p
           className="text-[12px] text-muted tabular-nums max-sm:hidden"
           aria-live="polite"
@@ -88,7 +90,7 @@ export function QuickFilters({
           <button
             type="button"
             onClick={onClearFilters}
-            className="inline-flex min-h-11 items-center rounded text-xs font-medium text-accent underline-offset-2 transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none"
+            className="inline-flex h-8 items-center rounded text-[12px] font-medium text-accent underline-offset-2 transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-page focus-visible:outline-none"
           >
             Clear filters
           </button>

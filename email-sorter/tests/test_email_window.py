@@ -22,7 +22,7 @@ class EmailWindowApiTests(unittest.TestCase):
     def setUp(self):
         patcher = patch(
             "app.server.prepare_text",
-            side_effect=lambda email, _provider: email,
+            side_effect=lambda email, _provider, *_owner: email,
         )
         patcher.start()
         self.addCleanup(patcher.stop)

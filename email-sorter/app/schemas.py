@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 from .taxonomy import (
     CONTENT_CATEGORIES,
@@ -22,6 +22,12 @@ class Email(BaseModel):
     text_source: str = "body"
     ocr_confidence: float | None = None
     ocr_notes: list[str] = Field(default_factory=list)
+    # The OCR part of ``body`` (so the reading view can fold it away) and the
+    # facts found on a poster image (see app/poster.py).
+    ocr_text: str = ""
+    poster: dict | None = None
+    # Set once the images were looked at, so polling never reads them twice.
+    _ocr_checked: bool = PrivateAttr(default=False)
 
     @property
     def received_at(self) -> datetime | None:

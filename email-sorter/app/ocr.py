@@ -20,6 +20,7 @@ from io import BytesIO
 
 from PIL import Image, ImageOps
 
+from . import poster
 from .providers.base import EmailProvider, ProviderError
 from .schemas import Email
 from .text_utils import clean
@@ -127,19 +128,44 @@ def read_image(cmd: str, data: bytes) -> tuple[str, float]:
 
 
 # ---- the pipeline step -----------------------------------------------------------
-def prepare_text(email: Email, provider: EmailProvider) -> Email:
+def _finish(email: Email, provider: EmailProvider, images: list[bytes], owner: str) -> Email:
+    """Read posters (QR codes, facts, preview), then free the images."""
+    email._ocr_checked = True
+    poster.analyze(email, images, owner)
+    done = getattr(provider, "done_with_images", None)
+    if done:
+        done(email)
+    return email
+
+
+def prepare_text(email: Email, provider: EmailProvider, owner: str = "") -> Email:
     """Call once per fetched email, before classifying. Never raises for a bad image:
-    problems go into email.ocr_notes and are shown in the UI."""
+    problems go into email.ocr_notes and are shown in the UI.
+
+    ``owner`` keys the poster preview, so only that account can load it."""
+    if email._ocr_checked:
+        return email  # pushed mail is the same object on every poll: read once
     text = (email.body or "").strip()
     email.text_source = "body" if text else "empty"
     if not OCR_ENABLED or len(text) >= MIN_BODY_CHARS:
-        return email  # a normal email: nothing to do, no extra requests
+        # A normal email. Pushed mail already carries its images, so a poster
+        # QR code can still be read cheaply; Graph mail is not fetched again.
+        if getattr(provider, "name", "") == "powerautomate":
+            pushed = provider.fetch_images(email, max_images=MAX_IMAGES, max_bytes=MAX_IMAGE_BYTES)
+            return _finish(email, provider, [img.data for img in pushed], owner)
+        return email
 
     cmd = find_tesseract()
     if not cmd:
         if not text:
             email.ocr_notes.append("This email has no readable text and Tesseract is not installed, so its images were not read.")
-        return email
+        # Without OCR a poster's QR code and preview still help.
+        pushed = (
+            provider.fetch_images(email, max_images=MAX_IMAGES, max_bytes=MAX_IMAGE_BYTES)
+            if getattr(provider, "name", "") == "powerautomate"
+            else []
+        )
+        return _finish(email, provider, [img.data for img in pushed], owner)
 
     try:
         images = provider.fetch_images(
@@ -148,17 +174,18 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
     except ProviderError as exc:
         log.warning("Could not fetch inline images for email %s: %s", email.id, exc)
         email.ocr_notes.append(f"Could not fetch inline images: {exc}")
-        return email
+        return _finish(email, provider, [], owner)
     if not images:
         if not text:
             email.ocr_notes.append(
                 "No readable text and no inline images. The email may rely on images hosted online, "
                 "which are not downloaded. Sorted from sender and subject only."
             )
-        return email
+        return _finish(email, provider, [], owner)
 
     chunks: list[str] = []
     confidences: list[float] = []
+    kept: list[bytes] = []
     seen: set[str] = set()
     for img in images:
         if len(chunks) >= MAX_IMAGES:
@@ -178,6 +205,7 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
             continue
         if w * h < MIN_PIXELS:  # icon, logo or tracking pixel
             continue
+        kept.append(img.data)
         try:
             found, conf = read_image(cmd, img.data)
         except Exception as exc:
@@ -191,7 +219,8 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
         confidences.append(conf)
 
     if chunks:
-        email.body = (text + "\n\n" if text else "") + "\n\n".join(chunks)
+        email.ocr_text = "\n\n".join(chunks)
+        email.body = (text + "\n\n" if text else "") + email.ocr_text
         email.text_source = "body+ocr" if text else "ocr"
         email.ocr_confidence = round(sum(confidences) / len(confidences), 1)
         if not email.preview:
@@ -203,4 +232,4 @@ def prepare_text(email: Email, provider: EmailProvider) -> Email:
     elif not text:
         email.ocr_notes.append("Nothing readable was found, so this was sorted from sender and subject only.")
 
-    return email
+    return _finish(email, provider, kept, owner)

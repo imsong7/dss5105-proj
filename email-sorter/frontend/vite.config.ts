@@ -19,13 +19,15 @@ export default defineConfig(({ mode }) => {
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
-    proxy: {
-      "/api": flask,
-      "/login": flask,
-      "/logout": flask,
-      "/register": flask,
-      "/feed": flask,
-    },
+    // changeOrigin: false keeps the browser's Host (127.0.0.1:5173), so it
+    // matches the Origin and Flask's same-origin check on writes passes.
+    // (The string shorthand rewrites Host to Flask's port and gets a 403.)
+    proxy: Object.fromEntries(
+      ["/api", "/login", "/logout", "/register", "/feed"].map((path) => [
+        path,
+        { target: flask, changeOrigin: false },
+      ]),
+    ),
   },
   preview: {
     host: "127.0.0.1",

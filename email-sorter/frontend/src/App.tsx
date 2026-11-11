@@ -22,6 +22,7 @@ import type { Mood } from "./components/LionMark";
 import type { AcademicEvent } from "./domain/calendar";
 import { AccountProvider } from "./contexts/AccountContext";
 import { CourseProvider } from "./contexts/CourseContext";
+import { SavedJobsProvider } from "./contexts/SavedJobsContext";
 import { useCalendarView } from "./hooks/useCalendarView";
 import { useInboxView } from "./hooks/useInboxView";
 import { useFeedSync } from "./hooks/useFeedSync";
@@ -217,6 +218,7 @@ function Workspace({ session }: { session: SessionInfo }) {
   }
 
   return (
+    <SavedJobsProvider>
     <CourseProvider value={setCourse}>
     <AccountProvider value={{ initials: (name || session.email).slice(0, 2).toUpperCase(), open: () => setAccountOpen(true), openSetup: pushedMail ? () => setSetupOpen(true) : undefined, switchSource }}>
     <div className="relative isolate flex min-h-dvh max-w-full flex-col overflow-x-clip bg-page pb-[calc(3.5rem+env(safe-area-inset-bottom))] max-sm:pt-[env(safe-area-inset-top)] sm:pb-0 lg:h-dvh lg:overflow-hidden">
@@ -334,6 +336,7 @@ function Workspace({ session }: { session: SessionInfo }) {
     </div>
     </AccountProvider>
     </CourseProvider>
+    </SavedJobsProvider>
   );
 }
 

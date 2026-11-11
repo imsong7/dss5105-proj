@@ -7,6 +7,8 @@ Usage::
     app = create_app(backend="encoder")   # text-encoder backend; or "llama", or None
 """
 
+import base64
+import binascii
 import hashlib
 import io
 import logging
@@ -52,13 +54,17 @@ from .config import ROOT, settings
 from .ml_classifier import models_ready as _ml_ready
 from .ocr import ocr_status, prepare_text
 from .providers import AuthError, MailQuery, ProviderError, build_provider
-from .pushed_store import pushed_store
+from .pushed_store import pushed_images, pushed_store
+from . import poster as poster_module
+from . import saved_jobs
+from .listings import parse_jobs
+from .saved_jobs import SavedJobError
 from .reply_drafting import ReplyDraftError, generate_reply
 from .reply_sending import ReplySendError, send_reply as send_graph_reply
 from .schemas import Classification, Email
 from .sender_rules import category_by_rule, coursework_by_rule, sender_address
 from .taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
-from .text_utils import clean, strip_html
+from .text_utils import clean, strip_html, without_link_addresses
 from . import calendar_feed, classification_store, item_states as item_state_module, profiles, user_events
 from .calendar_feed import FeedError
 from .item_states import StateError
@@ -150,6 +156,36 @@ def _inbound_email(data: dict) -> Email:
         body=body,
         text_source="body" if body else "empty",
     )
+
+
+# Images a flow may send with an email ("inlineImages", or a raw "attachments"
+# list). Posters are read from these; anything else is ignored.
+MAX_INBOUND_IMAGES = 3
+MAX_INBOUND_IMAGE_BYTES = 2_000_000
+
+
+def _inbound_images(data: dict) -> list[tuple[str, bytes]]:
+    items = data.get("inlineImages")
+    if items is None:
+        items = data.get("attachments")
+    if not isinstance(items, list):
+        return []
+    images: list[tuple[str, bytes]] = []
+    for item in items:
+        if not isinstance(item, dict) or len(images) >= MAX_INBOUND_IMAGES:
+            continue
+        lower = {str(key).lower(): value for key, value in item.items()}
+        content_type = str(lower.get("contenttype") or "").lower()
+        payload = lower.get("contentbytes") or lower.get("$content")
+        if not content_type.startswith("image/") or not isinstance(payload, str):
+            continue
+        try:
+            raw = base64.b64decode(payload, validate=False)
+        except (binascii.Error, ValueError):
+            continue
+        if 0 < len(raw) <= MAX_INBOUND_IMAGE_BYTES:
+            images.append((str(lower.get("name") or "image")[:120], raw))
+    return images
 
 
 def _inbound_token() -> str:
@@ -700,6 +736,9 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
 
         email = _inbound_email(data)
         stored, duplicate = pushed_store.add(email, owner)
+        if not duplicate:
+            # Read later, once, by the OCR/poster step when the inbox loads.
+            pushed_images.put(owner, stored.id, _inbound_images(data))
 
         return jsonify({
             "status": "duplicate" if duplicate else "stored",
@@ -707,6 +746,34 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
             "owner": owner,
             "stored": len(pushed_store.all(owner)),
         })
+
+    @app.get("/api/saved-jobs")
+    def list_saved_jobs():
+        return jsonify({"jobs": saved_jobs.saved_job_store.list(_request_user())})
+
+    @app.post("/api/saved-jobs")
+    def save_job():
+        try:
+            job = saved_jobs.saved_job_store.save(_request_user(), request.get_json(silent=True))
+        except SavedJobError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"job": job})
+
+    @app.delete("/api/saved-jobs/<path:job_id>")
+    def remove_saved_job(job_id: str):
+        if not saved_jobs.saved_job_store.remove(_request_user(), job_id):
+            return jsonify({"error": "That job is not saved."}), 404
+        return jsonify({"removed": True})
+
+    @app.get("/api/emails/<path:email_id>/poster.jpg")
+    def poster_preview(email_id: str):
+        """A small preview of the poster in this account's email (404 otherwise)."""
+        data = poster_module.thumbs.get(_request_user(), email_id)
+        if data is None:
+            return jsonify({"error": "No poster preview."}), 404
+        response = send_file(io.BytesIO(data), mimetype="image/jpeg", max_age=0)
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
 
     @app.post("/api/inbound/outlook")
     def inbound_outlook():
@@ -917,7 +984,8 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
                 credentials["token"] = session_graph_token()
             provider = build_provider(kind, credentials)
             items = provider.fetch_emails(query)
-            items = [prepare_text(email, provider) for email in items]
+            owner = _request_user()
+            items = [prepare_text(email, provider, owner) for email in items]
         except AuthError as exc:
             return jsonify({"error": str(exc)}), 401
         except ProviderError as exc:
@@ -936,8 +1004,15 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
                 email.id, email.sender, backend_name, corrections, rules, cache
             )
             found = extract_deadlines(email)
+            for candidate in found:
+                # A date read off a poster image is marked so the UI can say so.
+                candidate["from_image"] = bool(
+                    email.ocr_text and candidate.get("text") and candidate["text"] in email.ocr_text
+                )
             serialized["deadline_candidate"] = found[0] if found else None
             serialized["deadline_candidates"] = found
+            # A job digest becomes a list of jobs (None for other mail).
+            serialized["jobs"] = parse_jobs(email.body)
             emails_with_deadlines.append(serialized)
         return jsonify(
             {
@@ -994,6 +1069,9 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
             if not isinstance(data, dict) or not isinstance(data.get("email"), dict):
                 return jsonify({"error": "Expected a JSON object with an email."}), 400
             email = Email(**data["email"])
+            # "<https://...>" addresses help buttons, not the model: drop them
+            # so they do not use up the part of the email the model reads.
+            email.body = without_link_addresses(email.body)
             backend_name = data.get("backend") or backend or settings.model_backend
             owner = _request_user()
 

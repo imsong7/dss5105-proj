@@ -32,6 +32,15 @@ function classify(url: URL): { label: string; score: number } {
   return { label: "Open link", score: 1 };
 }
 
+/** Button text for one link, e.g. "Open form" or "Join Zoom". */
+export function linkLabel(url: string): string {
+  try {
+    return classify(new URL(url)).label;
+  } catch {
+    return "Open link";
+  }
+}
+
 /** Every usable http(s) link in the email, best first, without duplicates. */
 export function emailLinks(email: Pick<InboxEmail, "body" | "preview">): EmailLink[] {
   const text = `${email.body}\n${email.preview}`;

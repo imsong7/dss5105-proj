@@ -39,3 +39,6 @@ cleanlab>=2.7
 
 # Tests
 pytest>=8.0
+
+# Poster images: QR codes on posters (optional; without it no QR links are read)
+opencv-python-headless>=4.8

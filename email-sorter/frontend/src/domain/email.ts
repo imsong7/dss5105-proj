@@ -18,6 +18,41 @@ export interface DeadlineCandidate {
   evidence?: string;
   /** True when the email gave no year and one was inferred. */
   yearInferred?: boolean;
+  /** True when the date was read off a poster image. */
+  fromImage?: boolean;
+}
+
+/** One posting from a job digest (NUS TalentConnect), see app/listings.py. */
+export interface Job {
+  id: string;
+  url: string;
+  title: string;
+  company: string;
+  easyApply: boolean;
+  /** "Internship", "Full time", ... */
+  type: string;
+  /** "Remote", "Hybrid" or "Office". */
+  mode: string;
+  location: string;
+  /** e.g. "Dec '26 - May/Jun '27". */
+  period: string;
+  /** e.g. "SGD 1,000–1,200/mo"; empty when not stated. */
+  pay: string;
+  /** e.g. "UPIP" or a module code. */
+  programme: string;
+}
+
+/** What a poster image in the email says, as facts the student can act on. */
+export interface EmailPoster {
+  title: string;
+  /** YYYY-MM-DD of the event, when the poster shows one. */
+  date?: string;
+  /** As written, e.g. "2pm - 5pm". */
+  time?: string;
+  venue: string;
+  /** "qr" links come from a QR code on the poster. */
+  links: readonly { url: string; source: "qr" | "text" }[];
+  hasImage: boolean;
 }
 
 export interface EmailClassification {
@@ -59,6 +94,12 @@ export interface InboxEmail {
   classification?: EmailClassification;
   /** Set when classification of this email failed. */
   classifyError?: string;
+  /** Text read from images by OCR (already part of `body`). */
+  ocrText?: string;
+  /** Facts found on a poster image in the email. */
+  poster?: EmailPoster;
+  /** Jobs listed in a job digest, with the digest's "view more" link. */
+  jobs?: { items: readonly Job[]; moreUrl: string };
 }
 
 export type SortOrder = "newest" | "oldest";

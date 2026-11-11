@@ -87,3 +87,41 @@ class PushedStore:
 
 
 pushed_store = PushedStore(settings.inbound_max_emails)
+
+
+class PushedImages:
+    """Inline images that came with pushed mail, kept until they are read.
+
+    Stored as ``(name, bytes)`` pairs per account and email, newest kept. The
+    bytes are dropped once OCR and the poster preview have used them.
+    """
+
+    def __init__(self, limit: int = 300):
+        self.limit = limit
+        self._items: "OrderedDict[tuple[str, str], list[tuple[str, bytes]]]" = OrderedDict()
+        self._lock = Lock()
+
+    def put(self, owner: str, email_id: str, images: list[tuple[str, bytes]]) -> None:
+        if not images:
+            return
+        key = (normalize_owner(owner), email_id)
+        with self._lock:
+            self._items[key] = list(images)
+            self._items.move_to_end(key)
+            while len(self._items) > self.limit:
+                self._items.popitem(last=False)
+
+    def get(self, owner: str, email_id: str) -> list[tuple[str, bytes]]:
+        with self._lock:
+            return list(self._items.get((normalize_owner(owner), email_id), []))
+
+    def drop(self, owner: str, email_id: str) -> None:
+        with self._lock:
+            self._items.pop((normalize_owner(owner), email_id), None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()
+
+
+pushed_images = PushedImages()

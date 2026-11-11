@@ -135,6 +135,7 @@ interface FlaskClassification {
   corrected?: boolean;
   rule?: boolean;
   original?: { content_category: string; reply_nature: string };
+  backend?: string;
 }
 
 export interface SessionInfo {
@@ -259,6 +260,7 @@ export function mapClassification(raw: FlaskClassification): EmailClassification
           action: actionOf(raw.original.reply_nature),
         }
       : undefined,
+    backend: raw.backend || undefined,
   };
 }
 

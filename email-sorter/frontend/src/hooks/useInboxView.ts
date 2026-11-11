@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ActionFilter,
   DateRange,
+  EmailClassification,
   InboxEmail,
   SortOrder,
   WindowDays,
@@ -34,6 +35,8 @@ import type {
   Health,
   SessionInfo,
 } from "../services/flask";
+
+const CLASSIFY_CONCURRENCY = 6;
 
 export type LoadPhase = "idle" | "loading" | "ready";
 
@@ -129,24 +132,76 @@ function isDesktop(): boolean {
   );
 }
 
-/** Keep classifications for emails that are still present after a reload. */
+function isModelResultForBackend(
+  classification: EmailClassification | undefined,
+  backend: string,
+): boolean {
+  return Boolean(
+    classification &&
+      !classification.corrected &&
+      !classification.byRule &&
+      (!classification.backend || classification.backend === backend),
+  );
+}
+
+function chooseMergedClassification(
+  server: EmailClassification | undefined,
+  local: EmailClassification | undefined,
+  currentBackend: string,
+): EmailClassification | undefined {
+  // A correction returned by the server (e.g. from another session) always wins.
+  if (server?.corrected) return server;
+
+  // A sender rule from the server wins unless the student already corrected this email.
+  if (server?.byRule) {
+    return local?.corrected ? local : server;
+  }
+
+  // A cached model result from the current backend wins over any local model result,
+  // but still loses to a local correction or sender rule.
+  if (server && (!server.backend || server.backend === currentBackend)) {
+    if (local?.corrected || local?.byRule) return local;
+    return server;
+  }
+
+  // The server returned nothing usable. Keep local results that are explicitly
+  // authoritative (corrections, rules) or already belong to the current backend.
+  if (local?.corrected || local?.byRule) return local;
+  if (isModelResultForBackend(local, currentBackend)) return local;
+
+  return undefined;
+}
+
+/** Merge a fresh server list with what the page already knows.
+ *
+ * Server corrections/rules beat local model results, but local corrections/rules
+ * are preserved when the server only has a cached model answer. Model results
+ * from a different backend are dropped so switching backends does not show stale
+ * answers as if they came from the new backend.
+ */
 function mergeEmails(
   previous: readonly InboxEmail[],
   next: readonly InboxEmail[],
+  currentBackend: string,
 ): InboxEmail[] {
   const known = new Map(previous.map((email) => [email.id, email]));
 
   return next.map((email) => {
     const old = known.get(email.id);
-    return old
-      ? {
-          ...email,
-          // Keep what this page already sorted; otherwise take the saved result.
-          classification: old.classification ?? email.classification,
-          // An earlier error stays unless a saved result now replaces it.
-          classifyError: !old.classification && email.classification ? undefined : old.classifyError,
-        }
-      : email;
+    if (!old) return email;
+
+    const nextClassification = chooseMergedClassification(
+      email.classification,
+      old.classification,
+      currentBackend,
+    );
+
+    return {
+      ...email,
+      classification: nextClassification,
+      // Clear an earlier error as soon as a saved result replaces it.
+      classifyError: nextClassification ? undefined : old.classifyError,
+    };
   });
 }
 
@@ -158,7 +213,9 @@ export function useInboxView(session: SessionInfo) {
   const [phase, setPhase] = useState<LoadPhase>("idle");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const controller = useRef<AbortController | null>(null);
+  const loadController = useRef<AbortController | null>(null);
+  const classifyController = useRef<AbortController | null>(null);
+  const classifyRun = useRef(0);
   const busy = useRef(false);
 
   // A token pasted on the sign-in page arrives with the session: no second paste.
@@ -173,6 +230,23 @@ export function useInboxView(session: SessionInfo) {
   const backendRef = useRef("");
   backendRef.current = backend;
   const [health, setHealth] = useState<Health | null>(null);
+
+  // When the student switches backends, model-only results from the previous
+  // backend must not be displayed as if they came from the new one. Corrections
+  // and sender rules are kept because they are explicit user choices. Any
+  // in-flight classification responses are also discarded by bumping the run id.
+  useEffect(() => {
+    if (!backend) return;
+    classifyController.current?.abort();
+    classifyRun.current += 1;
+    setEmails((previous) =>
+      previous.map((email) => {
+        const c = email.classification;
+        if (!c || c.corrected || c.byRule || c.backend === backend) return email;
+        return { ...email, classification: undefined, classifyError: undefined };
+      }),
+    );
+  }, [backend]);
 
   const [autoSort, setAutoSortState] = useState(readAutoSort);
   // Set when the student cancels, so auto-sort does not restart by itself.
@@ -249,9 +323,12 @@ export function useInboxView(session: SessionInfo) {
       }
 
       setPaused(false);
-      controller.current?.abort();
+      // A fresh load supersedes any in-flight load or classification: the old
+      // targets and results are no longer relevant.
+      loadController.current?.abort();
+      classifyController.current?.abort();
       const abort = new AbortController();
-      controller.current = abort;
+      loadController.current = abort;
       busy.current = true;
       setPhase("loading");
       setNotice(null);
@@ -270,7 +347,7 @@ export function useInboxView(session: SessionInfo) {
         );
 
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
-        setEmails((previous) => mergeEmails(previous, result.emails));
+        setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
         setSelectedId((current) =>
           result.emails.some((email) => email.id === current)
             ? current
@@ -312,8 +389,8 @@ export function useInboxView(session: SessionInfo) {
           setTokenDialogOpen(true);
         }
       } finally {
-        if (controller.current === abort) {
-          controller.current = null;
+        if (loadController.current === abort) {
+          loadController.current = null;
           busy.current = false;
         }
       }
@@ -367,22 +444,30 @@ export function useInboxView(session: SessionInfo) {
         return;
       }
 
+      const abort = new AbortController();
+      loadController.current = abort;
       busy.current = true;
       try {
-        const result = await fetchEmails({
-          provider: session.provider,
-          token: "",
-          count: Math.min(DEFAULT_COUNT, session.maxEmails || DEFAULT_COUNT),
-          backend: backendRef.current || undefined,
-          ...bounds.current,
-        });
+        const result = await fetchEmails(
+          {
+            provider: session.provider,
+            token: "",
+            count: Math.min(DEFAULT_COUNT, session.maxEmails || DEFAULT_COUNT),
+            backend: backendRef.current || undefined,
+            ...bounds.current,
+          },
+          abort.signal,
+        );
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
-        setEmails((previous) => mergeEmails(previous, result.emails));
+        setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
         setPhase("ready");
         setSelectedId((current) => current ?? result.emails[0]?.id ?? null);
       } catch {
         // Offline or idle; the next tick retries.
       } finally {
+        if (loadController.current === abort) {
+          loadController.current = null;
+        }
         busy.current = false;
       }
     }, PUSH_POLL_MS);
@@ -409,57 +494,80 @@ export function useInboxView(session: SessionInfo) {
         return;
       }
 
-      controller.current?.abort();
+      const runId = (classifyRun.current += 1);
+      classifyController.current?.abort();
       const abort = new AbortController();
-      controller.current = abort;
+      classifyController.current = abort;
       busy.current = true;
       setNotice(null);
       setAutoRun(quiet);
       setProgress({ done: 0, total: targets.length });
 
       let failures = 0;
+      const startedBackend = backendRef.current;
 
       try {
-        for (let index = 0; index < targets.length; index += 1) {
-          if (abort.signal.aborted) {
-            break;
-          }
+        // Worker pool: Claude calls mostly wait on the network, so run several at once.
+        let nextIndex = 0;
+        let completed = 0;
+        const superseded = () => abort.signal.aborted || runId !== classifyRun.current;
 
-          const id = targets[index].id;
-          const source = raw.current.get(id);
-
-          try {
-            if (!source) {
-              throw new Error("Email is no longer loaded.");
+        const worker = async () => {
+          while (!superseded()) {
+            const index = nextIndex;
+            nextIndex += 1;
+            if (index >= targets.length) {
+              return;
             }
-            const classification = await classifyEmail(source, backend, abort.signal);
-            setEmails((previous) =>
-              previous.map((email) =>
-                email.id === id
-                  ? { ...email, classification, classifyError: undefined }
-                  : email,
-              ),
-            );
-          } catch (error) {
-            if (abort.signal.aborted) {
-              break;
+
+            const id = targets[index].id;
+            const source = raw.current.get(id);
+
+            try {
+              if (!source) {
+                throw new Error("Email is no longer loaded.");
+              }
+              const classification = await classifyEmail(source, backend, abort.signal);
+              // Ignore results that belong to a superseded run or a backend switch.
+              if (superseded()) {
+                return;
+              }
+              const tagged = { ...classification, backend: startedBackend };
+              setEmails((previous) =>
+                previous.map((email) =>
+                  email.id === id
+                    ? { ...email, classification: tagged, classifyError: undefined }
+                    : email,
+                ),
+              );
+            } catch (error) {
+              if (superseded()) {
+                return;
+              }
+              failures += 1;
+              const message =
+                error instanceof Error ? error.message : "Classification failed.";
+              setEmails((previous) =>
+                previous.map((email) =>
+                  email.id === id
+                    ? { ...email, classification: undefined, classifyError: message }
+                    : email,
+                ),
+              );
             }
-            failures += 1;
-            const message =
-              error instanceof Error ? error.message : "Classification failed.";
-            setEmails((previous) =>
-              previous.map((email) =>
-                email.id === id
-                  ? { ...email, classification: undefined, classifyError: message }
-                  : email,
-              ),
-            );
+
+            completed += 1;
+            setProgress({ done: completed, total: targets.length });
           }
+        };
 
-          setProgress({ done: index + 1, total: targets.length });
-        }
+        await Promise.all(
+          Array.from({ length: Math.min(CLASSIFY_CONCURRENCY, targets.length) }, worker),
+        );
 
-        if (abort.signal.aborted) {
+        if (runId !== classifyRun.current) {
+          // A newer run or a backend switch is in charge; do not overwrite its notice.
+        } else if (abort.signal.aborted) {
           setNotice({ text: "Sorting stopped.", error: false });
         } else if (failures) {
           setNotice({
@@ -473,12 +581,13 @@ export function useInboxView(session: SessionInfo) {
           });
         }
       } finally {
-        if (controller.current === abort) {
-          controller.current = null;
+        // Only the most recent classification run may tear down the busy/progress state.
+        if (classifyRun.current === runId) {
+          classifyController.current = null;
           busy.current = false;
+          setProgress(null);
+          setAutoRun(false);
         }
-        setProgress(null);
-        setAutoRun(false);
       }
     },
     [backend],
@@ -495,11 +604,22 @@ export function useInboxView(session: SessionInfo) {
     [windowed],
   );
 
+  const failed = useMemo(
+    () => windowed.filter((email) => !!email.classifyError),
+    [windowed],
+  );
+
   /** Manual: sort only what is not sorted yet. */
   const classifyPending = useCallback(async () => {
     setPaused(false);
     await runClassification(pending, false);
   }, [pending, runClassification, setPaused]);
+
+  /** Manual: retry only emails that failed in the selected window. */
+  const retryFailed = useCallback(async () => {
+    setPaused(false);
+    await runClassification(failed, false);
+  }, [failed, runClassification, setPaused]);
 
   // Auto-sort: new or newly visible mail is sorted in the background. Results
   // are cached on the server, so an email reaches the model only once.
@@ -599,6 +719,7 @@ export function useInboxView(session: SessionInfo) {
                 reason: "Corrected by you.",
                 corrected: true,
                 original,
+                backend,
               },
             };
           }
@@ -618,6 +739,7 @@ export function useInboxView(session: SessionInfo) {
                 action,
                 reason: "Your rule for this sender.",
                 byRule: true,
+                backend,
               },
             };
           }
@@ -661,9 +783,10 @@ export function useInboxView(session: SessionInfo) {
       await deleteCorrection(id);
       // The server still has the model's answer cached, so this is instant.
       const classification = await classifyEmail(source, backend);
+      const tagged = { ...classification, backend };
       setEmails((previous) =>
         previous.map((item) =>
-          item.id === id ? { ...item, classification, classifyError: undefined } : item,
+          item.id === id ? { ...item, classification: tagged, classifyError: undefined } : item,
         ),
       );
     },
@@ -698,14 +821,21 @@ export function useInboxView(session: SessionInfo) {
 
   const cancel = useCallback(() => {
     setPaused(true);
-    controller.current?.abort();
-    controller.current = null;
+    classifyController.current?.abort();
+    classifyController.current = null;
     busy.current = false;
     setProgress(null);
+    setAutoRun(false);
     setPhase((current) => (current === "loading" ? (emails.length ? "ready" : "idle") : current));
   }, [emails.length, setPaused]);
 
-  useEffect(() => () => controller.current?.abort(), []);
+  useEffect(
+    () => () => {
+      loadController.current?.abort();
+      classifyController.current?.abort();
+    },
+    [],
+  );
 
   /* ---- Derived view ---- */
 
@@ -807,7 +937,9 @@ export function useInboxView(session: SessionInfo) {
     load,
     classifyAll,
     classifyPending,
+    retryFailed,
     pendingCount: pending.length,
+    failedCount: failed.length,
     autoSort,
     waitingForBatch,
     receiving,

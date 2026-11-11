@@ -16,10 +16,12 @@ import importlib.util
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
 from .backends import BaseClassifier
+from .classification_metrics import log_event
 from .schemas import Classification, Email
 
 CLAUDE_DIR = Path(__file__).resolve().parents[2] / "claude"
@@ -113,7 +115,7 @@ class ClaudeClassifier(BaseClassifier):
 
     name = "claude"
 
-    def __init__(self, config_path: str | None = None, my_address: str = "") -> None:
+    def __init__(self, config_path: str | None = None, my_address: str = "", action_only: bool = False) -> None:
         self.modules = load_claude_modules()
         self.cfg = self.modules.config.get_config(config_path)
         self.my_address = my_address
@@ -126,7 +128,7 @@ class ClaudeClassifier(BaseClassifier):
                 "Install it with: pip install 'anthropic>=0.40'"
             ) from exc
 
-        self.clf = self.modules.llm.ClaudeClassifier(self.cfg)
+        self.clf = self.modules.llm.ClaudeClassifier(self.cfg, action_only=action_only)
         if not self.clf.enabled:
             raise RuntimeError(
                 "ANTHROPIC_API_KEY is not set for the Claude backend. "
@@ -178,9 +180,13 @@ class ClaudeClassifier(BaseClassifier):
 
     def classify(self, email: Email) -> Classification:
         """Classify one email with the full Claude backend pipeline."""
+        t_preprocess = time.perf_counter()
         record = self._record(email)
+        preprocess_ms = int((time.perf_counter() - t_preprocess) * 1000)
+
         result = self.modules.pipeline.classify(record, self.cfg, self.clf)
 
+        t_postprocess = time.perf_counter()
         reason = result.reason or "claude"
         if result.source == "fallback":
             error = getattr(self.clf, "last_error", None)
@@ -188,9 +194,34 @@ class ClaudeClassifier(BaseClassifier):
                 reason = f"{reason}: {error}"
         reason = f"{reason} (source: {result.source})"
 
-        return Classification(
+        classification = Classification(
             content_category=self.map_topic(result.topic),
             reply_nature=self.map_action(result.action),
             deadline=None,
             reason=reason,
         )
+        postprocess_ms = int((time.perf_counter() - t_postprocess) * 1000)
+
+        log_event(
+            "claude_api_call",
+            api_duration_ms=getattr(result, "api_duration_ms", None) if result.source in ("claude", "fallback") else None,
+            input_tokens=getattr(result, "input_tokens", None) if result.source in ("claude", "fallback") else None,
+            output_tokens=getattr(result, "output_tokens", None) if result.source in ("claude", "fallback") else None,
+            app_retry_attempts=getattr(result, "app_retry_attempts", 0) if result.source in ("claude", "fallback") else 0,
+            app_retry_wait_ms=getattr(result, "app_retry_wait_ms", 0) if result.source in ("claude", "fallback") else 0,
+            sdk_retries="unknown",
+            sdk_retry_wait_ms="unknown",
+            provider_prompt_cached="unknown",
+            pipeline_source=result.source,
+            api_called=result.source in ("claude", "fallback"),
+        )
+        log_event(
+            "claude_preprocess",
+            duration_ms=preprocess_ms,
+        )
+        log_event(
+            "claude_postprocess",
+            duration_ms=postprocess_ms,
+        )
+
+        return classification

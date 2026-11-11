@@ -42,6 +42,12 @@ from .backends import (
     create_classifier,
     list_backends,
 )
+from .classification_metrics import (
+    enabled as metrics_enabled,
+    log_event,
+    new_request_id,
+    set_request_id,
+)
 from .calendar import (
     ACADEMIC_CALENDAR_LABEL,
     extract_deadline,
@@ -1064,6 +1070,10 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
 
     @app.post("/api/classify")
     def classify():
+        request_id = new_request_id() if metrics_enabled() else None
+        set_request_id(request_id)
+        t_total = time.perf_counter()
+        backend_name = data_backend = None
         try:
             data = request.get_json(force=True)
             if not isinstance(data, dict) or not isinstance(data.get("email"), dict):
@@ -1073,10 +1083,12 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
             # so they do not use up the part of the email the model reads.
             email.body = without_link_addresses(email.body)
             backend_name = data.get("backend") or backend or settings.model_backend
+            data_backend = backend_name
             owner = _request_user()
 
             # A student's own correction beats any model result, then their
             # sender rule, then an answer this backend already gave.
+            t_cache = time.perf_counter()
             fixed = classification_store.correction_store.get(owner, email.id)
             hit = classification_store.classify_cache.get(owner, backend_name, email.id)
             saved = _saved_result(
@@ -1087,10 +1099,26 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
                 classification_store.sender_rule_store.all_for(owner),
                 {email.id: hit} if hit else {},
             )
+            cache_lookup_ms = int((time.perf_counter() - t_cache) * 1000)
             if saved:
+                if fixed:
+                    source = "correction"
+                elif saved.get("rule"):
+                    source = "rule"
+                else:
+                    source = "cache"
+                log_event(
+                    "classify_result",
+                    backend=backend_name,
+                    source=source,
+                    total_ms=int((time.perf_counter() - t_total) * 1000),
+                    cache_lookup_ms=cache_lookup_ms,
+                    model_name=saved.get("model_name"),
+                    success=True,
+                )
                 return jsonify(saved)
 
-            t0 = time.perf_counter()
+            t_model = time.perf_counter()
             rule_category = category_by_rule(email.sender)
             dates = extract_deadlines(email) if not rule_category else []
             coursework = (
@@ -1125,17 +1153,39 @@ def create_app(backend: str | None = None, provider: str | None = None) -> Flask
                 model_name = getattr(
                     selected_classifier, "model_name", backend_name
                 )
-            duration_ms = int((time.perf_counter() - t0) * 1000)
+            model_ms = int((time.perf_counter() - t_model) * 1000)
             out = result.model_dump()
-            out["duration_ms"] = duration_ms
+            out["duration_ms"] = model_ms
             out["backend"] = backend_name
             out["model_name"] = model_name
             out["text_source"] = email.text_source
             out["ocr_confidence"] = email.ocr_confidence
             out["ocr_notes"] = email.ocr_notes
+
+            t_save = time.perf_counter()
             classification_store.classify_cache.put(owner, backend_name, email.id, out)
+            save_ms = int((time.perf_counter() - t_save) * 1000)
+
+            log_event(
+                "classify_result",
+                backend=backend_name,
+                source="model",
+                total_ms=int((time.perf_counter() - t_total) * 1000),
+                cache_lookup_ms=cache_lookup_ms,
+                model_ms=model_ms,
+                save_ms=save_ms,
+                model_name=model_name,
+                success=True,
+            )
             return jsonify(out)
         except Exception as exc:  # most often: Ollama not running or model not pulled
+            total_ms = int((time.perf_counter() - t_total) * 1000)
+            log_event(
+                "classify_error",
+                backend=data_backend or backend_name or "unknown",
+                error=f"{type(exc).__name__}: {str(exc)[:200]}",
+                total_ms=total_ms,
+            )
             logging.exception("classification failed")
             return jsonify({"error": f"Classification failed: {exc}"}), 500
 

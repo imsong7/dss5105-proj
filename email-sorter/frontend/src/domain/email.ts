@@ -65,6 +65,8 @@ export interface EmailClassification {
   byRule?: boolean;
   /** The model's labels before a correction, so it can be undone. */
   original?: { category: CategoryKey; action: ActionKey };
+  /** Which backend produced this result, so switching backends does not reuse stale answers. */
+  backend?: string;
 }
 
 export interface ReplyDraft {

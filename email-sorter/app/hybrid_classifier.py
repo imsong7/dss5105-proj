@@ -57,7 +57,7 @@ class HybridClaudeClassifier(BaseClassifier):
 
     def __init__(self, models_dir: Path | str | None = None):
         self._category = MLClassifier(models_dir=models_dir, tasks=("category",))
-        self._action = ClaudeClassifier()
+        self._action = ClaudeClassifier(action_only=True)  # ML owns category: ask Claude for action only
 
     @property
     def model_name(self) -> str:

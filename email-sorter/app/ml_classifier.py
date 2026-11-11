@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import re
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
 from sklearn.naive_bayes import ComplementNB
 
 from .backends import BaseClassifier
+from .classification_metrics import log_event
 from .schemas import Classification, Email
 
 ML_DIR = Path(__file__).resolve().parents[2] / "classical-ml"
@@ -136,7 +138,10 @@ class MLClassifier(BaseClassifier):
         model = getattr(self, f"_{task}_model", None)
         if model is None:
             raise RuntimeError(f"The {task} ML pipeline is not loaded.")
+        t0 = time.perf_counter()
         label = str(model.predict([self._text(email)])[0])
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        log_event("ml_prediction", task=task, duration_ms=duration_ms)
         labels = CATEGORY_LABELS if task == "category" else ACTION_LABELS
         mapped = labels.get(_normalise_label(label))
         if mapped is None:

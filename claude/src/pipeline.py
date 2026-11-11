@@ -19,6 +19,12 @@ class Result:
     source: str
     reason: str = ""
     rules_fired: list[str] = field(default_factory=list)
+    # Diagnostics propagated from the Claude API call (optional).
+    api_duration_ms: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    app_retry_attempts: int = 0
+    app_retry_wait_ms: int = 0
 
 
 def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None) -> Result:
@@ -40,4 +46,16 @@ def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None
         action = cfg["fallback_action"]
     if out.confidence < cfg["claude"].get("min_confidence", 0.5) and not rule.action:
         action = cfg["fallback_action"]          # unsure: send it up to review
-    return Result(topic, action, out.confidence, "claude", out.reason, rule.fired)
+    return Result(
+        topic,
+        action,
+        out.confidence,
+        "claude",
+        out.reason,
+        rule.fired,
+        api_duration_ms=getattr(out, "api_duration_ms", None),
+        input_tokens=getattr(out, "input_tokens", None),
+        output_tokens=getattr(out, "output_tokens", None),
+        app_retry_attempts=getattr(out, "app_retry_attempts", 0),
+        app_retry_wait_ms=getattr(out, "app_retry_wait_ms", 0),
+    )

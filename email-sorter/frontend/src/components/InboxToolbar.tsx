@@ -161,7 +161,7 @@ function PrimaryAction({ view }: { view: InboxView }) {
 }
 
 function OptionsMenu({ view, className = "" }: { view: InboxView; className?: string }) {
-  const { session, backends, backend, health, hasLoaded, classifiedCount } = view;
+  const { session, backends, backend, health, hasLoaded, classifiedCount, failedCount } = view;
   const busy = view.loading || view.classifying;
 
   return (
@@ -238,6 +238,17 @@ function OptionsMenu({ view, className = "" }: { view: InboxView; className?: st
             onClick={() => void view.classifyAll()}
           >
             Sort all again
+          </button>
+        ) : null}
+
+        {hasLoaded && failedCount > 0 ? (
+          <button
+            type="button"
+            className={MENU_ITEM}
+            disabled={busy}
+            onClick={() => void view.retryFailed()}
+          >
+            Retry failed ({failedCount})
           </button>
         ) : null}
 

@@ -49,10 +49,15 @@ export function usePersonalEvents() {
     [],
   );
 
+  /** An event the server already saved (read from an email). */
+  const add = useCallback((saved: PersonalEvent) => {
+    setEvents((current) => byDate([...current.filter((event) => event.id !== saved.id), saved]));
+  }, []);
+
   const remove = useCallback(async (id: string) => {
     await deletePersonalEvent(id);
     setEvents((current) => current.filter((event) => event.id !== id));
   }, []);
 
-  return { events, loadError, save, remove };
+  return { events, loadError, save, add, remove };
 }

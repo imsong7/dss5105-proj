@@ -487,6 +487,19 @@ export function createPersonalEvent(draft: PersonalEventDraft): Promise<Personal
   return api<PersonalEvent>("/api/events", draft, { timeoutMs: 10_000 });
 }
 
+/** What Claude finds in one email: an event or deadline, or ``null``. Nothing is saved. */
+export async function scanEmailForEvent(
+  email: FlaskEmail,
+  signal?: AbortSignal,
+): Promise<PersonalEventDraft | null> {
+  const data = await api<{ event: PersonalEventDraft | null }>(
+    "/api/events/scan",
+    { email },
+    { signal, timeoutMs: 90_000 },
+  );
+  return data.event;
+}
+
 export function updatePersonalEvent(
   id: string,
   draft: PersonalEventDraft,

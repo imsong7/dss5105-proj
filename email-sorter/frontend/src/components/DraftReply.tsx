@@ -11,13 +11,10 @@ interface DraftReplyProps {
 }
 
 /**
- * Where "Send" goes: the original email in Outlook on the web (reply there, in its own
- * thread), or, when that link is unknown, Outlook's new-message page already filled in.
+ * Where "Send" goes: Outlook on the web's new-message page, already filled in with the
+ * sender, "Re:" subject and the draft.
  */
 function outlookSendUrl(email: InboxEmail, subject: string, reply: string): string {
-  if (email.webLink) {
-    return email.webLink;
-  }
   // encodeURIComponent, not URLSearchParams: Outlook reads "+" literally instead of as a space.
   const query = [
     ["to", email.sender.address],
@@ -207,11 +204,7 @@ export function DraftReply({ email, onDraft, autoStart = false }: DraftReplyProp
                 void copy();
                 setOpened(true);
               }}
-              title={
-                email.webLink
-                  ? "Opens the original email in Outlook; click Reply there and paste the draft"
-                  : "Opens a new Outlook email to the sender with this draft filled in"
-              }
+              title="Opens a new Outlook email to the sender with this draft filled in"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
               Send
@@ -219,9 +212,7 @@ export function DraftReply({ email, onDraft, autoStart = false }: DraftReplyProp
           </div>
           {opened ? (
             <p role="status" className="mt-2 text-[12px] leading-5 text-muted">
-              {email.webLink
-                ? "Outlook opened the original email and the draft is copied: click Reply, paste it (Ctrl/Cmd+V) and send."
-                : "Outlook opened a new email with the draft filled in (not in the original thread). Check it and send."}
+              Outlook opened a new email with the draft filled in (also copied). Check it and send.
             </p>
           ) : null}
         </>

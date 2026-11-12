@@ -24,6 +24,7 @@ import { AccountProvider } from "./contexts/AccountContext";
 import { CourseProvider } from "./contexts/CourseContext";
 import { SavedJobsProvider } from "./contexts/SavedJobsContext";
 import { useCalendarView } from "./hooks/useCalendarView";
+import { useEmailEvents } from "./hooks/useEmailEvents";
 import { useInboxView } from "./hooks/useInboxView";
 import { useFeedSync } from "./hooks/useFeedSync";
 import { useItemStates } from "./hooks/useItemStates";
@@ -120,6 +121,7 @@ function Workspace({ session }: { session: SessionInfo }) {
     }),
     [basePersonal, toasts],
   );
+  const foundEvents = useEmailEvents(inbox.emails, inbox.rawEmail);
   const calendar = useCalendarView(inbox.emails, academic, personal.events, baseStates.isInCalendar);
   // The logo's face reflects the day: something just missed worries it, a clear
   // list ahead cheers it. Older overdue items are left out on purpose.
@@ -279,6 +281,11 @@ function Workspace({ session }: { session: SessionInfo }) {
         <InboxPage
           view={inbox}
           states={states}
+          foundEvents={foundEvents}
+          hasEvent={(draft) =>
+            personal.events.some((event) => event.title === draft.title && event.date === draft.date)
+          }
+          onAddEvent={personal.save}
           returnLabel={origin ? RETURN_LABEL[origin.view] : undefined}
           onReturn={origin ? returnToOrigin : undefined}
         />

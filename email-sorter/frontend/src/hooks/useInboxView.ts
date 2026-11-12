@@ -818,6 +818,9 @@ export function useInboxView(session: SessionInfo) {
     [backend],
   );
 
+  // Stable, so effects that depend on it do not restart on every render.
+  const rawEmail = useCallback((id: string) => raw.current.get(id), []);
+
   const draftReply = useCallback(
     async (id: string, signal?: AbortSignal) => {
       const source = raw.current.get(id);
@@ -988,6 +991,7 @@ export function useInboxView(session: SessionInfo) {
     draftReply,
     sendReply,
     cancel,
+    rawEmail,
     hasLoaded: emails.length > 0,
     classifiedCount,
     token,

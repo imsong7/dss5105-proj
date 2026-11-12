@@ -4,6 +4,7 @@ import type {
   ActionFilter,
   DateRange,
   EmailClassification,
+  EmailPriority,
   InboxEmail,
   SortOrder,
   WindowDays,
@@ -20,6 +21,7 @@ import { isAbort } from "../services/api";
 import {
   classifyEmail,
   deleteCorrection,
+  deletePriority,
   deleteSenderRule,
   draftReply as requestDraftReply,
   fetchBackends,
@@ -28,6 +30,7 @@ import {
   fetchRefreshConfigured,
   requestFlowRefresh,
   saveCorrection,
+  savePriority,
   sendReply as requestSendReply,
 } from "../services/flask";
 import type {
@@ -181,6 +184,23 @@ function chooseMergedClassification(
  * from a different backend are dropped so switching backends does not show stale
  * answers as if they came from the new backend.
  */
+/** The priority after the student sets `stars` (or null: back to the model's rating). */
+function withStars(current: EmailPriority | undefined, stars: number | null): EmailPriority | undefined {
+  if (stars === null) {
+    if (current?.modelStars === undefined) return undefined;
+    return { ...current, stars: current.modelStars, manual: undefined, modelStars: undefined };
+  }
+  return {
+    keyPoint: current?.keyPoint ?? "",
+    suspicious: current?.suspicious ?? false,
+    notes: current?.notes ?? [],
+    stars,
+    manual: true,
+    // What the model said, kept so the student can go back to it.
+    modelStars: current ? (current.manual ? current.modelStars : current.stars) : undefined,
+  };
+}
+
 function mergeEmails(
   previous: readonly InboxEmail[],
   next: readonly InboxEmail[],
@@ -749,6 +769,7 @@ export function useInboxView(session: SessionInfo) {
                 corrected: true,
                 original,
                 backend,
+                priority: before?.priority,
               },
             };
           }
@@ -769,6 +790,7 @@ export function useInboxView(session: SessionInfo) {
                 reason: "Your rule for this sender.",
                 byRule: true,
                 backend,
+                priority: item.classification?.priority,
               },
             };
           }
@@ -778,6 +800,22 @@ export function useInboxView(session: SessionInfo) {
     },
     [backend, emails],
   );
+
+  /** Set the stars by hand (1 to 5), or pass null to go back to the model's rating. */
+  const setPriority = useCallback(async (id: string, stars: number | null) => {
+    if (stars === null) {
+      await deletePriority(id);
+    } else {
+      await savePriority(id, stars);
+    }
+    setEmails((previous) =>
+      previous.map((item) =>
+        item.id === id && item.classification
+          ? { ...item, classification: { ...item.classification, priority: withStars(item.classification.priority, stars) } }
+          : item,
+      ),
+    );
+  }, []);
 
   /** Remove a sender rule; its mail goes back to the sorter. */
   const removeRule = useCallback(
@@ -991,6 +1029,7 @@ export function useInboxView(session: SessionInfo) {
     autoRun,
     correct,
     removeRule,
+    setPriority,
     undoCorrection,
     draftReply,
     sendReply,

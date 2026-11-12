@@ -66,6 +66,14 @@ export interface EmailPriority {
   suspicious: boolean;
   /** Which floors or caps changed the stars. */
   notes: readonly string[];
+  /** What the stars were worked out from (0 to 3 each), to explain them. */
+  consequence?: number;
+  urgency?: number;
+  relevance?: number;
+  /** True when the student set the stars by hand. */
+  manual?: boolean;
+  /** What the model rated before the student's change; absent when it did not rate the email. */
+  modelStars?: number;
 }
 
 export interface EmailClassification {

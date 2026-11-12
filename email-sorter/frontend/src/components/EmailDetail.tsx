@@ -7,7 +7,9 @@ import type { ActionKey, CategoryKey } from "../domain/taxonomy";
 import { senderInitials } from "../domain/inbox";
 import { formatDeadline, formatFullDate } from "../lib/format";
 import { CategoryBadge } from "./CategoryBadge";
-import { PriorityStars } from "./PriorityStars";
+import { explainPriority } from "../domain/priority";
+import { cannotReply } from "../domain/reply";
+import { PriorityEditor } from "./PriorityStars";
 import { cleanBody } from "../domain/cleanBody";
 import { keyFacts } from "../domain/keyFacts";
 import { labelValue, markWhen, toBlocks } from "../domain/readable";
@@ -33,6 +35,8 @@ interface EmailDetailProps {
   ) => Promise<void>;
   onUndoCorrection: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
+  /** Set the stars by hand, or null to go back to the model's rating. */
+  onSetPriority: (id: string, stars: number | null) => Promise<void>;
   onDraftReply: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
   headingRef: RefObject<HTMLHeadingElement | null>;
   /** Is this date (item key) in the student's calendar? Canvas due dates always are. */
@@ -48,6 +52,7 @@ export function EmailDetail({
   onCorrect,
   onUndoCorrection,
   onRemoveRule,
+  onSetPriority,
   onDraftReply,
   headingRef,
   isInCalendar,
@@ -75,8 +80,11 @@ export function EmailDetail({
   }
 
   const { sender, subject, body, receivedAt, classification, deadline } = email;
-  // Every date found, shown in one card; tap a date to see where it came from.
-  const dates = email.deadlines?.length ? email.deadlines : deadline ? [deadline] : [];
+  // The date found in the email; tap it to see where it came from.
+  const found = email.deadlines?.length ? email.deadlines : deadline ? [deadline] : [];
+  // Canvas assignments are put in the calendar by themselves, so their date needs no row here.
+  // One card is enough: the first date found (the one the Inbox row shows).
+  const dates = found.every((item) => addsItself(email, item)) ? [] : found.slice(0, 1);
 
   // Blank lines are paragraph breaks in the synthetic copy; render them as
   // real paragraphs so spacing stays tight and consistent.
@@ -93,9 +101,10 @@ export function EmailDetail({
   const readableText = cleanBody(bodyParagraphs).main.join("\n");
   // Posters and job digests have their own cards with these facts.
   const facts = email.poster || email.jobs ? [] : keyFacts(subject, readableText);
-  // A job digest is an automated alert: no reply. The button sits beside the email's
-  // link button ("Open link"); pressing it drafts and opens the panel just below.
-  const canReply = !email.jobs;
+  // Job digests, no-reply senders and Canvas notifications cannot be answered (see
+  // domain/reply.ts). The button sits beside the email's link button ("Open link");
+  // pressing it drafts and opens the panel just below.
+  const canReply = !cannotReply(email);
   const draftOpen = draftFor === email.id;
   const replyButton =
     canReply && !draftOpen ? (
@@ -188,6 +197,7 @@ export function EmailDetail({
             onCorrect={onCorrect}
             onUndo={onUndoCorrection}
             onRemoveRule={onRemoveRule}
+            onSetPriority={onSetPriority}
           />
         ) : (
           <p
@@ -307,26 +317,33 @@ export function EmailDetail({
   );
 }
 
-type SortedAsProps = Omit<ComponentProps<typeof CorrectionControl>, "extra">;
+type SortedAsProps = Omit<ComponentProps<typeof CorrectionControl>, "extra"> & {
+  onSetPriority: (id: string, stars: number | null) => Promise<void>;
+};
 
-/** One compact line: what the email was sorted as, plus "Why?" and "Fix label". */
-function SortedAs(props: SortedAsProps) {
+/** One compact line: its priority and what it was sorted as, plus "Why?" (the priority's reasons) and "Fix label". */
+function SortedAs({ onSetPriority, ...props }: SortedAsProps) {
   const classification = props.email.classification;
   const [showReason, setShowReason] = useState(false);
   const reasonId = useId();
   if (!classification) return null;
+  // "Why?" explains the priority (the sorting model's own sentence is not shown here).
+  const reasons = classification.priority ? explainPriority(classification.priority) : [];
 
   return (
     <div className="mt-1.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span className="label text-muted">Sorted as</span>
-        {classification.priority ? <PriorityStars priority={classification.priority} /> : null}
+        <span className="label text-muted">Priority</span>
+        <PriorityEditor
+          priority={classification.priority}
+          onChange={(stars) => onSetPriority(props.email.id, stars)}
+        />
         <CategoryBadge category={classification.category} />
         <StatusBadge action={classification.action} />
         <CorrectionControl
           {...props}
           extra={
-            classification.reason ? (
+            reasons.length > 0 ? (
               <button
                 type="button"
                 aria-expanded={showReason}
@@ -340,10 +357,12 @@ function SortedAs(props: SortedAsProps) {
           }
         />
       </div>
-      {classification.reason && showReason ? (
-        <p id={reasonId} className="mt-1 text-[13px] leading-5 text-ink/80">
-          {classification.reason}
-        </p>
+      {reasons.length > 0 && showReason ? (
+        <ul id={reasonId} className="mt-1 list-disc pl-5 text-[13px] leading-5 text-ink/80 marker:text-muted">
+          {reasons.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       ) : null}
     </div>
   );

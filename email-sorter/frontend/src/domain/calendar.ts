@@ -158,7 +158,9 @@ export function addsItself(email: InboxEmail, _deadline: DeadlineCandidate): boo
  */
 export function withModelDeadline(email: InboxEmail): InboxEmail {
   const found = email.classification;
-  if (!found?.priority || isCanvasAssignment(email)) {
+  const claudeRead =
+    found?.priority !== undefined && !(found.priority.manual && found.priority.modelStars === undefined);
+  if (!found || !claudeRead || isCanvasAssignment(email)) {
     return email;
   }
   if (!found.event) {

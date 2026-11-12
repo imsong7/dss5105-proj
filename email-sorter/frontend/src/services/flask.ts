@@ -142,7 +142,17 @@ interface FlaskClassification {
   original?: { content_category: string; reply_nature: string };
   backend?: string;
   event?: { date: string; time?: string; location?: string } | null;
-  priority?: { stars: number; key_point?: string; suspicious?: boolean; notes?: string[] } | null;
+  priority?: {
+    stars: number;
+    key_point?: string;
+    suspicious?: boolean;
+    notes?: string[];
+    consequence?: number | null;
+    urgency?: number | null;
+    relevance?: number | null;
+    manual?: boolean;
+    model_stars?: number | null;
+  } | null;
 }
 
 export interface SessionInfo {
@@ -284,6 +294,11 @@ function mapClassification(raw: FlaskClassification): EmailClassification {
             keyPoint: raw.priority.key_point ?? "",
             suspicious: Boolean(raw.priority.suspicious),
             notes: raw.priority.notes ?? [],
+            consequence: raw.priority.consequence ?? undefined,
+            urgency: raw.priority.urgency ?? undefined,
+            relevance: raw.priority.relevance ?? undefined,
+            manual: raw.priority.manual || undefined,
+            modelStars: raw.priority.model_stars ?? undefined,
           }
         : undefined,
   };
@@ -518,6 +533,9 @@ export async function deletePersonalEvent(id: string): Promise<void> {
   });
 }
 
+/** The calendar as a .ics file (a signed-in download, so no link is shared). */
+export const CALENDAR_DOWNLOAD_URL = "/api/feed/download";
+
 /* ---- Corrections ---- */
 
 export async function saveCorrection(
@@ -549,6 +567,19 @@ export async function saveCorrection(
     },
     { timeoutMs: 10_000 },
   );
+}
+
+/** Set the stars of one email by hand. */
+export async function savePriority(id: string, stars: number): Promise<void> {
+  await api("/api/priority", { id, stars }, { timeoutMs: 10_000, method: "PUT" });
+}
+
+/** Go back to the model's rating for one email. */
+export async function deletePriority(id: string): Promise<void> {
+  await api(`/api/priority/${encodeURIComponent(id)}`, undefined, {
+    timeoutMs: 10_000,
+    method: "DELETE",
+  });
 }
 
 export async function deleteSenderRule(address: string): Promise<void> {

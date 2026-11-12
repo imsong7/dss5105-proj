@@ -168,6 +168,7 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
           onCorrect={view.correct}
           onUndoCorrection={view.undoCorrection}
           onRemoveRule={view.removeRule}
+          onSetPriority={view.setPriority}
           onDraftReply={view.draftReply}
           headingRef={headingRef}
           isInCalendar={states.isInCalendar}

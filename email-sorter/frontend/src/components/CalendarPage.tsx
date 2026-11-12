@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, Loader2, Plus, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Download, Loader2, Plus, SlidersHorizontal } from "lucide-react";
 
 import type { PersonalEventDraft } from "../domain/calendar";
 import type { CalendarView } from "../hooks/useCalendarView";
+import { CALENDAR_DOWNLOAD_URL } from "../services/flask";
 import { AgendaView } from "./AgendaView";
 import { EventDialog } from "./EventDialog";
 import { FeedDialog } from "./FeedDialog";
@@ -109,6 +110,15 @@ export function CalendarPage({
             </button>
           ))}
         </div>
+        <a
+          href={CALENDAR_DOWNLOAD_URL}
+          download="nusbox-calendar.ics"
+          title="Download your calendar as a .ics file for Outlook, Apple Calendar or Google Calendar"
+          className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-[13px] font-medium text-ink transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-sm:w-11 max-sm:px-0 sm:h-9"
+        >
+          <Download className="h-4 w-4" aria-hidden="true" />
+          <span className="max-sm:sr-only">Export</span>
+        </a>
         <Popover
           ariaLabel="More calendar options"
           align="right"
@@ -157,6 +167,7 @@ export function CalendarPage({
               >
                 Add to Google or Apple Calendar
               </button>
+
             </div>
           )}
         </Popover>

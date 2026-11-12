@@ -1,0 +1,15 @@
+# docker compose up -d   then open http://localhost:8501, paste a token, press Sync now.
+services:
+  worker:
+    build: .
+    command: python -m src.worker
+    env_file: .env
+    volumes: ["./data:/app/data", "./config.yaml:/app/config.yaml:ro"]
+    restart: unless-stopped
+  dashboard:
+    build: .
+    command: streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=8501
+    env_file: .env
+    ports: ["127.0.0.1:8501:8501"]   # local only
+    volumes: ["./data:/app/data", "./config.yaml:/app/config.yaml:ro"]
+    restart: unless-stopped

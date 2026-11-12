@@ -1,0 +1,116 @@
+# Inbox Sorter v1 configuration (pasted Graph token + Claude API).
+# Labels, definitions and settings live here, not in code.
+# The worker re-reads this file every cycle, so edits apply without a restart.
+
+# Category A: topic. One per email. These definitions are sent to Claude, so make them precise.
+topics:
+  FoS General: "Faculty of Science announcements, or a lecturer or faculty office emailing directly about a course, exams, timetables or admin."
+  Career: "Jobs, internships, recruiters, career fairs and career office events."
+  Medical: "Clinics, hospitals, health insurance, medical appointments, results or bills."
+  Promotions: "Marketing, newsletters, sales and promotional offers, even if job-related."
+  Canvas: "Automated notifications sent by Canvas: announcements, assignment due dates, grades, discussion posts."
+  Others: "Anything that fits none of the other topics."
+
+# Category B: action. One per email. ORDER MATTERS: this is the tie-break priority
+# (an email that fits several actions gets the first one in this list).
+actions:
+  Needs a reply: "The sender expects a written response from me."
+  Needs an action: "I must do something other than reply: submit, register, pay, book, sign."
+  Reminder: "Time-bound information to note (deadline, event, due date), with nothing to do yet."
+  Further review: "Unclear what is needed; I should read it and decide."
+  No action needed: "Purely informational or promotional; safe to read later or skip."
+
+fallback_topic: Others
+fallback_action: Further review   # used whenever Claude is unsure or the call fails
+
+# Optional few-shot examples sent with every request (short, anonymised).
+# Add 2 to 3 per label for labels Claude gets wrong. Each one adds to the cost of every call.
+examples: []
+#  - text: "Subject: Internship interview\n\nHi, are you free for a call on Thursday at 3pm?"
+#    topic: Career
+#    action: Needs a reply
+
+claude:
+  model: claude-haiku-5-5        # small and fast is enough for labelling; override with CLAUDE_MODEL in .env
+  max_tokens: 300
+  retries_on_bad_answer: 1       # ask again once if Claude's answer can't be used
+  timeout_seconds: 30
+  min_confidence: 0.5            # below this, the action becomes Further review
+
+# Guardrails applied after Claude answers (they never call the API).
+rules:
+  noreply_markers: ["noreply", "no-reply", "donotreply", "do-not-reply"]   # these senders can't be Needs a reply
+  # Optional free shortcuts that skip the Claude call for obvious emails. Off by default.
+  use_shortcuts: false
+  canvas_senders: ["@instructure.com"]
+  canvas_reminder_keywords: ["due", "deadline", "reminder", "upcoming"]
+  fos_senders: []
+  medical_senders: []
+  career_senders: []
+  promotion_markers: ["unsubscribe", "manage your preferences", "view this email in your browser"]
+
+# Priority ranking: 1 to 5 stars per email, based ONLY on the email's content.
+# Claude scores three content factors (0 to 3 each); the stars come from this formula and these
+# guardrails. The topic and action labels play no part. Stars are set when the email arrives and stay
+# fixed; you can adjust them in the dashboard. Changing anything here costs no API calls:
+# `python -m src.evaluate` re-scores cached results instantly.
+priority:
+  model: content_only           # content_only (this version) | combined (the main version's model)
+  timezone: Asia/Singapore
+
+  content_only:
+    # score = 2.0*consequence + 1.5*urgency + 1.0*relevance   (0 to 13.5)
+    weights: {consequence: 2.0, urgency: 1.5, relevance: 1.0}
+    star_thresholds: {5: 11.5, 4: 9, 3: 6, 2: 3}   # minimum score for each level; below 3 = 1 star
+    floors:                     # applied first
+      serious_and_soon: 4       # consequence 3 and due within a week -> at least 4 stars
+    caps:                       # applied last, so they always win
+      mass_marketing: 3         # relevance 0
+      suspicious: 2             # likely phishing (also shown with a warning)
+
+  # The main version's model, kept for `python -m src.compare`. Not used unless model: combined.
+  combined:
+    weights: {consequence: 1.5, urgency: 1.0, relevance: 0.5}
+    action_base: {Needs a reply: 3, Needs an action: 3, Reminder: 2, Further review: 2, No action needed: 0}
+    topic_adjust: {Medical: 1, FoS General: 0.5, Career: 0.5, Canvas: 0, Others: 0, Promotions: -1}
+    star_thresholds: {5: 10.5, 4: 8, 3: 5, 2: 2.5}
+    floors: {serious_and_soon: 4, personal_reply: 3}
+    caps:
+      topics: {Promotions: 3}
+      actions: {No action needed: 2}
+      mass_marketing: 3
+      suspicious: 2
+
+  # Days from ARRIVAL to the deadline -> urgency. More than 30 days -> 0; already overdue -> 3.
+  deadline_bands: [[2, 3], [7, 2], [30, 1]]
+  # Used only when rules.use_shortcuts labels an email without calling Claude.
+  shortcut_factors: {consequence: 1, urgency: 1, relevance: 1}
+
+# Accuracy targets, checked by `python -m src.evaluate` against your hand labels.
+targets:
+  topic_macro_f1: 0.90
+  action_macro_f1: 0.85
+  recall_needs_reply: 0.95
+  recall_needs_action: 0.95
+  recall_medical: 0.85
+  recall_career: 0.85
+  max_further_review_share: 0.15
+  priority_within_one: 0.90         # system within 1 star of your rating
+  priority_critical_recall: 0.95    # your 5-star emails rated 4 or 5 stars
+  priority_over_ranking_max: 0.05   # your 1-2 star emails rated 4 or 5 stars (at most)
+  priority_spearman: 0.70           # rank agreement
+
+worker:
+  poll_seconds: 120
+  backfill_days: 30          # first sync only looks back this far
+  max_per_sync: 200         # cap on Claude calls per sync, to control cost
+  shadow_mode: false        # true = label and log, but hide from the dashboard
+  retention_days: 90        # delete stored metadata older than this
+
+dashboard:
+  timezone: Asia/Singapore
+  default_days: 30
+  max_rows: 500
+
+preprocess:
+  max_chars: 4000           # email text sent to Claude is cut to this length

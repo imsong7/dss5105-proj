@@ -280,7 +280,7 @@ export function SetupGuide({
                 </p>
                 <a
                   href={FLOW_PACKAGE_URL}
-                  download="inbox-sorter-flow.zip"
+                  download="nusbox-flow.zip"
                   className="inline-flex min-h-11 w-fit items-center gap-2 rounded-[10px] bg-accent px-4 text-[14px] font-semibold text-white hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   <Download className="h-4 w-4" aria-hidden="true" />

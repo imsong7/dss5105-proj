@@ -82,7 +82,7 @@ python email-sorter/run.py --port 5001 --provider powerautomate
   the app-only password; no browser Basic-auth popup).
 - ngrok is **off by default**, so teammates can just run `python run.py` and
   work locally. The live machine shares the app with `--tunnel` (or
-  `USE_NGROK=1` in `.env`) using `tubular-colony-caboose.ngrok-free.dev`;
+  `USE_NGROK=1` in `.env`) using `agile-problem-luxury.ngrok-free.dev`;
   `--ngrok-domain other.ngrok-free.dev` picks another reserved domain.
 
 The first time, create the private account file:

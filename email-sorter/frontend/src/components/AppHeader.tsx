@@ -89,7 +89,7 @@ interface AppHeaderProps {
   onViewChange: (view: WorkspaceView) => void;
 }
 
-const LION_SIZE = 68;
+const LION_SIZE = 52;
 
 /** The mascot in the top bar: tilts on hover, hops and speaks on click, hops when its mood changes. */
 function HeaderLion({ mood, status }: { mood?: Mood; status?: string }) {
@@ -123,16 +123,16 @@ function HeaderLion({ mood, status }: { mood?: Mood; status?: string }) {
           setSpeaking(true);
         }}
         aria-label={status ? `Lion: ${status}` : "Lion"}
-        className="lion-button absolute -bottom-[18px] left-0 rounded-lg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        className="lion-button absolute right-[-32px] bottom-[calc(100%-6px)] rounded-lg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
       >
         <span key={hop} className={hop > 0 ? "lion-hop block" : "block"}>
-          <LionMark size={LION_SIZE} mood={mood} animated />
+          <LionMark size={LION_SIZE} mood={mood} animated pose="perched" />
         </span>
       </button>
       {speaking && status ? (
         <p
           role="status"
-          className="toast-enter absolute top-[calc(100%+22px)] left-[54px] z-30 rounded-xl rounded-tl-sm border border-line bg-surface px-3 py-2 text-[13px] font-medium whitespace-nowrap text-ink shadow-[0_6px_20px_rgba(0,0,0,0.10)]"
+          className="toast-enter absolute top-[calc(100%+12px)] left-0 z-30 rounded-xl rounded-tl-sm border border-line bg-surface px-3 py-2 text-[13px] font-medium whitespace-nowrap text-ink shadow-[0_6px_20px_rgba(0,0,0,0.10)]"
         >
           {status}
         </p>
@@ -166,13 +166,24 @@ export function AppHeader({ userEmail, userName, overlay = false, progress, mood
       }`}
     >
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-3 px-4 py-2.5 sm:px-6 lg:px-8">
-        <div className="relative flex items-center gap-2 self-stretch">
-          {/* The lion lies on the bottom edge of the bar; the spacer keeps its width. */}
-          <span aria-hidden="true" className="w-[106px] shrink-0" />
-          <HeaderLion mood={mood} status={status} />
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
-            Inbox sorter
-          </span>
+        <div className="relative min-h-[62px] w-[90px] shrink-0 self-stretch">
+          {/* "NusBox": Nus in blue, then Box drawn as a small cardboard box with the lion lying on it. */}
+          <div className="absolute top-1/2 left-3 flex -translate-y-1/2 items-end pt-[44px] text-[17px] leading-none font-extrabold tracking-[-0.04em]">
+            <span className="sr-only">NusBox</span>
+            {/* "NUS" stacked top to bottom beside the box. */}
+            <span aria-hidden="true" className="-mt-[12px] flex flex-col items-center pb-[1px] text-[18px] leading-[0.78] text-accent">
+              <span>N</span>
+              <span>U</span>
+              <span>S</span>
+            </span>
+            <span className="relative ml-px rounded-[3px] border-[1.5px] border-[#B07A34] bg-[#EBBB72] px-1.5 pt-[10px] pb-[2px] text-[#5E3210] shadow-[0_1px_0_#B07A34]">
+              {/* The lid's seam and a strip of packing tape across it. */}
+              <span aria-hidden="true" className="absolute inset-x-0 top-[7px] h-px bg-[#B07A34]/70" />
+              <span aria-hidden="true" className="absolute top-0 left-1/2 h-[7px] w-2.5 -translate-x-1/2 bg-[#F8E3B2]" />
+              <span aria-hidden="true">Box</span>
+              <HeaderLion mood={mood} status={status} />
+            </span>
+          </div>
         </div>
 
         <nav aria-label="Views" className="max-sm:hidden">

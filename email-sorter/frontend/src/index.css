@@ -134,6 +134,8 @@
 .lion-lid {
   transform-box: fill-box;
   transform-origin: center top;
+  /* Open by default: with reduced motion the blink animation is cut short and this is what stays. */
+  transform: scaleY(0);
   animation: lion-blink 5.3s ease-in-out infinite;
 }
 

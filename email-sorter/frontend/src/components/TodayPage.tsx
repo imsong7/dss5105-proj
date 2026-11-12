@@ -527,7 +527,7 @@ export function TodayPage({
         >
           {/* The lion lies right on the date line; extra banner height goes above it. */}
           <div className="-mb-3 sm:hidden">
-            <LionMark size={104} mood={mood} />
+            <LionMark size={104} mood={mood} animated />
           </div>
           <button
             type="button"

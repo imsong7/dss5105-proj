@@ -5,20 +5,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sign in · Inbox sorter</title>
+<title>Sign in · NusBox</title>
 <link rel="manifest" href="{{ url_for('static', filename='app/manifest.webmanifest') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='app/apple-touch-icon.png') }}">
 <meta name="theme-color" content="#003D7C">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='app/favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='67') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='71') }}">
 </head>
 <body class="login-page">
 <div class="login-shell">
 {{ lion("login-perch", 96) }}
 <main class="login-card">
   <div class="login-brand">
-    <span class="brand-name">Inbox sorter</span>
+    <img class="login-logo" src="{{ url_for('static', filename='nusbox-logo.png') }}" alt="NusBox" width="720" height="343">
   </div>
   <h1>Sign in</h1>
   <p class="sub">Sign in with your account email and password. You only see your own mail.</p>

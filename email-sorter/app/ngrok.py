@@ -16,7 +16,7 @@ from pathlib import Path
 
 import requests
 
-DEFAULT_DOMAIN = "tubular-colony-caboose.ngrok-free.dev"
+DEFAULT_DOMAIN = "agile-problem-luxury.ngrok-free.dev"
 NGROK_API = "http://127.0.0.1:4040/api/tunnels"
 
 

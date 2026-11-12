@@ -68,6 +68,18 @@ const TAIL_END = LION_BODY.indexOf('<path d="M42 50');
 const LION_TAIL = LION_BODY.slice(0, TAIL_END);
 const LION_REST = LION_BODY.slice(TAIL_END);
 
+// For the perched pose the body is cut in two: the torso, then the haunch and hind paw
+// (up to where the mane starts), then everything at the front (mane, head, front legs).
+const HIND_START = LION_REST.indexOf('<ellipse cx="92"');
+const FRONT_START = LION_REST.indexOf('<path d="M43.0 8.8');
+const LION_TORSO = LION_REST.slice(0, HIND_START);
+const LION_HIND = LION_REST.slice(HIND_START, FRONT_START);
+const LION_FRONT = LION_REST.slice(FRONT_START);
+
+/** The back end bends down at the hinge near the middle of the back (degrees, clockwise). */
+const PERCH_BEND = 38;
+const HINGE = "68 37";
+
 /**
  * `animated` adds the idle life used in the top bar: an occasional tail flick
  * and blink. Both stop under prefers-reduced-motion (see index.css).
@@ -76,10 +88,13 @@ export function LionMark({
   size = 36,
   mood = "happy",
   animated = false,
+  pose = "lying",
 }: {
   size?: number;
   mood?: Mood;
   animated?: boolean;
+  /** "perched": the front stays level while the back arches and the hind end hangs down. */
+  pose?: "lying" | "perched";
 }) {
   const eyesOpen = mood === "happy" || mood === "worried";
 
@@ -92,10 +107,34 @@ export function LionMark({
       aria-hidden="true"
       focusable="false"
       className="lion-svg"
+      style={pose === "perched" ? { overflow: "visible" } : undefined}
     >
       {/* Fixed artwork (constant markup from lionArt.ts), then the mood. */}
-      <g className={animated ? "lion-tail" : undefined} dangerouslySetInnerHTML={{ __html: LION_TAIL }} />
-      <g dangerouslySetInnerHTML={{ __html: LION_REST }} />
+      {pose === "perched" ? (
+        <>
+          <defs>
+            <clipPath id="lion-front-clip">
+              <rect x="0" y="-20" width="68" height="120" />
+            </clipPath>
+            <clipPath id="lion-rear-clip">
+              <rect x="68" y="-20" width="68" height="120" />
+            </clipPath>
+          </defs>
+          <g clipPath="url(#lion-front-clip)" dangerouslySetInnerHTML={{ __html: LION_TORSO }} />
+          {/* The bent back end is drawn over the front torso, so the thigh overlaps the belly. */}
+          <g transform={`rotate(${PERCH_BEND} ${HINGE})`}>
+            <g className={animated ? "lion-tail" : undefined} dangerouslySetInnerHTML={{ __html: LION_TAIL }} />
+            <g clipPath="url(#lion-rear-clip)" dangerouslySetInnerHTML={{ __html: LION_TORSO }} />
+            <g dangerouslySetInnerHTML={{ __html: LION_HIND }} />
+          </g>
+          <g dangerouslySetInnerHTML={{ __html: LION_FRONT }} />
+        </>
+      ) : (
+        <>
+          <g className={animated ? "lion-tail" : undefined} dangerouslySetInnerHTML={{ __html: LION_TAIL }} />
+          <g dangerouslySetInnerHTML={{ __html: LION_REST }} />
+        </>
+      )}
       <Face mood={mood} />
       {animated && eyesOpen ? (
         <g className="lion-lid" fill="#F9C86A">

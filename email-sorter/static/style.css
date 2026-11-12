@@ -16,7 +16,12 @@ aside{background:var(--panel);border-right:1px solid var(--line);padding:24px 20
 main{padding:24px 28px;max-width:1080px;width:100%;min-width:0}
 h1{font-size:22px;margin:0 0 2px;font-weight:650}
 h2{font-size:14px;margin:0 0 8px;font-weight:650}
-.brand-name{font-size:22px;font-weight:650;line-height:1.2}
+.brand-name{display:inline-flex;align-items:center;font-size:24px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.brand-name .bn-nus{color:var(--accent)}
+.brand-name{letter-spacing:-.04em;font-weight:800}
+.brand-name .bn-box{position:relative;margin-left:1px;padding:9px 7px 2px;border-radius:4px;background:#ebbb72;border:2px solid #b07a34;color:#5e3210;box-shadow:0 1px 0 #b07a34}
+.brand-name .bn-box::before{content:"";position:absolute;left:0;right:0;top:8px;height:1px;background:rgba(176,122,52,.7)}
+.brand-name .bn-box::after{content:"";position:absolute;left:50%;top:0;width:11px;height:8px;margin-left:-5px;background:#f8e3b2}
 .sub{color:var(--muted);margin:0;font-size:13px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
@@ -47,7 +52,10 @@ main{padding:18px 14px}
 .login-page{display:grid;place-items:center;min-height:100vh;padding:24px}
 .login-card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);
   border-radius:16px;padding:30px 28px;box-shadow:0 24px 60px rgba(20,30,45,.12)}
-.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.login-brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px}
+.login-logo{display:block;width:min(230px,100%);height:auto}
+.login-brand.stacked{flex-direction:column;gap:2px}
+.login-brand.stacked .connect-step{margin-left:0;margin-top:2px}
 .login-card h1{font-size:20px;margin:0 0 6px}
 .login-card .sub{margin:0 0 18px}
 .login-error{background:#fdecea;border:1px solid #f5c6c0;border-left:4px solid #c0392b;
@@ -178,7 +186,7 @@ body.login-page{align-content:safe center}
 html:has(body.login-page){background:#0a2d5c}
 body.login-page{height:auto;min-height:100vh;background-attachment:fixed}
 .connect-next{margin-top:16px;border:1px dashed #b9cbe3;border-radius:12px;padding:12px 14px;background:#f7f9fc}
-.connect-next-title{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-weight:650;font-size:14px}
+.connect-next-title{display:flex;align-items:center;gap:8px;margin:0;font-weight:600;font-size:13.5px}
 .connect-next-title .connect-step{margin-left:0}
 .connect-next-text{margin:0 0 6px;font-size:13px;color:var(--muted)}
 .connect-next ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5;color:var(--ink)}

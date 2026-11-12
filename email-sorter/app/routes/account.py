@@ -106,7 +106,7 @@ def setup_flow_package():
         io.BytesIO(package),
         mimetype="application/zip",
         as_attachment=True,
-        download_name="inbox-sorter-flow.zip",
+        download_name="nusbox-flow.zip",
         max_age=0,
     )
 

@@ -5,20 +5,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Connect Outlook · Inbox sorter</title>
+<title>Connect Outlook · NusBox</title>
 <link rel="manifest" href="{{ url_for('static', filename='app/manifest.webmanifest') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='app/apple-touch-icon.png') }}">
 <meta name="theme-color" content="#003D7C">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='app/favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='67') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='71') }}">
 </head>
 <body class="login-page">
 <div class="login-shell">
 {{ lion("login-perch", 96) }}
 <main class="login-card connect-card">
-  <div class="login-brand">
-    <span class="brand-name">Inbox sorter</span>
+  <div class="login-brand stacked">
+    <img class="login-logo" src="{{ url_for('static', filename='nusbox-logo.png') }}" alt="NusBox" width="720" height="343">
     <span class="connect-step">Step 2 of 2</span>
   </div>
   <h1>Connect your Outlook{% if name %}, {{ name }}{% endif %}</h1>
@@ -35,7 +35,7 @@
     <ol class="connect-steps">
       <li>
         <strong>Download your flow.</strong> Already set up for you; don't share it. {% if flow_sends_images %}Sends each email's text and one small image (for posters).{% else %}Sends each email's text only (no images).{% endif %}
-        <a class="btn btn-primary connect-download" href="{{ url_for('account.setup_flow_package') }}" download="inbox-sorter-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
+        <a class="btn btn-primary connect-download" href="{{ url_for('account.setup_flow_package') }}" download="nusbox-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
       </li>
       <li>
         <strong>Import it</strong> in <a href="https://make.powerautomate.com/manage/flows" target="_blank" rel="noopener noreferrer">Power Automate</a>:

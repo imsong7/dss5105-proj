@@ -1,4 +1,4 @@
-# Inbox sorter — React dashboard
+# NusBox — React dashboard
 
 The main dashboard. React + TypeScript + Vite + Tailwind, served by Flask at
 `/` from `../static/app/`. Without a build, Flask says how

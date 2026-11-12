@@ -1,6 +1,6 @@
 {
-  "name": "Inbox sorter",
-  "short_name": "Inbox",
+  "name": "NusBox",
+  "short_name": "NusBox",
   "description": "Deadlines and mail for NUS students.",
   "start_url": "/",
   "scope": "/",

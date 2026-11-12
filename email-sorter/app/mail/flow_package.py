@@ -24,7 +24,7 @@ API_RESOURCE = "4b2c9d1e-7a3f-4e85-b6c0-8f1d2e3a4b51"
 CONNECTION_RESOURCE = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c62"
 FLOW_NAME = "6c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5"
 
-DISPLAY_NAME = "Inbox sorter"
+DISPLAY_NAME = "NusBox"
 GET_EMAILS = "Get_emails_(V3)"
 EACH_EMAIL = "Send_each_email"
 INLINE_IMAGES = "Inline_images"
@@ -213,10 +213,10 @@ def _manifest() -> dict:
         "schema": "1.0",
         "details": {
             "displayName": DISPLAY_NAME,
-            "description": "Sends your recent Outlook mail to Inbox sorter when the app asks.",
+            "description": "Sends your recent Outlook mail to NusBox when the app asks.",
             "createdTime": "2026-11-07T00:00:00Z",
             "packageTelemetryId": "",
-            "creator": "Inbox sorter",
+            "creator": "NusBox",
             "sourceEnvironment": "",
         },
         "resources": {

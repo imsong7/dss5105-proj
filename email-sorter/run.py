@@ -94,7 +94,7 @@ if __name__ == "__main__":
         default=None,
         metavar="DOMAIN",
         help="ngrok static domain (default: NGROK_DOMAIN env or "
-             "tubular-colony-caboose.ngrok-free.dev).",
+             "agile-problem-luxury.ngrok-free.dev).",
     )
     parser.add_argument(
         "--no-build",

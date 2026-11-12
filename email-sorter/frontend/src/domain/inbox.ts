@@ -48,12 +48,18 @@ export function filterEmails(
   });
 }
 
-/** Stable sort: ties fall back to the id so screenshots are deterministic. */
+/** Stable sort: "priority" puts the most important first; ties fall back to the id so screenshots are deterministic. */
 export function sortEmails(
   emails: readonly InboxEmail[],
   order: SortOrder,
 ): InboxEmail[] {
   return [...emails].sort((a, b) => {
+    if (order === "priority") {
+      // Most important first; unrated mail last; ties go newest first.
+      const byStars =
+        (b.classification?.priority?.stars ?? 0) - (a.classification?.priority?.stars ?? 0);
+      if (byStars !== 0) return byStars;
+    }
     const delta = Date.parse(a.receivedAt) - Date.parse(b.receivedAt);
     const ordered = order === "oldest" ? delta : -delta;
     return ordered !== 0 ? ordered : a.id.localeCompare(b.id);

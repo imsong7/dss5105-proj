@@ -347,7 +347,9 @@ def _require_identity():
 
 
 def _private_response(response):
-    response.headers["Cache-Control"] = "no-store"
+    # Static files are public and versioned (?v=), so let the browser cache them.
+    if request.endpoint != "static":
+        response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
@@ -406,6 +408,7 @@ def install_multiuser(app) -> None:
     app.secret_key = _session_secret(app)
     app.config.update(
         PERMANENT_SESSION_LIFETIME=SESSION_LIFETIME,
+        SEND_FILE_MAX_AGE_DEFAULT=3600,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         # Opt in once the app is only used over HTTPS (for example the ngrok URL);

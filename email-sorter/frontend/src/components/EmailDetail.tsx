@@ -1,13 +1,13 @@
 import { useId, useState, type ComponentProps, type RefObject } from "react";
-import { ArrowLeft, CalendarCheck, CalendarClock, CalendarPlus, ExternalLink, Loader2, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, CalendarPlus, ExternalLink, Mail, Sparkles } from "lucide-react";
 
 import { addsItself, deadlineKey } from "../domain/calendar";
-import type { PersonalEventDraft } from "../domain/calendar";
 import type { InboxEmail, ReplyDraft } from "../domain/email";
 import type { ActionKey, CategoryKey } from "../domain/taxonomy";
 import { senderInitials } from "../domain/inbox";
 import { formatDeadline, formatFullDate } from "../lib/format";
 import { CategoryBadge } from "./CategoryBadge";
+import { PriorityStars } from "./PriorityStars";
 import { cleanBody } from "../domain/cleanBody";
 import { keyFacts } from "../domain/keyFacts";
 import { labelValue, markWhen, toBlocks } from "../domain/readable";
@@ -34,11 +34,6 @@ interface EmailDetailProps {
   onUndoCorrection: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
   onDraftReply: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
-  /** The event or deadline Claude found in this email, if any. */
-  foundEvent?: PersonalEventDraft;
-  hasEvent?: (draft: PersonalEventDraft) => boolean;
-  /** Saves it to the calendar; throws with a readable message. */
-  onAddEvent?: (draft: PersonalEventDraft) => Promise<void>;
   headingRef: RefObject<HTMLHeadingElement | null>;
   /** Is this date (item key) in the student's calendar? Canvas due dates always are. */
   isInCalendar?: (key: string) => boolean;
@@ -54,9 +49,6 @@ export function EmailDetail({
   onUndoCorrection,
   onRemoveRule,
   onDraftReply,
-  foundEvent,
-  hasEvent,
-  onAddEvent,
   headingRef,
   isInCalendar,
   onToggleCalendar,
@@ -64,10 +56,6 @@ export function EmailDetail({
 }: EmailDetailProps) {
   // Which email's draft panel is open (it closes when another email is opened).
   const [draftFor, setDraftFor] = useState<string | null>(null);
-  // Adding the date with Claude: which email is being read, which were added, the last error.
-  const [adding, setAdding] = useState<string | null>(null);
-  const [added, setAdded] = useState<ReadonlySet<string>>(new Set());
-  const [addError, setAddError] = useState<{ id: string; text: string } | null>(null);
   if (!email) {
     return (
       <section
@@ -120,43 +108,7 @@ export function EmailDetail({
         Draft a reply
       </button>
     ) : null;
-  // Claude read this email and found an event or deadline: one press adds it to the calendar.
-  const alreadyAdded = foundEvent ? added.has(email.id) || hasEvent?.(foundEvent) === true : false;
-  const addEventButton =
-    foundEvent && onAddEvent ? (
-      <button
-        type="button"
-        disabled={adding === email.id || alreadyAdded}
-        title={`${foundEvent.title} · ${foundEvent.date}${foundEvent.time ? ` ${foundEvent.time}` : ""}`}
-        onClick={() => {
-          setAdding(email.id);
-          setAddError(null);
-          onAddEvent(foundEvent)
-            .then(() => setAdded((current) => new Set(current).add(email.id)))
-            .catch((cause: unknown) =>
-              setAddError({ id: email.id, text: cause instanceof Error ? cause.message : "Could not add the event." }),
-            )
-            .finally(() => setAdding(null));
-        }}
-        className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-semibold text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-default disabled:opacity-70"
-      >
-        {adding === email.id ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-        ) : alreadyAdded ? (
-          <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
-        ) : (
-          <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
-        )}
-        {alreadyAdded ? "Added" : "Add event"}
-      </button>
-    ) : null;
-  const actions =
-    replyButton || addEventButton ? (
-      <>
-        {addEventButton}
-        {replyButton}
-      </>
-    ) : null;
+  const actions = replyButton;
   const showFacts = !(email.jobs || (email.event && !email.poster));
   // A meeting link already sits in the facts strip as "Join Zoom".
   const meeting = facts.find((fact) => fact.kind === "meeting")?.href;
@@ -253,11 +205,6 @@ export function EmailDetail({
         ) : actions ? (
           <div className="mt-2 flex flex-wrap gap-2">{actions}</div>
         ) : null}
-        {addError?.id === email.id ? (
-          <p role="alert" className="mt-1.5 text-[12.5px] text-action-now-fg">
-            {addError.text}
-          </p>
-        ) : null}
         {canReply && draftOpen ? (
           <DraftReply key={`draft-${email.id}`} email={email} onDraft={onDraftReply} autoStart />
         ) : null}
@@ -272,6 +219,9 @@ export function EmailDetail({
                     <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 text-[13px] [&::-webkit-details-marker]:hidden">
                       <span className="font-semibold text-ink">{item.label}</span>
                       <span className="text-ink">{formatDeadline(item)}</span>
+                      {item.location ? (
+                        <span className="text-[12px] text-muted">· {item.location}</span>
+                      ) : null}
                       {item.fromImage ? (
                         <span className="text-[12px] text-muted">· from the poster</span>
                       ) : null}
@@ -370,6 +320,7 @@ function SortedAs(props: SortedAsProps) {
     <div className="mt-1.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="label text-muted">Sorted as</span>
+        {classification.priority ? <PriorityStars priority={classification.priority} /> : null}
         <CategoryBadge category={classification.category} />
         <StatusBadge action={classification.action} />
         <CorrectionControl

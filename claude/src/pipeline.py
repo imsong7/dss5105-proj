@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from .preprocess import EmailRecord
+from .priority import Factors, Priority, compute
 from .rules import apply_rules
 
 
@@ -24,6 +25,7 @@ class Result:
     api_duration_ms: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cache_read_tokens: int | None = None
     stop_reason: str | None = None
     app_attempts: int = 0
     app_retry_attempts: int = 0
@@ -31,6 +33,19 @@ class Result:
     retry_backoff_ms: int = 0
     error: str | None = None
     error_type: str | None = None
+    factors: Factors | None = None
+    priority: Priority | None = None     # None = unrated
+    event: dict | None = None            # date, time and place found in the email
+
+    @property
+    def stars(self) -> int | None:
+        return self.priority.stars if self.priority else None
+
+
+def _with_priority(r: Result, rec: EmailRecord, cfg: dict) -> Result:
+    if r.factors is not None and cfg.get("priority"):
+        r.priority = compute(r.topic, r.action, r.factors, rec.received, cfg)
+    return r
 
 
 def _diagnostics(info) -> dict:
@@ -42,6 +57,7 @@ def _diagnostics(info) -> dict:
         api_duration_ms=info.api_duration_ms,
         input_tokens=info.input_tokens,
         output_tokens=info.output_tokens,
+        cache_read_tokens=info.cache_read_tokens,
         stop_reason=info.stop_reason,
         app_attempts=info.app_attempts,
         app_retry_attempts=info.app_retry_attempts,
@@ -63,10 +79,10 @@ def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None
     if claude is None:
         out = None
     elif hasattr(claude, "run"):        # returns its own per-call diagnostics
-        call = claude.run(rec.text)
+        call = claude.run(rec.text, rec.received)
         out, info = call.labels, call.info
     else:
-        out = claude(rec.text)
+        out = claude(rec.text, rec.received)
     diag = _diagnostics(info)
     if out is None:
         # Claude unavailable or gave an invalid answer: send it up to review, never down.
@@ -79,4 +95,6 @@ def classify(rec: EmailRecord, cfg: dict, claude: Callable[[str], object] | None
         action = cfg["fallback_action"]
     if out.confidence < cfg["claude"].get("min_confidence", 0.5) and not rule.action:
         action = cfg["fallback_action"]          # unsure: send it up to review
-    return Result(topic, action, out.confidence, "claude", out.reason, rule.fired, **diag)
+    result = Result(topic, action, out.confidence, "claude", out.reason, rule.fired,
+                    factors=out.priority, event=out.event, **diag)
+    return _with_priority(result, rec, cfg)

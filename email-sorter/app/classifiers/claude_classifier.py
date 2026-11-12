@@ -178,6 +178,21 @@ class ClaudeClassifier(BaseClassifier):
         }
         return self.modules.preprocess.to_record(message, self.my_address, self.cfg)
 
+    @staticmethod
+    def _priority(result) -> dict | None:
+        """The star rating for the API, or None when Claude gave no usable factors."""
+        rated = getattr(result, "priority", None)
+        if rated is None:
+            return None
+        factors = result.factors
+        return {
+            "stars": rated.stars,
+            "score": rated.score,
+            "notes": list(rated.notes),
+            "key_point": factors.key_point if factors else "",
+            "suspicious": bool(factors and factors.suspicious),
+        }
+
     def classify(self, email: Email) -> Classification:
         """Classify one email with the full Claude backend pipeline."""
         t_preprocess = time.perf_counter()
@@ -199,6 +214,8 @@ class ClaudeClassifier(BaseClassifier):
             reply_nature=self.map_action(result.action),
             deadline=None,
             reason=reason,
+            priority=self._priority(result),
+            event=getattr(result, "event", None),
         )
         postprocess_ms = int((time.perf_counter() - t_postprocess) * 1000)
 
@@ -215,7 +232,8 @@ class ClaudeClassifier(BaseClassifier):
             retry_backoff_ms=getattr(result, "retry_backoff_ms", 0),
             sdk_retries="unknown",
             sdk_retry_wait_ms="unknown",
-            provider_prompt_cached="unknown",
+            provider_prompt_cached=(getattr(result, "cache_read_tokens", None) or 0) > 0,
+            cache_read_tokens=getattr(result, "cache_read_tokens", None),
             pipeline_source=result.source,
             error_type=getattr(result, "error_type", None),
         )

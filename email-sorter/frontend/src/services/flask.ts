@@ -141,6 +141,8 @@ interface FlaskClassification {
   rule?: boolean;
   original?: { content_category: string; reply_nature: string };
   backend?: string;
+  event?: { date: string; time?: string; location?: string } | null;
+  priority?: { stars: number; key_point?: string; suspicious?: boolean; notes?: string[] } | null;
 }
 
 export interface SessionInfo {
@@ -272,6 +274,18 @@ function mapClassification(raw: FlaskClassification): EmailClassification {
         }
       : undefined,
     backend: raw.backend || undefined,
+    event: raw.event?.date
+      ? { date: raw.event.date, time: raw.event.time || undefined, location: raw.event.location || undefined }
+      : undefined,
+    priority:
+      raw.priority && raw.priority.stars >= 1 && raw.priority.stars <= 5
+        ? {
+            stars: Math.round(raw.priority.stars),
+            keyPoint: raw.priority.key_point ?? "",
+            suspicious: Boolean(raw.priority.suspicious),
+            notes: raw.priority.notes ?? [],
+          }
+        : undefined,
   };
 }
 
@@ -485,19 +499,6 @@ export async function fetchPersonalEvents(
 
 export function createPersonalEvent(draft: PersonalEventDraft): Promise<PersonalEvent> {
   return api<PersonalEvent>("/api/events", draft, { timeoutMs: 10_000 });
-}
-
-/** What Claude finds in one email: an event or deadline, or ``null``. Nothing is saved. */
-export async function scanEmailForEvent(
-  email: FlaskEmail,
-  signal?: AbortSignal,
-): Promise<PersonalEventDraft | null> {
-  const data = await api<{ event: PersonalEventDraft | null }>(
-    "/api/events/scan",
-    { email },
-    { signal, timeoutMs: 90_000 },
-  );
-  return data.event;
 }
 
 export function updatePersonalEvent(

@@ -20,6 +20,8 @@ export interface DeadlineCandidate {
   yearInferred?: boolean;
   /** True when the date was read off a poster image. */
   fromImage?: boolean;
+  /** Where it happens, when Claude read a place in the email. */
+  location?: string;
 }
 
 /** One posting from a job digest (NUS TalentConnect), see app/listings.py. */
@@ -55,6 +57,17 @@ export interface EmailPoster {
   hasImage: boolean;
 }
 
+/** 1 to 5 star rating from the email's content (Claude backend only). */
+export interface EmailPriority {
+  stars: number;
+  /** One short line on what matters in the email. */
+  keyPoint: string;
+  /** Looks like phishing; the stars are capped. */
+  suspicious: boolean;
+  /** Which floors or caps changed the stars. */
+  notes: readonly string[];
+}
+
 export interface EmailClassification {
   category: CategoryKey;
   action: ActionKey;
@@ -67,6 +80,10 @@ export interface EmailClassification {
   original?: { category: CategoryKey; action: ActionKey };
   /** Which backend produced this result, so switching backends does not reuse stale answers. */
   backend?: string;
+  /** The date, time and place Claude read in the email (Claude backend only). */
+  event?: { date: string; time?: string; location?: string };
+  /** Stars for how much the email matters; absent when the backend does not rate mail. */
+  priority?: EmailPriority;
 }
 
 export interface ReplyDraft {
@@ -108,7 +125,7 @@ export interface InboxEmail {
   jobs?: { items: readonly Job[]; moreUrl: string };
 }
 
-export type SortOrder = "newest" | "oldest";
+export type SortOrder = "newest" | "oldest" | "priority";
 
 export type ActionFilter = ActionKey | "all";
 

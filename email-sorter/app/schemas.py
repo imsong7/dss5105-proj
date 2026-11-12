@@ -46,6 +46,11 @@ class Classification(BaseModel):
         description="Deadline exactly as the email states it (date/time), or null if there is none.",
     )
     reason: str = Field(default="", description="One short sentence explaining the choice.")
+    # 1 to 5 stars from the content factors (claude/src/priority.py). Only the
+    # Claude backend rates mail; every other backend leaves this None.
+    priority: dict | None = Field(default=None, description="Star rating and why, or null when unrated.")
+    # The date, time and place Claude read in the email: {"date", "time", "location"}.
+    event: dict | None = Field(default=None, description="Date the email asks for, or null.")
 
     @staticmethod
     def _norm(value) -> str:

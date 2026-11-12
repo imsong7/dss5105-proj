@@ -49,8 +49,8 @@ REFRESH_DONE = "Refresh_done"
 # kept small. Set False for the fastest load; poster/OCR reading is then skipped.
 # On, with a small image limit: larger images made Power Automate's HTTP push fail with
 # "Error while copying content to a stream". If it comes back, set False (text only).
-INCLUDE_IMAGES = True
-FOREACH_PARALLEL = None  # 1 to 50 parallel pushes per batch; None = Power Automate's default
+INCLUDE_IMAGES = False  # True made Get emails slow (~6 min) and fail with "Error while copying content to a stream"
+FOREACH_PARALLEL = 50  # 1 to 50 parallel pushes per batch; None = Power Automate's default
 DEFAULT_DAYS = 90
 
 

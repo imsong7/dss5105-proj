@@ -23,6 +23,8 @@ class HybridClaudeTests(unittest.TestCase):
                 reply_nature="needs_reply",
                 deadline=None,
                 reason="asks a question",
+                priority={"stars": 4},
+                event={"date": "2026-11-20", "time": "14:00", "location": "LT19"},
             )
         )
 
@@ -31,3 +33,5 @@ class HybridClaudeTests(unittest.TestCase):
         self.assertEqual(result.content_category, "career")
         self.assertEqual(result.reply_nature, "needs_reply")
         self.assertIn("asks a question", result.reason)
+        self.assertEqual(result.priority, {"stars": 4})
+        self.assertEqual(result.event["location"], "LT19")

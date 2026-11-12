@@ -149,6 +149,31 @@ export function addsItself(email: InboxEmail, _deadline: DeadlineCandidate): boo
   return isCanvasAssignment(email);
 }
 
+/**
+ * Claude reads the date, time and place in the same call that sorts the email, so for
+ * mail it rated that answer is the only source of dates (no second guess from a regex).
+ * Canvas assignments keep the dates read from the notification itself, and mail Claude
+ * did not read (other backends, your own corrections or rules) keeps the dates found
+ * by the server.
+ */
+export function withModelDeadline(email: InboxEmail): InboxEmail {
+  const found = email.classification;
+  if (!found?.priority || isCanvasAssignment(email)) {
+    return email;
+  }
+  if (!found.event) {
+    return { ...email, deadline: undefined, deadlines: [] };
+  }
+  const candidate: DeadlineCandidate = {
+    label: "Deadline",
+    date: found.event.date,
+    time: found.event.time || undefined,
+    timezone: "SGT",
+    location: found.event.location || undefined,
+  };
+  return { ...email, deadline: candidate, deadlines: [candidate] };
+}
+
 export function buildDeadlines(
   emails: readonly InboxEmail[],
   personal: readonly PersonalEvent[] = [],

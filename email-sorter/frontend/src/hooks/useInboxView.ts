@@ -8,6 +8,7 @@ import type {
   SortOrder,
   WindowDays,
 } from "../domain/email";
+import { withModelDeadline } from "../domain/calendar";
 import {
   countByAction,
   filterEmails,
@@ -37,7 +38,7 @@ import type {
   SyncStatus,
 } from "../services/flask";
 
-const CLASSIFY_CONCURRENCY = 6;
+const CLASSIFY_CONCURRENCY = 10;
 
 type LoadPhase = "idle" | "loading" | "ready";
 
@@ -283,9 +284,10 @@ export function useInboxView(session: SessionInfo) {
   const [query, setQuery] = useState("");
   const [action, setAction] = useState<ActionFilter>("all");
   const [categories, setCategories] = useState<readonly CategoryKey[]>([]);
-  const [sort, setSortState] = useState<SortOrder>(
-    readPref(SORT_KEY) === "oldest" ? "oldest" : "newest",
-  );
+  const [sort, setSortState] = useState<SortOrder>(() => {
+    const saved = readPref(SORT_KEY);
+    return saved === "oldest" || saved === "priority" ? saved : "newest";
+  });
   const setSort = (value: SortOrder) => {
     setSortState(value);
     writePref(SORT_KEY, value);
@@ -500,9 +502,11 @@ export function useInboxView(session: SessionInfo) {
 
   /* ---- Classification ---- */
 
+  // Dates come from Claude's answer for mail it read (see withModelDeadline).
+  const resolvedEmails = useMemo(() => emails.map(withModelDeadline), [emails]);
   const windowed = useMemo(
-    () => withinWindow(emails, windowDays, range),
-    [emails, windowDays, range],
+    () => withinWindow(resolvedEmails, windowDays, range),
+    [resolvedEmails, windowDays, range],
   );
 
   const runClassification = useCallback(
@@ -958,7 +962,7 @@ export function useInboxView(session: SessionInfo) {
 
   return {
     session,
-    emails,
+    emails: resolvedEmails,
     phase,
     loading: phase === "loading",
     classifying: progress !== null,

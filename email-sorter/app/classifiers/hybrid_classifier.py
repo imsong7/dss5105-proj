@@ -71,4 +71,6 @@ class HybridClaudeClassifier(BaseClassifier):
             reply_nature=action.reply_nature,
             deadline=action.deadline,
             reason=f"Hybrid: ML category + Claude action ({action.reason})",
+            priority=action.priority,  # the same Claude call also rated the email
+            event=action.event,        # and read the date, time and place
         )

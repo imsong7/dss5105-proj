@@ -37,7 +37,7 @@ class FakeClaude:
     def __init__(self, out=None, api_failed=False):
         self.out, self.calls, self.api_failed, self.model, self.last_error = out, 0, api_failed, "fake", None
 
-    def __call__(self, text):
+    def __call__(self, text, received=None):
         self.calls += 1
         return self.out
 
@@ -140,6 +140,41 @@ def test_truncated_answer_is_reported_as_max_tokens(cfg, monkeypatch):
 def test_claude_answer_is_used(cfg):
     r = classify(to_record(msg(), ME, cfg), cfg, FakeClaude(Labels("Career", "Needs a reply", 0.9, "asks a question")))
     assert (r.topic, r.action, r.source) == ("Career", "Needs a reply", "claude")
+
+
+def test_priority_stars_come_from_factors(cfg):
+    from src.priority import Factors
+    urgent = Factors(3, 3, 3, None, False, "pay fee today")
+    r = classify(to_record(msg(), ME, cfg), cfg, FakeClaude(Labels("Career", "Needs an action", 0.9, "", urgent)))
+    assert r.stars == 5
+    marketing = Factors(0, 0, 0, None, False, "sale")
+    r = classify(to_record(msg(), ME, cfg), cfg, FakeClaude(Labels("Promotions", "No action needed", 0.9, "", marketing)))
+    assert r.stars == 1
+
+
+def test_unscored_email_has_no_stars(cfg):
+    r = classify(to_record(msg(), ME, cfg), cfg, FakeClaude(Labels("Career", "Needs a reply", 0.9, "")))
+    assert r.stars is None
+
+
+def test_parse_labels_reads_priority_factors(cfg):
+    raw = ('{"topic": "Career", "action": "Needs an action", "confidence": 0.9, "reason": "x", '
+           '"consequence": 2, "urgency": 3, "relevance": 3, "deadline": "2026-11-20", '
+           '"suspicious": false, "key_point": "submit form"}')
+    out = parse_labels(raw, cfg)
+    assert out.priority and (out.priority.consequence, out.priority.urgency, out.priority.deadline) == (2, 3, "2026-11-20")
+    assert parse_labels(raw.replace('"consequence": 2', '"consequence": 9'), cfg).priority is None
+
+
+def test_parse_labels_reads_date_time_and_place(cfg):
+    raw = ('{"topic": "Career", "action": "Needs an action", "confidence": 0.9, "reason": "x", '
+           '"consequence": 1, "urgency": 1, "relevance": 1, "deadline": "2026-11-20", '
+           '"deadline_time": "14:30", "location": "  LT19   Block S16 ", "suspicious": false, "key_point": "k"}')
+    out = parse_labels(raw, cfg)
+    assert out.event == {"date": "2026-11-20", "time": "14:30", "location": "LT19 Block S16"}
+    bad = raw.replace('"14:30"', '"2pm"')
+    assert parse_labels(bad, cfg).event["time"] == ""          # unusable time is dropped
+    assert parse_labels(raw.replace('"2026-11-20"', "null"), cfg).event is None   # no date, no event
 
 
 def test_low_confidence_goes_to_further_review(cfg):
@@ -284,8 +319,13 @@ def test_shortcut_makes_no_api_call(cfg):
 
 
 def test_action_only_prompt_and_parse(cfg, monkeypatch):
-    client, calls = fake_client(fake_response(text='{"action": "Needs a reply", "confidence": 0.8}'))
+    answer = ('{"action": "Needs a reply", "confidence": 0.8, "consequence": 2, "urgency": 2, '
+              '"relevance": 3, "deadline": null, "suspicious": false, "key_point": "reply"}')
+    client, calls = fake_client(fake_response(text=answer))
     clf = _enabled_clf(cfg, monkeypatch, client, action_only=True)
     r = classify(to_record(msg(), ME, cfg), cfg, clf)
     assert (r.action, r.source) == ("Needs a reply", "claude")
-    assert "TOPICS" not in calls[0]["system"] and calls[0]["max_tokens"] == 64
+    system = calls[0]["system"][0]
+    assert "TOPICS" not in system["text"] and "PRIORITY FACTORS" in system["text"]
+    assert system["cache_control"] == {"type": "ephemeral"}
+    assert r.stars is not None  # hybrid_claude (action only) is rated by the same call

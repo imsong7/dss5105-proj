@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { PersonalEventDraft } from "../domain/calendar";
 import { useSavedJobs } from "../contexts/SavedJobsContext";
 import type { InboxView } from "../hooks/useInboxView";
 import type { ItemStates } from "../hooks/useItemStates";
@@ -15,16 +14,12 @@ import { QuickFilters } from "./QuickFilters";
 interface InboxPageProps {
   view: InboxView;
   states: ItemStates;
-  /** Events and deadlines Claude found in emails, by email id. */
-  foundEvents?: Readonly<Record<string, PersonalEventDraft>>;
-  hasEvent?: (draft: PersonalEventDraft) => boolean;
-  onAddEvent?: (draft: PersonalEventDraft) => Promise<void>;
   /** Set when the email was opened from another screen; Back goes there. */
   returnLabel?: string;
   onReturn?: () => void;
 }
 
-export function InboxPage({ view, states, foundEvents, hasEvent, onAddEvent, returnLabel, onReturn }: InboxPageProps) {
+export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   // "Saved jobs" is a sub-tab of the Inbox: it swaps the mail list for the saved jobs.
   const [showJobs, setShowJobs] = useState(false);
@@ -174,9 +169,6 @@ export function InboxPage({ view, states, foundEvents, hasEvent, onAddEvent, ret
           onUndoCorrection={view.undoCorrection}
           onRemoveRule={view.removeRule}
           onDraftReply={view.draftReply}
-          foundEvent={view.selectedEmail ? foundEvents?.[view.selectedEmail.id] : undefined}
-          hasEvent={hasEvent}
-          onAddEvent={onAddEvent}
           headingRef={headingRef}
           isInCalendar={states.isInCalendar}
           onToggleCalendar={(key, on) => void states.setInCalendar(key, on)}

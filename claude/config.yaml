@@ -55,3 +55,39 @@ rules:
 
 preprocess:
   max_chars: 4000           # email text sent to Claude is cut to this length
+
+# Priority ranking: 1 to 5 stars per email, based ONLY on the email's content.
+# Claude scores three content factors (0 to 3 each); the stars come from this formula and these
+# guardrails. The topic and action labels play no part. Stars are computed when the email is
+# classified. Ported from the mahin-priority branch.
+priority:
+  model: content_only           # content_only (this version) | combined (the main version's model)
+  timezone: Asia/Singapore
+
+  content_only:
+    # score = 2.0*consequence + 1.5*urgency + 1.0*relevance   (0 to 13.5)
+    weights: {consequence: 2.0, urgency: 1.5, relevance: 1.0}
+    star_thresholds: {5: 11.5, 4: 9, 3: 6, 2: 3}   # minimum score for each level; below 3 = 1 star
+    floors:                     # applied first
+      serious_and_soon: 4       # consequence 3 and due within a week -> at least 4 stars
+    caps:                       # applied last, so they always win
+      mass_marketing: 3         # relevance 0
+      suspicious: 2             # likely phishing (also shown with a warning)
+
+  # The main version's model, kept for `python -m src.compare`. Not used unless model: combined.
+  combined:
+    weights: {consequence: 1.5, urgency: 1.0, relevance: 0.5}
+    action_base: {Needs a reply: 3, Needs an action: 3, Reminder: 2, Further review: 2, No action needed: 0}
+    topic_adjust: {Medical: 1, FoS General: 0.5, Career: 0.5, Canvas: 0, Others: 0, Promotions: -1}
+    star_thresholds: {5: 10.5, 4: 8, 3: 5, 2: 2.5}
+    floors: {serious_and_soon: 4, personal_reply: 3}
+    caps:
+      topics: {Promotions: 3}
+      actions: {No action needed: 2}
+      mass_marketing: 3
+      suspicious: 2
+
+  # Days from ARRIVAL to the deadline -> urgency. More than 30 days -> 0; already overdue -> 3.
+  deadline_bands: [[2, 3], [7, 2], [30, 1]]
+  # Used only when rules.use_shortcuts labels an email without calling Claude.
+  shortcut_factors: {consequence: 1, urgency: 1, relevance: 1}

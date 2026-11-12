@@ -370,6 +370,7 @@ function FiltersSheet({ view, className = "" }: { view: InboxView; className?: s
             >
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
+              <option value="priority">Priority</option>
             </SelectBox>
           </div>
           <div>
@@ -449,6 +450,7 @@ export function InboxToolbar({ view }: { view: InboxView }) {
         >
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
+              <option value="priority">Priority</option>
         </SelectBox>
 
         <div className="order-7 max-sm:flex-1 max-sm:[&>*]:w-full">

@@ -5,6 +5,7 @@ import type { InboxEmail } from "../domain/email";
 import { formatListTime } from "../lib/format";
 import { bodySnippet, highlight } from "../lib/highlight";
 import { CategoryBadge } from "./CategoryBadge";
+import { PriorityStars } from "./PriorityStars";
 import { StatusBadge } from "./StatusBadge";
 import { SwipeRow } from "./SwipeRow";
 
@@ -59,6 +60,12 @@ export function EmailListItem({
               {highlight(sender.name, query)}
             </span>
             {selected ? <span className="sr-only">(selected)</span> : null}
+            {classification ? (
+              // Fixed width, so the bars line up in one column even when a row has none.
+              <span className="flex w-[29px] shrink-0 items-center self-center">
+                {classification.priority ? <PriorityStars priority={classification.priority} size="compact" /> : null}
+              </span>
+            ) : null}
             <time className="shrink-0 text-[12px] font-medium text-accent tabular-nums" dateTime={receivedAt}>
               {formatListTime(receivedAt)}
             </time>

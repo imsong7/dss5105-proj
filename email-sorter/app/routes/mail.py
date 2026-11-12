@@ -30,6 +30,7 @@ from app.mail.text_utils import without_link_addresses
 from app.routes.common import error, parse_window, request_user, sorter, token_session
 from app.schemas import Classification, Email
 from app.stores import classification_store
+from app.stores.classification_store import with_priority
 from app.taxonomy import CONTENT_CATEGORIES, DEFAULT_REPLY, REPLY_NATURE
 
 bp = Blueprint("mail", __name__)
@@ -163,7 +164,15 @@ def academic_calendar():
 # ---- Mail and its sorting ----------------------------------------------------
 
 def saved_result(email_id: str, sender: str, backend_name: str, corrections: dict,
-                 rules: dict, cache: dict) -> dict | None:
+                 rules: dict, cache: dict, priorities: dict | None = None) -> dict | None:
+    """A result the student already has, with their own stars on top (if they set any)."""
+    found = _saved_labels(email_id, sender, backend_name, corrections, rules, cache)
+    stars = (priorities or {}).get(email_id)
+    return with_priority(found, stars) if found and stars else found
+
+
+def _saved_labels(email_id: str, sender: str, backend_name: str, corrections: dict,
+                  rules: dict, cache: dict) -> dict | None:
     """A result the student already has: their correction, their sender
     rule, or a cached model answer (in that order). None when unsorted."""
     fixed = corrections.get(email_id)
@@ -237,6 +246,7 @@ def emails():
     corrections = classification_store.correction_store.all_for(owner)
     rules = classification_store.sender_rule_store.all_for(owner)
     cache = classification_store.classify_cache.all_for(owner, backend_name)
+    priorities = classification_store.priority_store.all_for(owner)
     serialized_emails = []
     for email in items:
         serialized = email.model_dump()
@@ -244,7 +254,7 @@ def emails():
             # A saved email can outlive its preview (older saves kept previews in memory only).
             serialized["poster"] = {**serialized["poster"], "has_image": poster_module.thumbs.has(owner, email.id)}
         serialized["saved_classification"] = saved_result(
-            email.id, email.sender, backend_name, corrections, rules, cache
+            email.id, email.sender, backend_name, corrections, rules, cache, priorities
         )
         found = extract_deadlines(email)
         for candidate in found:
@@ -332,6 +342,7 @@ def classify():
             {email.id: fixed} if fixed else {},
             classification_store.sender_rule_store.all_for(owner),
             {email.id: hit} if hit else {},
+            classification_store.priority_store.all_for(owner),
         )
         cache_lookup_ms = _ms_since(t_cache)
         if saved:
@@ -379,7 +390,8 @@ def classify():
             model_name=model_name,
             success=True,
         )
-        return jsonify(out)
+        # The cache keeps the model's own rating; the student's stars go on top of it only here.
+        return jsonify(with_priority(out, classification_store.priority_store.all_for(owner).get(email.id)))
     except Exception as exc:  # most often: Ollama not running or model not pulled
         log_event(
             "classify_error",

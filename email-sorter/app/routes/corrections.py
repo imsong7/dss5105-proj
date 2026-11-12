@@ -47,6 +47,27 @@ def delete_correction(email_id):
     return jsonify({"deleted": True})
 
 
+@bp.put("/api/priority")
+def save_priority():
+    """The student sets the stars of one email by hand."""
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return error("Expected a JSON object.", 400)
+    try:
+        stars = classification_store.priority_store.set(request_user(), payload.get("id"), payload.get("stars"))
+    except CorrectionError as exc:
+        return error(str(exc), 400)
+    return jsonify({"saved": True, "stars": stars})
+
+
+@bp.delete("/api/priority/<path:email_id>")
+def delete_priority(email_id):
+    """Go back to the model's rating for this email."""
+    if not classification_store.priority_store.delete(request_user(), email_id):
+        return error("No hand-set priority for this email.", 404)
+    return jsonify({"deleted": True})
+
+
 @bp.delete("/api/sender-rules")
 def delete_sender_rule():
     sender = sender_address(request.args.get("sender", ""))

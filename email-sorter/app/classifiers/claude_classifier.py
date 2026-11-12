@@ -191,6 +191,12 @@ class ClaudeClassifier(BaseClassifier):
             "notes": list(rated.notes),
             "key_point": factors.key_point if factors else "",
             "suspicious": bool(factors and factors.suspicious),
+            # What the stars were worked out from, so the page can say why (urgency is the
+            # one actually used: counted from the deadline when the email has one).
+            "consequence": factors.consequence if factors else None,
+            "urgency": rated.urgency,
+            "relevance": factors.relevance if factors else None,
+            "deadline": factors.deadline if factors else None,
         }
 
     def classify(self, email: Email) -> Classification:

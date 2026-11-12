@@ -147,7 +147,7 @@ def build_ics(name: str, items: list[dict], now: datetime | None = None) -> str:
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Inbox sorter//Deadlines//EN",
+        "PRODID:-//NusBox//Deadlines//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         f"X-WR-CALNAME:{_escape(name)}",

@@ -134,6 +134,13 @@ def feed_ics(name):
     if owner is None:
         abort(404)
 
+    response = current_app.response_class(_ics_body(owner), mimetype="text/calendar")
+    response.headers["Content-Disposition"] = 'inline; filename="deadlines.ics"'
+    return response
+
+
+def _ics_body(owner: str) -> str:
+    """The student's deadlines and own events as one calendar file."""
     items = calendar_feed.feed_store.items(owner)
     for event in user_events.event_store.list(owner):
         items.append({
@@ -144,9 +151,14 @@ def feed_ics(name):
             "detail": event.get("notes", ""),
             "url": "",
         })
-    body = calendar_feed.build_ics("Inbox sorter deadlines", items)
-    response = current_app.response_class(body, mimetype="text/calendar")
-    response.headers["Content-Disposition"] = 'inline; filename="deadlines.ics"'
+    return calendar_feed.build_ics("NusBox deadlines", items)
+
+
+@bp.get("/api/feed/download")
+def feed_download():
+    """The same calendar as a file to save, for Outlook, Apple Calendar or Google Calendar."""
+    response = current_app.response_class(_ics_body(request_user()), mimetype="text/calendar")
+    response.headers["Content-Disposition"] = 'attachment; filename="nusbox-calendar.ics"'
     return response
 
 

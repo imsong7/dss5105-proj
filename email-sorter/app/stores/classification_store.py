@@ -20,9 +20,11 @@ from app.taxonomy import CONTENT_CATEGORIES, REPLY_NATURE
 CACHE_PATH = ROOT / "private" / "classifications.json"
 CORRECTIONS_PATH = ROOT / "private" / "corrections.json"
 SENDER_RULES_PATH = ROOT / "private" / "sender_rules.json"
+PRIORITIES_PATH = ROOT / "private" / "priorities.json"
 MAX_RULES_PER_OWNER = 500
 MAX_CACHED_PER_BACKEND = 2000
 MAX_CORRECTIONS_PER_OWNER = 2000
+MAX_PRIORITIES_PER_OWNER = 5000
 PREVIEW_LIMIT = 500
 
 
@@ -188,6 +190,72 @@ class SenderRuleStore:
         return True
 
 
+class PriorityStore:
+    """Stars (1 to 5) the student set by hand; they win over the model's rating."""
+
+    def __init__(self, path: Path = PRIORITIES_PATH):
+        self.path = Path(path)
+        self._lock = Lock()
+
+    def all_for(self, owner: str) -> dict:
+        """Every hand-set priority of ``owner``: email id -> stars (one file read)."""
+        with self._lock:
+            data = read_json(self.path, {})
+        return dict(data.get(owner, {}))
+
+    def set(self, owner: str, email_id: str, stars) -> int:
+        email_id = str(email_id or "").strip()
+        if not email_id:
+            raise CorrectionError("The email has no id.")
+        if isinstance(stars, bool) or not isinstance(stars, int) or not 1 <= stars <= 5:
+            raise CorrectionError("Priority must be a whole number from 1 to 5.")
+        with self._lock:
+            data = read_json(self.path, {})
+            records = data.setdefault(owner, {})
+            records.pop(email_id, None)
+            records[email_id] = stars
+            while len(records) > MAX_PRIORITIES_PER_OWNER:
+                records.pop(next(iter(records)))
+            write_json_atomic(self.path, data)
+        return stars
+
+    def delete(self, owner: str, email_id: str) -> bool:
+        with self._lock:
+            data = read_json(self.path, {})
+            records = data.get(owner, {})
+            if email_id not in records:
+                return False
+            del records[email_id]
+            write_json_atomic(self.path, data)
+        return True
+
+
+def with_priority(result: dict, stars) -> dict:
+    """``result`` with the student's own stars on top of the model's rating (if any)."""
+    if not stars:
+        return result
+    model = result.get("priority") or {}
+    # model_stars is what the model said (None when it did not rate this email), so the
+    # student can go back to it and the page knows whether Claude read the email.
+    model_stars = model.get("model_stars", None if model.get("manual") else model.get("stars"))
+    return {
+        **result,
+        "priority": {
+            "key_point": model.get("key_point", ""),
+            "suspicious": bool(model.get("suspicious")),
+            "notes": model.get("notes", []),
+            "consequence": model.get("consequence"),
+            "urgency": model.get("urgency"),
+            "relevance": model.get("relevance"),
+            "deadline": model.get("deadline"),
+            "stars": stars,
+            "manual": True,
+            "model_stars": model_stars,
+        },
+    }
+
+
 classify_cache = ClassifyCache()
 correction_store = CorrectionStore()
 sender_rule_store = SenderRuleStore()
+priority_store = PriorityStore()

@@ -37,6 +37,7 @@ class ClassifyApiTests(unittest.TestCase):
         for target, value in (
             ("classify_cache", store.ClassifyCache(root / "c.json")),
             ("correction_store", store.CorrectionStore(root / "r.json")),
+            ("priority_store", store.PriorityStore(root / "p.json")),
         ):
             patcher = patch.object(store, target, value)
             patcher.start()
@@ -56,6 +57,39 @@ class ClassifyApiTests(unittest.TestCase):
         self.assertNotIn("cached", first)
         self.assertTrue(second["cached"])
         self.assertEqual(second["reply_nature"], "needs_action")
+
+    def test_hand_set_stars_win_over_the_model_and_can_be_reset(self):
+        self.stub.classify = lambda email: Classification(
+            content_category="general", reply_nature="needs_action", deadline=None, reason="Model.",
+            priority={"stars": 2, "score": 5.0, "notes": [], "key_point": "k", "suspicious": False,
+                      "consequence": 2, "urgency": 1, "relevance": 3, "deadline": "2026-11-20"},
+        )
+        self.assertEqual(self.classify()["priority"]["stars"], 2)
+
+        self.assertEqual(self.client.put("/api/priority", json={"id": "m1", "stars": 5}).status_code, 200)
+        mine = self.classify()                      # answered from the cache, stars on top
+        self.assertEqual(mine["priority"]["stars"], 5)
+        self.assertTrue(mine["priority"]["manual"])
+        self.assertEqual(mine["priority"]["model_stars"], 2)
+        self.assertEqual(mine["priority"]["key_point"], "k")
+        # The numbers behind the stars stay, so "Why?" can still explain them.
+        self.assertEqual([mine["priority"][k] for k in ("consequence", "urgency", "relevance")], [2, 1, 3])
+
+        self.assertEqual(self.client.delete("/api/priority/m1").status_code, 200)
+        self.assertEqual(self.classify()["priority"]["stars"], 2)   # the cache kept the model's own rating
+        self.assertEqual(self.client.delete("/api/priority/m1").status_code, 404)
+
+    def test_hand_set_stars_on_an_unrated_email(self):
+        self.classify()                              # the model gave no rating
+        self.client.put("/api/priority", json={"id": "m1", "stars": 4})
+        mine = self.classify()
+        self.assertEqual(mine["priority"]["stars"], 4)
+        self.assertIsNone(mine["priority"]["model_stars"])
+
+    def test_bad_stars_are_refused(self):
+        for bad in (0, 6, "3", 2.5, True, None):
+            self.assertEqual(self.client.put("/api/priority", json={"id": "m1", "stars": bad}).status_code, 400, bad)
+        self.assertEqual(self.client.put("/api/priority", json={"stars": 3}).status_code, 400)
 
     def test_correction_wins_and_can_be_undone(self):
         self.classify()

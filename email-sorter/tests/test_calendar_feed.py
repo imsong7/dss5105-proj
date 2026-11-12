@@ -62,6 +62,18 @@ class FeedApiTests(unittest.TestCase):
         self.assertIn("SUMMARY:Assignment 1", body)
         self.assertIn("SUMMARY:Study group", body)
 
+    def test_download_is_an_attachment_with_the_same_events(self):
+        self.client.post("/api/feed/sync", json={"items": [{"key": "m1", "title": "Assignment 1", "date": "2026-11-08"}]})
+        self.client.post("/api/events", json={"title": "Study group", "date": "2026-11-09", "time": "14:00"})
+        response = self.client.get("/api/feed/download")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "text/calendar")
+        self.assertIn("attachment", response.headers["Content-Disposition"])
+        self.assertIn(".ics", response.headers["Content-Disposition"])
+        body = response.get_data(as_text=True)
+        self.assertIn("SUMMARY:Assignment 1", body)
+        self.assertIn("SUMMARY:Study group", body)
+
     def test_wrong_token_is_404_and_rotate_invalidates(self):
         info = self.client.get("/api/feed").get_json()
         path = "/feed/" + info["url"].rsplit("/feed/", 1)[1]

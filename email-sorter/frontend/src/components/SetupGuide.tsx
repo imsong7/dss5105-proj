@@ -100,15 +100,15 @@ function FlowUrlForm({
       await saveFlowUrl(url.trim());
       setUrl("");
       setState("saved");
-      setMessage("Saved. Asking your flow for mail now…");
+      setMessage("Saved. Asking your flow for mail…");
       const reached = await requestFlowRefresh().then(
         () => true,
         () => false,
       );
       setMessage(
         reached
-          ? "Saved. Your flow is sending your mail."
-          : "Saved, but your flow did not answer. Check it is turned on in Power Automate, then try Check now.",
+          ? "Saved. Your mail is on its way."
+          : "Saved, but the flow didn't answer. Make sure it's turned on, then press Check now.",
       );
       if (reached) {
         window.setTimeout(onSaved, 4000);
@@ -212,7 +212,7 @@ export function SetupGuide({
         if (!abort.signal.aborted) {
           setError(
             cause instanceof Error && /404/.test(cause.message)
-              ? "Your setup details are not available. Restart the app, then open this guide again. If it still fails, your account may not be listed for Outlook sign-in."
+              ? "Setup details aren't available. Restart the app and open this guide again."
               : cause instanceof Error
                 ? cause.message
                 : "Could not load your settings.",
@@ -234,20 +234,17 @@ export function SetupGuide({
           Connect your Outlook
         </h2>
         <p className={`mt-1 ${TEXT}`}>
-          About 5 minutes, once. You import a small flow into your own Microsoft
-          account that sends your email to this app. The app only sees mail the
-          flow sends.
+          About 5 minutes, once. A small flow in your Microsoft account sends your
+          mail here.
         </p>
         <p className="mt-2 rounded-lg bg-highlight-soft px-3 py-2 text-[13px] leading-5 text-highlight-dark">
-          The <strong>HTTP</strong> action in Power Automate is a premium
-          feature. If it shows a diamond and asks for a licence, ask your IT
-          team whether your account can use it before you start.
+          Needs Power Automate's premium <strong>HTTP</strong> action. If you see
+          a diamond or a licence prompt, check with IT first.
         </p>
         {onSwitchSource ? (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-line px-3 py-2">
             <p className="text-[13px] leading-5 text-muted">
-              No licence, or short on time? Paste an Outlook token instead. It works right away but lasts
-              about an hour.
+              No licence? Use an Outlook token: works now, lasts about an hour.
             </p>
             <button
               type="button"
@@ -276,9 +273,10 @@ export function SetupGuide({
             <ol className="mt-5 flex flex-col gap-6">
               <Step n={1} title="Download your flow">
                 <p className={TEXT}>
-                  A ready-made flow with your address, email and token already
-                  filled in. It is private to your account, so do not share the
-                  file.
+                  Already set up for your account. Don't share the file.{" "}
+                  {info?.flow_sends_images
+                    ? "It sends each email's text and one small image (for posters)."
+                    : "It sends each email's text only (no images)."}
                 </p>
                 <a
                   href={FLOW_PACKAGE_URL}
@@ -293,19 +291,16 @@ export function SetupGuide({
               <Step n={2} title="Import it into Power Automate">
                 <ol className={`list-decimal space-y-1 pl-5 ${TEXT}`}>
                   <li>
-                    Open Power Automate and go to <strong>My flows</strong>,
-                    then <strong>Import</strong>, then{" "}
-                    <strong>Import Package (Legacy)</strong>.
-                  </li>
-                  <li>Upload the .zip you just downloaded.</li>
-                  <li>
-                    Next to <strong>Your Outlook connection</strong>, choose{" "}
-                    <strong>Select during import</strong>, pick your Outlook
-                    account (or create one), then <strong>Save</strong>.
+                    <strong>My flows</strong> → <strong>Import</strong> →{" "}
+                    <strong>Import Package (Legacy)</strong>, and upload the .zip.
                   </li>
                   <li>
-                    Choose <strong>Import</strong>. When it finishes, open the
-                    flow and turn it on.
+                    At <strong>Your Outlook connection</strong>, choose{" "}
+                    <strong>Select during import</strong>, pick your account, then{" "}
+                    <strong>Save</strong>.
+                  </li>
+                  <li>
+                    Press <strong>Import</strong>, then turn the flow on.
                   </li>
                 </ol>
                 <a
@@ -321,10 +316,8 @@ export function SetupGuide({
 
               <Step n={3} title="Paste the flow's address here">
                 <p className={TEXT}>
-                  In the flow, choose <strong>Edit</strong> and open the first
-                  step, <strong>When a HTTP request is received</strong>. Copy
-                  its <strong>HTTP URL</strong> and paste it below. The app uses
-                  it to ask your flow for new mail each time you open the app.
+                  Edit the flow, open <strong>When a HTTP request is received</strong>,
+                  and copy its <strong>HTTP URL</strong>.
                 </p>
                 <FlowUrlForm
                   saved={Boolean(info.flow_url_saved)}
@@ -360,17 +353,13 @@ export function SetupGuide({
               </summary>
               <div className="border-t border-line px-4 pt-4 pb-5">
                 <p className={`mb-4 ${TEXT}`}>
-                  This version sends each new email the moment it arrives,
-                  instead of when you open the app.
+                  Sends each new email as soon as it arrives.
                 </p>
                 <ol className="flex flex-col gap-6">
                   <Step n={1} title="Create the flow">
                     <p className={TEXT}>
-                      Open Power Automate, choose <strong>Create</strong>, then{" "}
-                      <strong>Automated cloud flow</strong>. Name it “Inbox
-                      sorter”. For the trigger pick{" "}
-                      <strong>When a new email arrives (V3)</strong>, then
-                      Create.
+                      <strong>Create</strong> → <strong>Automated cloud flow</strong>,
+                      trigger <strong>When a new email arrives (V3)</strong>.
                     </p>
                     <a
                       href="https://make.powerautomate.com"
@@ -388,8 +377,7 @@ export function SetupGuide({
 
                   <Step n={2} title="Add an HTTP action">
                     <p className={TEXT}>
-                      Under the trigger choose <strong>New step</strong>, search
-                      for <strong>HTTP</strong> and pick it. Fill in:
+                      Add a step: <strong>HTTP</strong>. Fill in:
                     </p>
                     <Setting name="Method">
                       <CopyField value="POST" />
@@ -411,9 +399,8 @@ export function SetupGuide({
                       </div>
                     </Setting>
                     <p className="text-[13px] leading-5 text-muted">
-                      The token is private to your account. Do not share it.
-                      Copy each line, then paste the part before the colon into{" "}
-                      <em>Key</em> and the part after it into <em>Value</em>.
+                      Before the colon goes in <em>Key</em>, after it in{" "}
+                      <em>Value</em>. Keep the token private.
                     </p>
                     <Setting name="Body">
                       <CopyBlock value={NEW_MAIL_BODY} label="Copy body" />
@@ -422,8 +409,7 @@ export function SetupGuide({
 
                   <Step n={3} title="Save and test">
                     <p className={TEXT}>
-                      Save the flow, then send yourself an email. It should
-                      appear here within a minute or two.
+                      Save, then send yourself an email. It shows up here in a minute or two.
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
                       <button
@@ -443,13 +429,9 @@ export function SetupGuide({
 
                   <Step n={4} title="Bring in your older mail (optional)">
                     <p className={TEXT}>
-                      Make a second flow with the trigger{" "}
-                      <strong>Manually trigger a flow</strong>. Add{" "}
-                      <strong>Get emails (V3)</strong> (folder Inbox, Top 200),
-                      and under it an HTTP action with the same settings as
-                      above. Because it sits inside an automatic{" "}
-                      <strong>Apply to each</strong> loop, use this body
-                      instead. Run it once with the Test button.
+                      A second flow: <strong>Manually trigger a flow</strong> →{" "}
+                      <strong>Get emails (V3)</strong> (Inbox, Top 200) → the same HTTP
+                      action with this body. Run it once with <strong>Test</strong>.
                     </p>
                     <CopyBlock value={OLD_MAIL_BODY} label="Copy body" />
                   </Step>

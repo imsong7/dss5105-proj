@@ -1,12 +1,32 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Copy, Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
+import { Copy, Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
 
 import type { InboxEmail, ReplyDraft } from "../domain/email";
 
 interface DraftReplyProps {
   email: InboxEmail;
   onDraft: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
-  onSend: (id: string, reply: string, token?: string) => Promise<void>;
+  /** Start drafting as soon as the panel opens (it was opened by a "Draft a reply" button). */
+  autoStart?: boolean;
+}
+
+/**
+ * Where "Send" goes: the original email in Outlook on the web (reply there, in its own
+ * thread), or, when that link is unknown, Outlook's new-message page already filled in.
+ */
+function outlookSendUrl(email: InboxEmail, subject: string, reply: string): string {
+  if (email.webLink) {
+    return email.webLink;
+  }
+  // encodeURIComponent, not URLSearchParams: Outlook reads "+" literally instead of as a space.
+  const query = [
+    ["to", email.sender.address],
+    ["subject", subject],
+    ["body", reply],
+  ]
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&");
+  return `https://outlook.office.com/mail/deeplink/compose?${query}`;
 }
 
 const PRIMARY_BUTTON =
@@ -16,21 +36,22 @@ const ACTION_PRIMARY =
 const SECONDARY_BUTTON =
   "inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 text-[13px] font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface focus-visible:outline-none disabled:opacity-60";
 
-export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
+export function DraftReply({ email, onDraft, autoStart = false }: DraftReplyProps) {
   const [draft, setDraft] = useState<ReplyDraft | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(autoStart);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendToken, setSendToken] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [opened, setOpened] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => {
+    if (autoStart) {
+      void generate();
+    }
+    // Only when the panel first opens.
+  }, []);
 
-  const recipient = email.sender.name || email.sender.address;
   const subject = email.subject.trim() || "(no subject)";
   const replySubject = subject.toLowerCase().startsWith("re:") ? subject : `Re: ${subject}`;
 
@@ -41,9 +62,7 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
     setLoading(true);
     setError(null);
     setCopied(false);
-    setSendOpen(false);
-    setSent(false);
-    setSendError(null);
+    setOpened(false);
 
     try {
       const result = await onDraft(email.id, controller.signal);
@@ -73,28 +92,10 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
     }
   }
 
-  async function send() {
-    if (!draft) {
-      return;
-    }
-    setSending(true);
-    setSendError(null);
-    try {
-      await onSend(email.id, draft.reply, sendToken);
-      setSent(true);
-      setSendOpen(false);
-      setSendToken("");
-    } catch (cause) {
-      setSendError(cause instanceof Error ? cause.message : "Could not send the reply.");
-    } finally {
-      setSending(false);
-    }
-  }
-
   if (!draft && !loading && !error) {
     // Idle: one small button; the full panel opens only once it is used.
     return (
-      <div className="mt-5">
+      <div className="mt-2.5">
         <button
           type="button"
           onClick={() => void generate()}
@@ -111,7 +112,7 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
   return (
     <section
       aria-label="Draft reply"
-      className="mt-4 rounded-[10px] border border-line bg-surface-muted p-3.5"
+      className="mt-3 rounded-[10px] border border-line bg-surface-muted p-3.5"
     >
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
@@ -161,8 +162,6 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
             onChange={(event) => {
               const reply = event.target.value;
               setDraft((current) => (current ? { ...current, reply } : current));
-              setSent(false);
-              setSendError(null);
             }}
           />
 
@@ -184,22 +183,12 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
             </div>
           ) : null}
 
-          {sent ? (
-            <p
-              role="status"
-              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent"
-            >
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Sent to {email.sender.address}
-            </p>
-          ) : null}
-
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               className={SECONDARY_BUTTON}
               onClick={() => void generate()}
-              disabled={loading || sending}
+              disabled={loading}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Regenerate
@@ -208,90 +197,32 @@ export function DraftReply({ email, onDraft, onSend }: DraftReplyProps) {
               <Copy className="h-4 w-4" aria-hidden="true" />
               {copied ? "Copied" : "Copy draft"}
             </button>
-            {!sent ? (
-              <button
-                type="button"
-                className={ACTION_PRIMARY}
-                onClick={() => {
-                  setSendOpen((open) => !open);
-                  setSendError(null);
-                }}
-                disabled={sending}
-              >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                Send
-              </button>
-            ) : null}
+            {/* Sending happens in Outlook: the draft is copied, then Outlook opens. */}
+            <a
+              href={outlookSendUrl(email, replySubject, draft.reply)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={ACTION_PRIMARY}
+              onClick={() => {
+                void copy();
+                setOpened(true);
+              }}
+              title={
+                email.webLink
+                  ? "Opens the original email in Outlook; click Reply there and paste the draft"
+                  : "Opens a new Outlook email to the sender with this draft filled in"
+              }
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+              Send
+            </a>
           </div>
-
-          {sendOpen && !sent ? (
-            <div className="mt-3 rounded-[8px] border border-line bg-surface px-3 py-3">
-              <p className="text-[13px] font-semibold text-ink">Send this reply?</p>
-              <p className="mt-1 text-[12px] leading-5 text-muted">
-                To: {recipient} &lt;{email.sender.address}&gt;
-                <br />
-                Subject: {replySubject}
-              </p>
-
-              <label htmlFor={`send-token-${email.id}`} className="mt-3 block text-[12px] font-medium text-ink">
-                Microsoft Graph token <span className="font-normal text-muted">(needs Mail.Send)</span>
-              </label>
-              <input
-                id={`send-token-${email.id}`}
-                type="password"
-                value={sendToken}
-                onChange={(event) => setSendToken(event.target.value)}
-                spellCheck={false}
-                autoComplete="off"
-                placeholder="Paste once; later sends can leave this blank"
-                className="mt-1.5 min-h-11 w-full rounded-[10px] border border-line bg-surface px-3 font-mono text-[13px] focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:outline-none"
-              />
-              <p className="mt-1.5 text-[12px] leading-5 text-muted">
-                Get a token from{" "}
-                <a
-                  className="text-accent underline underline-offset-2"
-                  href="https://developer.microsoft.com/en-us/graph/graph-explorer"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Graph Explorer
-                </a>
-                . It stays in this server's memory for about two hours, not on disk.
-              </p>
-
-              {sendError ? (
-                <p role="alert" className="mt-2 text-[13px] leading-5 text-action-now-fg">
-                  {sendError}
-                </p>
-              ) : null}
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={ACTION_PRIMARY}
-                  onClick={() => void send()}
-                  disabled={sending}
-                >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {sending ? "Sending..." : "Send now"}
-                </button>
-                <button
-                  type="button"
-                  className={SECONDARY_BUTTON}
-                  onClick={() => {
-                    setSendOpen(false);
-                    setSendError(null);
-                  }}
-                  disabled={sending}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+          {opened ? (
+            <p role="status" className="mt-2 text-[12px] leading-5 text-muted">
+              {email.webLink
+                ? "Outlook opened the original email and the draft is copied: click Reply, paste it (Ctrl/Cmd+V) and send."
+                : "Outlook opened a new email with the draft filled in (not in the original thread). Check it and send."}
+            </p>
           ) : null}
         </>
       ) : null}

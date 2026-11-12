@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useSavedJobs } from "../contexts/SavedJobsContext";
 import type { InboxView } from "../hooks/useInboxView";
 import type { ItemStates } from "../hooks/useItemStates";
 import { EmailDetail } from "./EmailDetail";
 import { EmailList } from "./EmailList";
+import { SavedJobsList } from "./JobsCard";
 import { MobileHero } from "./MobileHero";
 import { InboxToolbar } from "./InboxToolbar";
 import { NoticeBar } from "./NoticeBar";
@@ -19,6 +21,9 @@ interface InboxPageProps {
 
 export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // "Saved jobs" is a sub-tab of the Inbox: it swaps the mail list for the saved jobs.
+  const [showJobs, setShowJobs] = useState(false);
+  const savedJobCount = useSavedJobs()?.jobs.length ?? 0;
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const showMobileDetail =
@@ -124,7 +129,11 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
         {/* The filter tabs head the mail card, lined up with the list below. */}
         <QuickFilters
           action={view.action}
-          onActionChange={view.setAction}
+          onActionChange={(action) => {
+            setShowJobs(false);
+            view.setAction(action);
+          }}
+          savedJobs={{ count: savedJobCount, active: showJobs, onSelect: () => setShowJobs(true) }}
           counts={view.counts}
           total={view.total}
           visibleCount={view.visibleCount}
@@ -132,6 +141,9 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
           onClearFilters={view.clearFilters}
           className={`shrink-0 max-sm:mb-2.5 ${showMobileDetail ? "max-lg:hidden" : ""}`}
         />
+        {showJobs ? (
+          <SavedJobsList />
+        ) : (
         <div className="flex min-h-0 flex-1">
         <EmailList
           emails={view.visibleEmails}
@@ -157,11 +169,13 @@ export function InboxPage({ view, states, returnLabel, onReturn }: InboxPageProp
           onUndoCorrection={view.undoCorrection}
           onRemoveRule={view.removeRule}
           onDraftReply={view.draftReply}
-          onSendReply={view.sendReply}
           headingRef={headingRef}
+          isInCalendar={states.isInCalendar}
+          onToggleCalendar={(key, on) => void states.setInCalendar(key, on)}
           className={showMobileDetail ? "flex" : "hidden lg:flex"}
         />
         </div>
+        )}
       </div>
     </main>
   );

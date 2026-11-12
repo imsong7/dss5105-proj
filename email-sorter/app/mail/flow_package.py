@@ -28,13 +28,17 @@ DISPLAY_NAME = "Inbox sorter"
 GET_EMAILS = "Get_emails_(V3)"
 EACH_EMAIL = "Send_each_email"
 INLINE_IMAGES = "Inline_images"
-IMAGE_MAX_BYTES = 500_000  # per image: small requests keep each push fast and reliable
+IMAGE_MAX_BYTES = 200_000  # per image (about 270 KB once base64): keeps each push small
 IMAGE_COUNT = 1            # one image per email is enough for a poster
-TOP = 300  # emails read per refresh, split across the batches (the app may override it)
-# Outlook reads ~0.18 s per email, so one big Get emails call is slow. With BATCHES > 1
-# the window is cut into BATCHES date slices read in parallel (BATCHES = 1: one call).
-# A slice returns at most TOP / BATCHES emails, so a busier slice loses its oldest.
-BATCHES = 3
+TOP = 100  # emails read per refresh (FLOW_REFRESH_TOP in .env overrides it)
+# BATCHES date slices read in parallel (fast); BATCHES = 1 is one Get emails call.
+# The older slices ask for "received:START..END". An earlier "received>=A AND received<B"
+# query looked ignored by Outlook (every slice returned the newest mail). The app now
+# counts, per slice, emails dated outside the slice and prints it, so a refresh shows
+# whether the range is applied; if not, the run is marked incomplete.
+# A slice returns at most TOP / BATCHES emails, so a busier slice loses its oldest: every
+# pushed email reports its slice and limit, and the app marks such a run incomplete.
+BATCHES = 1  # one call for the newest mail; >1 slices the window by date (see above)
 WINDOW_SINCE = "Window_start"
 WINDOW_BEFORE = "Window_end"
 BATCH_DAYS = "Days_per_batch"
@@ -43,18 +47,23 @@ REFRESH_DONE = "Refresh_done"
 # Sending poster images makes every email slow and heavy (the flow downloads each
 # attachment and uploads up to IMAGE_COUNT images), so the count and size above are
 # kept small. Set False for the fastest load; poster/OCR reading is then skipped.
-INCLUDE_IMAGES = False  # False = fast text-only load; True = also read poster images
+# On, with a small image limit: larger images made Power Automate's HTTP push fail with
+# "Error while copying content to a stream". If it comes back, set False (text only).
+INCLUDE_IMAGES = True
 FOREACH_PARALLEL = None  # 1 to 50 parallel pushes per batch; None = Power Automate's default
 DEFAULT_DAYS = 90
 
 
 def _flat_definition(endpoint: str, email: str, token: str) -> dict:
-    # The app sends {"owner", "since", "before"} when it asks for a refresh.
-    # "since" picks how far back to read; with no body it reads DEFAULT_DAYS days.
-    since = (
-        "@concat('received>=', formatDateTime(coalesce(triggerBody()?['since'], "
-        f"addDays(utcNow(), -{DEFAULT_DAYS})), 'yyyy-MM-dd'))"
+    # The app sends {"owner", "since", "before", "top", "refreshId"} when it asks for a
+    # refresh. "since" picks how far back to read; with no body it reads DEFAULT_DAYS days.
+    # Outlook compares whole dates, possibly in the mailbox's own time zone, so the lower
+    # bound starts one day early (a deliberate overlap; duplicates are ignored by the app).
+    since_date = (
+        "formatDateTime(addDays(coalesce(triggerBody()?['since'], "
+        f"addDays(utcNow(), -{DEFAULT_DAYS})), -1), 'yyyy-MM-dd')"
     )
+    since = f"@concat('received>=', {since_date})"
     return {
         "name": FLOW_NAME,
         "id": f"/providers/Microsoft.Flow/flows/{FLOW_NAME}",
@@ -82,6 +91,7 @@ def _flat_definition(endpoint: str, email: str, token: str) -> dict:
                                     "since": {"type": "string"},
                                     "before": {"type": "string"},
                                     "top": {"type": "integer"},
+                                    "refreshId": {"type": "string"},
                                 },
                             },
                             "triggerAuthenticationType": "All",
@@ -147,6 +157,16 @@ def _flat_definition(endpoint: str, email: str, token: str) -> dict:
                                         "receivedDateTime": "@{item()?['receivedDateTime']}",
                                         "bodyPreview": "@{item()?['bodyPreview']}",
                                         "body": "@{item()?['body']}",
+                                        # Lets the app link back to the message in Outlook.
+                                        "outlookId": "@{item()?['id']}",
+                                        "webLink": "@{item()?['webLink']}",
+                                        # Which run and slice this email came from, so the app
+                                        # can tell whether a slice may have been cut off.
+                                        "refreshId": "@{triggerBody()?['refreshId']}",
+                                        "slice": "0",
+                                        "sliceTop": f"@{{coalesce(triggerBody()?['top'], {TOP})}}",
+                                        "sliceSince": f"@{{{since_date}}}",
+                                        "sliceBefore": "",
                                         # Up to 3 poster-sized images (base64), read on the server.
                                         **(
                                             {"inlineImages": f"@take(body('{INLINE_IMAGES}'), {IMAGE_COUNT})"}
@@ -270,7 +290,7 @@ def _definition(endpoint: str, email: str, token: str) -> dict:
                 "X-User-Email": email,
                 "ngrok-skip-browser-warning": "true",
             },
-            "body": {},
+            "body": {"refreshId": "@{triggerBody()?['refreshId']}"},
         },
     }
     return flow
@@ -294,15 +314,34 @@ def _sliced_definition(endpoint: str, email: str, token: str) -> dict:
     n = f"items('{EACH_BATCH}')"
     days = f"outputs('{BATCH_DAYS}')"
     end = f"outputs('{WINDOW_BEFORE}')"
-    # Slice n covers [lo, hi) by date; slice 0 is the newest, the last reaches back to "since".
-    hi = f"formatDateTime(addDays({end}, sub(1, mul({n}, {days}))), 'yyyy-MM-dd')"
+    # Slice n covers [lo, hi) by whole date; slice 0 is the newest, the last reaches back
+    # to "since". Neighbouring slices share one boundary date, so there is no gap between
+    # them whatever time zone Outlook compares in. The outer bounds get a deliberate extra
+    # day (or none at all) so mail near midnight is never cut off: the oldest slice starts a
+    # day before "since", and the newest has no upper bound unless "before" was given, in
+    # which case it ends two days after it. The app records only the requested window as
+    # synced, never these widened bounds.
+    no_before = "equals(triggerBody()?['before'], null)"
+    hi = (
+        f"formatDateTime(if(equals({n}, 0), addDays({end}, 2), "
+        f"addDays({end}, sub(1, mul({n}, {days})))), 'yyyy-MM-dd')"
+    )
     lo = (
-        f"formatDateTime(if(equals({n}, {BATCHES - 1}), outputs('{WINDOW_SINCE}'), "
+        f"formatDateTime(if(equals({n}, {BATCHES - 1}), addDays(outputs('{WINDOW_SINCE}'), -1), "
         f"addDays({end}, sub(1, mul(add({n}, 1), {days})))), 'yyyy-MM-dd')"
     )
+    open_ended = f"and(equals({n}, 0), {no_before})"
+    slice_top = f"max(1, div(coalesce(triggerBody()?['top'], {TOP}), {BATCHES}))"
     params = inner[GET_EMAILS]["inputs"]["parameters"]
-    params["searchQuery"] = f"@concat('received>=', {lo}, ' AND received<', {hi})"
-    params["top"] = f"@div(coalesce(triggerBody()?['top'], {TOP}), {BATCHES})"
+    # Newest slice without "before": "received>=START" (known to work). Other slices: the
+    # range form, which includes its end day (one day of overlap; duplicates are dropped).
+    params["searchQuery"] = f"@if({open_ended}, concat('received>=', {lo}), concat('received:', {lo}, '..', {hi}))"
+    params["top"] = f"@{slice_top}"
+    push = inner[EACH_EMAIL]["actions"]["HTTP"]["inputs"]["body"]
+    push["slice"] = f"@{{{n}}}"
+    push["sliceTop"] = f"@{{{slice_top}}}"
+    push["sliceSince"] = f"@{{{lo}}}"
+    push["sliceBefore"] = f"@{{if({open_ended}, '', {hi})}}"
 
     definition["actions"] = {
         WINDOW_SINCE: {"runAfter": {}, "type": "Compose", "inputs": "@" + since_param},

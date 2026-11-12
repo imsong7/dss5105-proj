@@ -15,7 +15,7 @@ from app.accounts import refresh_url, webhook_owner
 from app.config import settings
 from app.mail.flow_package import DEFAULT_DAYS
 from app.mail.pushed_store import pushed_images, pushed_store, refresh_state
-from app.mail.text_utils import clean, strip_html
+from app.mail.text_utils import clean, outlook_link, strip_html
 from app.routes.common import error, parse_window, request_user, sorter
 from app.schemas import Email
 
@@ -110,6 +110,7 @@ def inbound_email(data: dict) -> Email:
         preview=preview,
         body=body,
         text_source="body" if body else "empty",
+        web_link=outlook_link(str(data.get("webLink") or ""), str(data.get("outlookId") or "")),
     )
 
 
@@ -187,6 +188,29 @@ def _inbound_owner(data: dict) -> str:
     return ""
 
 
+def _refresh_id(data: dict) -> str | None:
+    """The run id the flow echoes back, or ``None`` for a flow imported before ids existed."""
+    value = str(data.get("refreshId") or "").strip()
+    return value[:64] or None
+
+
+def _int_or_none(value) -> int | None:
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _slice_info(data: dict) -> dict:
+    """Which date slice of the run a pushed email came from, and that slice's ``top`` limit."""
+    return {
+        "index": _int_or_none(data.get("slice")),
+        "limit": _int_or_none(data.get("sliceTop")),
+        "since": str(data.get("sliceSince") or "")[:40],
+        "before": str(data.get("sliceBefore") or "")[:40],
+    }
+
+
 # ---- Routes ------------------------------------------------------------------
 
 @bp.after_app_request
@@ -233,7 +257,8 @@ def inbound_outlook():
 
     email = inbound_email(data)
     stored, duplicate = pushed_store.add(email, owner)
-    refresh_state.arrival(owner)
+    # Count it towards its run even if it was already stored: it was still retrieved.
+    refresh_state.arrival(owner, stored.id, _refresh_id(data), _slice_info(data), received=email.received_at)
     if not duplicate:
         # Read later, once, by the OCR/poster step when the inbox loads.
         pushed_images.put(owner, stored.id, inbound_images(data))
@@ -260,6 +285,7 @@ def inbound_diagnostics():
         "refresh_configured": bool(refresh_url()),
         "attempts": attempts,
         "last_refresh": refresh_state.last(owner),
+        "refresh": refresh_state.status(owner),
     })
 
 
@@ -293,7 +319,12 @@ def inbound_refresh():
         if newer:
             since, incremental = newer, True
 
-    payload = {"owner": owner}
+    # Record the run before calling the flow, so pushes that arrive at once are counted.
+    refresh_id, created = refresh_state.begin(owner, requested, incremental)
+    if not created:
+        return jsonify({"requested": False, "already_running": True, "refresh_id": refresh_id, "owner": owner})
+
+    payload = {"owner": owner, "refreshId": refresh_id}
     if since:
         payload["since"] = since.isoformat()
     if before:
@@ -304,14 +335,16 @@ def inbound_refresh():
     try:
         response = requests.post(url, json=payload, timeout=15, allow_redirects=False)
     except requests.RequestException:
+        refresh_state.failed(owner, refresh_id, "flow unreachable")
         return error("Could not reach the Power Automate flow.", 502)
 
     if not 200 <= response.status_code < 300:
+        refresh_state.failed(owner, refresh_id, f"flow answered {response.status_code}")
         return error(f"Power Automate rejected the refresh request ({response.status_code}).", 502)
 
-    refresh_state.started(owner, requested, incremental)
     return jsonify({
         "requested": True,
+        "refresh_id": refresh_id,
         "owner": owner,
         "since": payload.get("since"),
         "before": payload.get("before"),
@@ -326,12 +359,25 @@ def inbound_refresh_done():
     if not owner:
         return error("Invalid webhook token.", 401)
 
-    summary = refresh_state.done(owner)
+    data = request.get_json(silent=True)
+    result = refresh_state.done(owner, _refresh_id(data if isinstance(data, dict) else {}))
+    summary = result["refresh"]
     if summary:
+        complete = {
+            True: "complete",
+            False: "INCOMPLETE (a slice hit its limit or got mail outside its dates)",
+            None: "completeness unknown",
+        }
         print(
             f"[refresh] {'incremental' if summary['incremental'] else 'full'} refresh done in "
             f"{summary['duration_s']}s; first email after {summary['first_email_after_s']}s; "
-            f"{summary['emails_pushed']} emails pushed.",
+            f"{summary['emails_pushed']} emails pushed; {complete[summary['complete']]}.",
             flush=True,
         )
-    return jsonify({"status": "ok", "refresh": summary})
+        for item in summary.get("slices", []):
+            print(
+                f"[refresh]   slice {item['index']} ({item['since'] or '?'} .. {item['before'] or 'now'}): "
+                f"{item['count']}/{item['limit']} emails, {item['outside']} dated outside the slice",
+                flush=True,
+            )
+    return jsonify(result)

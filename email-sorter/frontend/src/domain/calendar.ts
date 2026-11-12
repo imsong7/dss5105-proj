@@ -1,7 +1,7 @@
-import { assignCourseHues, courseCode, isCanvasEmail } from "./course";
+import { assignCourseHues, courseCode, isCanvasAssignment, isCanvasEmail } from "./course";
 import { bestLink } from "./links";
 import type { EmailLink } from "./links";
-import type { InboxEmail } from "./email";
+import type { DeadlineCandidate, InboxEmail } from "./email";
 import type { ActionKey, CategoryKey } from "./taxonomy";
 
 const TODAY_FORMAT = new Intl.DateTimeFormat("en-CA", {
@@ -39,6 +39,8 @@ export interface CalendarDeadline {
   hue?: number;
   /** Best link found in the source email, such as the Canvas page. */
   link?: EmailLink;
+  /** From a Canvas assignment ("View assignment"): what the weekly progress bar counts. */
+  assignment?: boolean;
   /** Set for events the student added; they have no source email. */
   personal?: PersonalEvent;
   /**
@@ -134,9 +136,24 @@ function toDateKey(date: Date): string {
   )}`;
 }
 
+/** Item key of an email's n-th date: the first uses the email id, so it matches the Inbox row. */
+export function deadlineKey(emailId: string, index: number): string {
+  return index === 0 ? emailId : `${emailId}#${index + 1}`;
+}
+
+/**
+ * Only a Canvas assignment's dates go into the calendar by themselves ("View assignment"
+ * under the email). Announcements and every other email wait for the student to add them.
+ */
+export function addsItself(email: InboxEmail, _deadline: DeadlineCandidate): boolean {
+  return isCanvasAssignment(email);
+}
+
 export function buildDeadlines(
   emails: readonly InboxEmail[],
   personal: readonly PersonalEvent[] = [],
+  /** Dates the student put in the calendar themselves (item key). */
+  isInCalendar: (key: string) => boolean = () => false,
 ): CalendarDeadline[] {
   const courseOf = new Map<string, string>();
 
@@ -159,7 +176,9 @@ export function buildDeadlines(
           ? [email.deadline]
           : [];
 
-      return found.map((deadline, index) => ({
+      return found.flatMap((deadline, index) =>
+        addsItself(email, deadline) || isInCalendar(deadlineKey(email.id, index))
+          ? [{
         id: index === 0 ? `deadline-${email.id}` : `deadline-${email.id}-${index + 1}`,
         stateKey: index === 0 ? undefined : `${email.id}#${index + 1}`,
         emailId: email.id,
@@ -174,7 +193,10 @@ export function buildDeadlines(
         link: bestLink(email),
         course: courseOf.get(email.id),
         hue: hues.get(courseOf.get(email.id) ?? ""),
-      }));
+        assignment: isCanvasAssignment(email),
+            }]
+          : [],
+      );
     })
     .concat(
       personal.map((event) => ({

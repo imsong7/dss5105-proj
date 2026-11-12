@@ -4,7 +4,7 @@ from urllib.parse import quote
 import requests
 
 from app.mail.providers.base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
-from app.mail.text_utils import clean, strip_html
+from app.mail.text_utils import clean, outlook_link, strip_html
 from app.schemas import Email
 
 GRAPH_URL = "https://graph.microsoft.com/v1.0/me/messages"
@@ -51,6 +51,7 @@ def message_to_email(message: dict) -> Email:
         received=message.get("receivedDateTime", ""),
         preview=clean(message.get("bodyPreview", ""), 200),
         body=clean(body),
+        web_link=outlook_link(message.get("webLink", ""), message.get("id", "")),
     )
 
 
@@ -77,7 +78,7 @@ class GraphProvider(EmailProvider):
         limit = max(1, min(int(query.limit), 1000))
         params = {
             "$top": limit,
-            "$select": "id,subject,from,receivedDateTime,bodyPreview,body",
+            "$select": "id,subject,from,receivedDateTime,bodyPreview,body,webLink",
             "$orderby": "receivedDateTime desc",
         }
         received_filter = _received_filter(query)

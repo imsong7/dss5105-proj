@@ -8,6 +8,7 @@ os.environ["MAIL_PROVIDER"] = "graphtoken"
 # Never read or write the real saved mail while testing (empty turns saving off).
 os.environ["PUSHED_MAIL_FILE"] = ""
 os.environ["REFRESH_STATE_FILE"] = ""
+os.environ["POSTER_THUMB_DIR"] = ""
 
 import pytest
 
@@ -65,5 +66,7 @@ def clean_refresh_state():
     from app.mail.pushed_store import refresh_state
 
     refresh_state._data.clear()
+    refresh_state._pending.clear()
     yield
     refresh_state._data.clear()
+    refresh_state._pending.clear()

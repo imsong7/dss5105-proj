@@ -1,3 +1,5 @@
+import { Bookmark } from "lucide-react";
+
 import type { ActionFilter } from "../domain/email";
 import type { ActionKey } from "../domain/taxonomy";
 
@@ -9,6 +11,8 @@ interface QuickFiltersProps {
   visibleCount: number;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  /** Saved jobs: a last tab, shown once the student has saved one. */
+  savedJobs?: { count: number; active: boolean; onSelect: () => void };
   className?: string;
 }
 
@@ -39,8 +43,10 @@ export function QuickFilters({
   visibleCount,
   hasActiveFilters,
   onClearFilters,
+  savedJobs,
   className = "",
 }: QuickFiltersProps) {
+  const showingJobs = savedJobs?.active ?? false;
   return (
     <section
       aria-label="Quick filters"
@@ -48,7 +54,7 @@ export function QuickFilters({
     >
       <div className="-mx-4 flex gap-6 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
       {QUICK_FILTERS.map(({ key, label, dot }) => {
-        const active = action === key;
+        const active = !showingJobs && action === key;
         const count = key === "all" ? total : counts[key];
 
         return (
@@ -74,9 +80,25 @@ export function QuickFilters({
           </button>
         );
       })}
+      {savedJobs && (savedJobs.count > 0 || showingJobs) ? (
+        <button
+          type="button"
+          aria-pressed={showingJobs}
+          onClick={savedJobs.onSelect}
+          className={`-mb-px inline-flex h-11 shrink-0 items-center gap-2 border-b-2 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+            showingJobs
+              ? "border-ink font-semibold text-ink"
+              : "border-transparent font-medium text-muted hover:text-ink"
+          }`}
+        >
+          <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Saved jobs</span>
+          <span className="text-[12px] text-muted tabular-nums">{savedJobs.count}</span>
+        </button>
+      ) : null}
       </div>
 
-      <div className="flex items-center gap-3 sm:ml-auto">
+      <div className={`flex items-center gap-3 sm:ml-auto ${showingJobs ? "hidden" : ""}`}>
         <p
           className="text-[12px] text-muted tabular-nums max-sm:hidden"
           aria-live="polite"

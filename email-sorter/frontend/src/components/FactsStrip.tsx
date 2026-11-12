@@ -1,13 +1,12 @@
-import { BookOpen, Clock, ExternalLink, MapPin, Video, Wallet } from "lucide-react";
+import { BookOpen, ExternalLink, MapPin, Video } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { useOpenCourse } from "../contexts/CourseContext";
 import type { Fact, FactKind } from "../domain/keyFacts";
 
 const ICONS: Record<FactKind, LucideIcon> = {
-  when: Clock,
   place: MapPin,
-  money: Wallet,
   course: BookOpen,
   meeting: Video,
 };
@@ -22,16 +21,19 @@ const LINKISH = "rounded-sm hover:text-accent hover:underline focus-visible:ring
 export function FactsStrip({
   facts,
   link,
+  extra,
 }: {
   facts: readonly Fact[];
   link?: { url: string; label: string };
+  /** Another action shown beside the link button (Draft a reply). */
+  extra?: ReactNode;
 }) {
   const openCourse = useOpenCourse();
   // A meeting link is the action; it goes in the button slot.
   const meeting = facts.find((fact) => fact.kind === "meeting");
   const action = meeting?.href ? { url: meeting.href, label: meeting.label } : link;
   const shown = facts.filter((fact) => fact.kind !== "meeting");
-  if (shown.length === 0 && !action) {
+  if (shown.length === 0 && !action && !extra) {
     return null;
   }
 
@@ -72,18 +74,21 @@ export function FactsStrip({
         );
       })}
 
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+      {extra}
       {action ? (
         <a
           href={action.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto inline-flex min-h-8 items-center gap-1.5 rounded-full bg-accent px-3 text-[13px] font-semibold text-white hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-accent px-3 text-[13px] font-semibold text-white hover:bg-accent-dark focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           {meeting ? <Video className="h-3.5 w-3.5" aria-hidden="true" /> : null}
           {action.label}
           {meeting ? null : <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />}
         </a>
       ) : null}
+      </div>
     </div>
   );
 }

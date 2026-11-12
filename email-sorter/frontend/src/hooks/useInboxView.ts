@@ -34,6 +34,7 @@ import type {
   FlaskEmail,
   Health,
   SessionInfo,
+  SyncStatus,
 } from "../services/flask";
 
 const CLASSIFY_CONCURRENCY = 6;
@@ -365,6 +366,7 @@ export function useInboxView(session: SessionInfo) {
         }
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
         setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
+        setSync(result.sync);
         setSelectedId((current) =>
           result.emails.some((email) => email.id === current)
             ? current
@@ -480,6 +482,7 @@ export function useInboxView(session: SessionInfo) {
         }
         raw.current = new Map(result.raw.map((item) => [item.id, item]));
         setEmails((previous) => mergeEmails(previous, result.emails, backendRef.current));
+        setSync(result.sync);
         setPhase("ready");
         setSelectedId((current) => current ?? result.emails[0]?.id ?? null);
       } catch {
@@ -659,6 +662,8 @@ export function useInboxView(session: SessionInfo) {
   // Pushed mail is still coming in: the count grew a moment ago. Used to keep the
   // screen to a plain "loading" message until the flow has finished sending.
   const [receiving, setReceiving] = useState(false);
+  // The server's own view of the flow: still sending, and whether the last run got everything.
+  const [sync, setSync] = useState<SyncStatus | null>(null);
   const lastCount = useRef(0);
   useEffect(() => {
     const previous = lastCount.current;
@@ -966,6 +971,13 @@ export function useInboxView(session: SessionInfo) {
     autoSort,
     waitingForBatch,
     receiving,
+    /** The flow is still sending mail (server state, not a guess from arrivals). */
+    syncing: sync?.running != null,
+    syncedSoFar: sync?.running?.emails_pushed ?? 0,
+    /** All mail in the window is known to be here. Graph-token mail is loaded directly. */
+    mailComplete:
+      !isPushed ||
+      (sync?.running == null && sync?.last?.status === "done" && sync.last.complete === true),
     sortBatchSize: PUSH_SORT_BATCH,
     setAutoSort,
     autoPaused,

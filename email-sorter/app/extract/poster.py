@@ -14,15 +14,18 @@ without it the rest still works and no QR links are found.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import logging
 import re
 from collections import OrderedDict
 from datetime import date
+from pathlib import Path
 from threading import Lock
 
 from PIL import Image, ImageOps
 
+from app.config import settings
 from app.extract.calendar import _ISO_DATE, _NUMERIC_DATE, _ORDINAL, MONTH_NAME, _parse_date, _received_date
 from app.schemas import Email
 
@@ -169,30 +172,66 @@ def facts_from_text(text: str, received: str = "") -> dict:
 
 
 class ThumbStore:
-    """Small JPEG previews of posters, in memory, per account and email."""
+    """Small JPEG previews of posters, per account and email.
 
-    def __init__(self, limit: int = MAX_THUMBS):
+    Kept in memory and, when ``directory`` is set, also on disk: saved emails come back
+    after a restart, and their posters must too. Files are named by a hash of the
+    account and email id, so neither appears in the file name.
+    """
+
+    def __init__(self, limit: int = MAX_THUMBS, directory: Path | str | None = None):
         self.limit = limit
+        self.directory = Path(directory) if directory else None
         self._items: "OrderedDict[tuple[str, str], bytes]" = OrderedDict()
         self._lock = Lock()
 
+    def _file(self, owner: str, email_id: str) -> Path | None:
+        if not self.directory:
+            return None
+        name = hashlib.sha256(f"{owner}\n{email_id}".encode("utf-8")).hexdigest()
+        return self.directory / f"{name}.jpg"
+
+    def _remember(self, key: tuple[str, str], data: bytes) -> None:
+        self._items[key] = data
+        self._items.move_to_end(key)
+        while len(self._items) > self.limit:
+            old_key, _ = self._items.popitem(last=False)
+            old_file = self._file(*old_key)
+            if old_file:
+                old_file.unlink(missing_ok=True)
+
     def put(self, owner: str, email_id: str, data: bytes) -> None:
         with self._lock:
-            self._items[(owner, email_id)] = data
-            self._items.move_to_end((owner, email_id))
-            while len(self._items) > self.limit:
-                self._items.popitem(last=False)
+            self._remember((owner, email_id), data)
+            path = self._file(owner, email_id)
+            if path:
+                try:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(data)
+                except OSError:
+                    log.warning("Could not save a poster preview.")
 
     def get(self, owner: str, email_id: str) -> bytes | None:
         with self._lock:
-            return self._items.get((owner, email_id))
+            data = self._items.get((owner, email_id))
+            if data is not None:
+                return data
+            path = self._file(owner, email_id)
+            if path and path.is_file():
+                data = path.read_bytes()
+                self._remember((owner, email_id), data)
+                return data
+            return None
+
+    def has(self, owner: str, email_id: str) -> bool:
+        return self.get(owner, email_id) is not None
 
     def clear(self) -> None:
         with self._lock:
             self._items.clear()
 
 
-thumbs = ThumbStore()
+thumbs = ThumbStore(directory=settings.poster_thumb_dir or None)
 
 
 def make_thumb(data: bytes) -> bytes | None:

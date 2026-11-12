@@ -181,6 +181,40 @@ def _flat():
         return _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]
 
 
+class ThumbPersistenceTests(unittest.TestCase):
+    """Saved emails come back after a restart, so their poster previews must too."""
+
+    def test_preview_survives_a_restart(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            poster.ThumbStore(directory=tmp).put("a@u.nus.edu", "<m1@x>", b"jpeg-bytes")
+            again = poster.ThumbStore(directory=tmp)  # a new process
+            self.assertEqual(again.get("a@u.nus.edu", "<m1@x>"), b"jpeg-bytes")
+            self.assertFalse(again.has("b@u.nus.edu", "<m1@x>"))  # another account cannot see it
+            names = [path.name for path in Path(tmp).iterdir()]
+            self.assertFalse(any("m1" in name or "nus" in name for name in names))  # no ids in file names
+
+    def test_without_a_directory_nothing_is_written(self):
+        store = poster.ThumbStore()
+        store.put("a", "m", b"x")
+        self.assertEqual(store.get("a", "m"), b"x")
+
+    @patch("app.routes.mail.prepare_text", side_effect=lambda email, _provider, *_owner: email)
+    @patch("app.routes.mail.build_provider")
+    def test_a_missing_preview_is_not_promised(self, build_provider, _prepare):
+        class Provider:
+            def fetch_emails(self, _query):
+                return [Email(id="p1", subject="Fair", body="x",
+                              poster={"title": "Fair", "when": None, "venue": "", "links": [], "has_image": True})]
+
+        build_provider.return_value = Provider()
+        poster.thumbs.clear()
+        client = create_app(backend="llama").test_client()
+        data = client.post("/api/emails", json={"provider": "outlook", "credentials": {"token": "t"}, "count": 1}).get_json()
+        self.assertFalse(data["emails"][0]["poster"]["has_image"])  # no broken image in the UI
+
+
 class FlowTests(unittest.TestCase):
     def test_flow_sends_only_small_images_with_each_email(self):
         with patch("app.mail.flow_package.INCLUDE_IMAGES", True):
@@ -219,15 +253,24 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(flow["actions"]["Send_each_email"]["runtimeConfiguration"]["concurrency"]["repetitions"], 5)
 
 
+    @patch("app.mail.flow_package.BATCHES", 1)
+    def test_flow_with_one_batch_is_one_get_emails_call(self):
+        actions = _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]["actions"]
+        self.assertIn("Get_emails_(V3)", actions)
+        self.assertNotIn("Each_batch", actions)
+        self.assertNotIn("received<", actions["Get_emails_(V3)"]["inputs"]["parameters"]["searchQuery"])
+
+    @patch("app.mail.flow_package.BATCHES", 3)
     def test_flow_reads_date_slices_in_parallel(self):
         flow = _definition("https://x/api/inbound/outlook", "a@u.nus.edu", "t" * 43)["properties"]["definition"]
         batch = flow["actions"]["Each_batch"]
         self.assertEqual(batch["foreach"], "@createArray(0, 1, 2)")
         self.assertEqual(batch["runtimeConfiguration"]["concurrency"]["repetitions"], 3)
         get = batch["actions"]["Get_emails_(V3)"]["inputs"]["parameters"]
-        self.assertEqual(get["top"], "@div(coalesce(triggerBody()?['top'], 300), 3)")
-        self.assertIn("received>=", get["searchQuery"])
-        self.assertIn("received<", get["searchQuery"])
+        self.assertEqual(get["top"], "@max(1, div(coalesce(triggerBody()?['top'], 100), 3))")
+        self.assertIn("concat('received>=', ", get["searchQuery"])  # newest slice
+        self.assertIn("concat('received:', ", get["searchQuery"])   # older slices: START..END
+        self.assertNotIn("received<", get["searchQuery"])
         self.assertIn("Send_each_email", batch["actions"])
 
 

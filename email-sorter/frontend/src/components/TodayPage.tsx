@@ -420,15 +420,21 @@ export function TodayPage({
   const hiddenCount = countToday(everything) - countToday(visible);
   const sections = reveal ? everything : visible;
 
-  // "Cleared this week": things marked done in the last 7 days, out of those
-  // plus what is still due soon. Gives the student a sense of getting through it.
-  const weekAgo = Date.now() - 7 * 86_400_000;
-  const cleared = Object.values(states.states).filter(
-    (state) => state.done && state.at && Date.parse(state.at) >= weekAgo,
-  ).length;
-  // Old overdue items do not count: the bar looks forward.
+  // Still due today or this week (old overdue items do not count: the list looks forward).
   const remaining = visible.today.length + visible.soon.length;
-  const weekTotal = cleared + remaining;
+
+  // "Cleared this week" counts Canvas assignments only: those marked done in the last
+  // 7 days, out of those plus the assignments still due soon.
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const assignmentKeys = new Set(
+    calendar.deadlines.filter((item) => item.assignment).map((item) => itemKey(item)),
+  );
+  const cleared = Object.entries(states.states).filter(
+    ([key, state]) =>
+      assignmentKeys.has(key) && state.done && state.at && Date.parse(state.at) >= weekAgo,
+  ).length;
+  const assignmentsDue = [...visible.today, ...visible.soon].filter((item) => item.assignment).length;
+  const weekTotal = cleared + assignmentsDue;
 
   // Celebrate only when the student's own action empties the list.
   const [celebrate, setCelebrate] = useState(false);
@@ -594,7 +600,7 @@ export function TodayPage({
               <div className="mt-2.5 max-w-[320px]">
                 <div
                   role="progressbar"
-                  aria-label="Cleared this week"
+                  aria-label="Assignments cleared this week"
                   aria-valuemin={0}
                   aria-valuemax={weekTotal}
                   aria-valuenow={cleared}
@@ -607,7 +613,7 @@ export function TodayPage({
                   />
                 </div>
                 <p style={{ color: theme.muted }} className="mt-1 text-[13px]">
-                  {cleared} of {weekTotal} cleared this week
+                  {cleared} of {weekTotal} assignment{weekTotal === 1 ? "" : "s"} cleared this week
                 </p>
               </div>
             ) : null}
@@ -677,6 +683,14 @@ export function TodayPage({
               >
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Loading your mail…
+              </p>
+            ) : inbox.syncing ? (
+              <p
+                role="status"
+                className="flex items-center gap-2 text-[13px] text-accent"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Getting your mail from Outlook… {inbox.syncedSoFar} so far
               </p>
             ) : sorting ? (
               <p
@@ -779,14 +793,17 @@ export function TodayPage({
             empty &&
             !reveal &&
             !sorting &&
+            !inbox.syncing &&
             unsorted === 0 ? (
               <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface px-6 py-12 text-center">
-                <LionMark size={80} mood="cheer" />
+                <LionMark size={80} mood={inbox.mailComplete ? "cheer" : "happy"} />
                 <p className="text-[15px] font-semibold text-ink">
-                  You are all caught up
+                  {inbox.mailComplete ? "You are all caught up" : "Nothing due in the mail so far"}
                 </p>
                 <p className="max-w-[40ch] text-[14px] text-muted">
-                  No deadlines this week and no mail waiting for a reply.
+                  {inbox.mailComplete
+                    ? "No deadlines this week and no mail waiting for a reply."
+                    : "Some of your mail may not have arrived yet, so there could be more. Refresh to check again."}
                 </p>
               </div>
             ) : null}

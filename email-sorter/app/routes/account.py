@@ -10,6 +10,7 @@ from flask import session as flask_session
 
 from app.accounts import authenticated_owner, flow_url_problem, is_account, save_flow_url, session_graph_token, users
 from app.config import settings
+from app.mail import flow_package
 from app.mail.flow_package import build_flow_package
 from app.routes.common import (
     account_for,
@@ -90,6 +91,7 @@ def setup_info():
         "email": owner,
         "token": account["webhook_token"],
         "flow_url_saved": bool(account.get("refresh_url")),
+        "flow_sends_images": flow_package.INCLUDE_IMAGES,
     })
 
 
@@ -146,6 +148,7 @@ def register_connect():
             name=display_name(owner),
             email=owner,
             flow_saved=bool(account.get("refresh_url")),
+            flow_sends_images=flow_package.INCLUDE_IMAGES,
             error=message,
             notice=notice,
         ), status

@@ -150,3 +150,38 @@ export function JobsCard({ jobs, moreUrl }: { jobs: readonly Job[]; moreUrl: str
     </section>
   );
 }
+
+
+/** Every job the student saved (the Inbox's "Saved jobs" tab). Unsaving removes the row. */
+export function SavedJobsList() {
+  const saved = useSavedJobs();
+  const jobs = saved?.jobs ?? [];
+
+  if (jobs.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+        <Bookmark className="h-6 w-6 text-muted/70" aria-hidden="true" strokeWidth={1.5} />
+        <p className="text-[14px] font-semibold text-ink">No saved jobs</p>
+        <p className="max-w-[36ch] text-[14px] text-muted">
+          Tap the bookmark on a job in a job-digest email to keep it here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <section aria-label="Saved jobs" className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5">
+      {saved?.error ? (
+        <p role="alert" className="pt-3 text-[13px] text-action-now-fg">
+          {saved.error}
+        </p>
+      ) : null}
+      <ul className="divide-y divide-line">
+        {jobs.map((job) => (
+          <JobRow key={job.id} job={job} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+

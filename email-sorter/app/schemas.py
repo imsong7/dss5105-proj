@@ -21,6 +21,8 @@ class Email(BaseModel):
     # facts found on a poster image (see app/poster.py).
     ocr_text: str = ""
     poster: dict | None = None
+    # Opens the original message in Outlook on the web (empty when unknown).
+    web_link: str = ""
     # Set once the images were looked at, so polling never reads them twice.
     _ocr_checked: bool = PrivateAttr(default=False)
 

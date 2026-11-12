@@ -42,8 +42,8 @@ export interface Job {
   programme: string;
 }
 
-/** What a poster image in the email says, as facts the student can act on. */
-interface EmailPoster {
+/** What a poster image (or the email text) says about an event, as facts the student can act on. */
+export interface EmailPoster {
   title: string;
   /** YYYY-MM-DD of the event, when the poster shows one. */
   date?: string;
@@ -100,6 +100,10 @@ export interface InboxEmail {
   ocrText?: string;
   /** Facts found on a poster image in the email. */
   poster?: EmailPoster;
+  /** Opens the original message in Outlook on the web. */
+  webLink?: string;
+  /** An event announced in the email text (shown when there is no poster). */
+  event?: EmailPoster;
   /** Jobs listed in a job digest, with the digest's "view more" link. */
   jobs?: { items: readonly Job[]; moreUrl: string };
 }

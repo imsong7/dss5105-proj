@@ -120,7 +120,7 @@ function Workspace({ session }: { session: SessionInfo }) {
     }),
     [basePersonal, toasts],
   );
-  const calendar = useCalendarView(inbox.emails, academic, personal.events);
+  const calendar = useCalendarView(inbox.emails, academic, personal.events, baseStates.isInCalendar);
   // The logo's face reflects the day: something just missed worries it, a clear
   // list ahead cheers it. Older overdue items are left out on purpose.
   const recentCutoff = addDays(calendar.todayKey, -3);
@@ -150,7 +150,9 @@ function Workspace({ session }: { session: SessionInfo }) {
           ? `${plural(todaySections.reply.length, "email")} waiting for your reply.`
           : todaySections.soon.length > 0
             ? `Nothing today. ${plural(todaySections.soon.length, "deadline")} this week.`
-            : "All clear. Nice work.";
+            : inbox.syncing || !inbox.mailComplete
+              ? "Nothing due in the mail so far."
+              : "All clear. Nice work.";
 
   useEffect(() => {
     const abort = new AbortController();
@@ -286,7 +288,7 @@ function Workspace({ session }: { session: SessionInfo }) {
           onOpenEmail={openEmailFromCalendar}
           onSaveEvent={personal.save}
           onDeleteEvent={personal.remove}
-          loading={inbox.loading || inbox.receiving}
+          loading={inbox.loading || inbox.receiving || inbox.syncing}
         />
       )}
       </div>

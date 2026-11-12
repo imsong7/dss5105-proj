@@ -258,7 +258,7 @@ class LoginPageTests(unittest.TestCase):
                 json.loads(archive.read(name))
 
         flow = json.loads(text)["properties"]["definition"]
-        http = flow["actions"]["Each_batch"]["actions"]["Send_each_email"]["actions"]["HTTP"]["inputs"]
+        http = flow["actions"]["Send_each_email"]["actions"]["HTTP"]["inputs"]
         self.assertEqual(http["uri"], "http://localhost/api/inbound/outlook")
         self.assertEqual(http["headers"]["X-User-Email"], ACCOUNT_A)
         self.assertEqual(http["headers"]["X-Webhook-Token"], TOKEN_A)
@@ -275,6 +275,9 @@ class LoginPageTests(unittest.TestCase):
         url = "https://prod-12.southeastasia.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?sig=x"
         self.assertEqual(self.client.post("/api/setup/flow-url", json={"url": url}).status_code, 200)
         self.assertTrue(self.client.get("/api/setup").get_json()["flow_url_saved"])
+        # The guide says whether the downloadable flow sends poster images.
+        from app.mail import flow_package
+        self.assertEqual(self.client.get("/api/setup").get_json()["flow_sends_images"], flow_package.INCLUDE_IMAGES)
         self.assertTrue(self.client.get("/api/inbound/diagnostics").get_json()["refresh_configured"])
         stored = json.loads(Path(os.environ["MULTIUSER_CONFIG_FILE"]).read_text())
         self.assertEqual(stored[ACCOUNT_A]["refresh_url"], url)

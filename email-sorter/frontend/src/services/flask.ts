@@ -1,6 +1,7 @@
 import type {
   DeadlineCandidate,
   EmailClassification,
+  EmailPoster,
   InboxEmail,
   Job,
   ReplyDraft,
@@ -115,6 +116,10 @@ export interface FlaskEmail {
   /** The OCR part of `body`; shown folded away, not as body text. */
   ocr_text?: string;
   poster?: FlaskPoster | null;
+  /** Opens the original message in Outlook on the web; empty when unknown. */
+  web_link?: string;
+  /** An event announced in the email text (app/extract/events.py), same shape as a poster. */
+  event?: FlaskPoster | null;
   jobs?: { jobs: FlaskJob[]; more_url: string } | null;
   deadline_candidate?: FlaskDeadline | null;
   deadline_candidates?: FlaskDeadline[];
@@ -206,6 +211,19 @@ function mapDeadline(candidate: FlaskDeadline | null | undefined): DeadlineCandi
   };
 }
 
+function mapPoster(raw: FlaskPoster | null | undefined): EmailPoster | undefined {
+  return raw
+    ? {
+        title: raw.title,
+        date: raw.when?.date,
+        time: raw.when?.time,
+        venue: raw.venue,
+        links: raw.links,
+        hasImage: raw.has_image,
+      }
+    : undefined;
+}
+
 function mapEmail(raw: FlaskEmail): InboxEmail {
   return {
     id: raw.id,
@@ -215,16 +233,9 @@ function mapEmail(raw: FlaskEmail): InboxEmail {
     body: raw.body || raw.preview || "",
     receivedAt: raw.received,
     ocrText: raw.ocr_text || undefined,
-    poster: raw.poster
-      ? {
-          title: raw.poster.title,
-          date: raw.poster.when?.date,
-          time: raw.poster.when?.time,
-          venue: raw.poster.venue,
-          links: raw.poster.links,
-          hasImage: raw.poster.has_image,
-        }
-      : undefined,
+    webLink: raw.web_link || undefined,
+    poster: mapPoster(raw.poster),
+    event: mapPoster(raw.event),
     jobs: raw.jobs?.jobs.length
       ? { items: raw.jobs.jobs.map(mapJob), moreUrl: raw.jobs.more_url }
       : undefined,
@@ -270,6 +281,17 @@ export function fetchSession(signal?: AbortSignal): Promise<SessionInfo> {
   return api<SessionInfo>("/api/session", undefined, { signal, timeoutMs: 10_000 });
 }
 
+/** Power Automate only: is the flow still sending, and did its last run get everything? */
+export interface SyncStatus {
+  running: { refresh_id: string; started: string; emails_pushed: number } | null;
+  last: {
+    status?: "done" | "failed" | "timed_out";
+    /** false: a date slice hit its limit, so older mail may be missing. null: unknown. */
+    complete?: boolean | null;
+    emails_pushed?: number;
+  } | null;
+}
+
 export async function fetchEmails(
   params: {
     provider: string;
@@ -281,8 +303,8 @@ export async function fetchEmails(
     backend?: string;
   },
   signal?: AbortSignal,
-): Promise<{ raw: FlaskEmail[]; emails: InboxEmail[] }> {
-  const data = await api<{ emails: FlaskEmail[] }>(
+): Promise<{ raw: FlaskEmail[]; emails: InboxEmail[]; sync: SyncStatus | null }> {
+  const data = await api<{ emails: FlaskEmail[]; sync?: SyncStatus }>(
     "/api/emails",
     {
       provider: params.provider,
@@ -302,7 +324,7 @@ export async function fetchEmails(
       ? { ...email, classification: mapClassification(item.saved_classification) }
       : email;
   });
-  return { raw: data.emails, emails };
+  return { raw: data.emails, emails, sync: data.sync ?? null };
 }
 
 export async function draftReply(
@@ -536,19 +558,26 @@ export interface ItemState {
   snoozedUntil: string;
   /** ISO time the mark was made. Used for "cleared this week". */
   at?: string;
+  /** The student put this date in their calendar (Canvas due dates go there by themselves). */
+  inCalendar?: boolean;
 }
 
 export async function fetchItemStates(
   signal?: AbortSignal,
 ): Promise<Record<string, ItemState>> {
   const data = await api<{
-    states: Record<string, { done: boolean; snoozed_until: string; at?: string }>;
+    states: Record<string, { done: boolean; snoozed_until: string; at?: string; in_calendar?: boolean }>;
   }>("/api/item-states", undefined, { signal, timeoutMs: 10_000 });
 
   return Object.fromEntries(
     Object.entries(data.states).map(([key, value]) => [
       key,
-      { done: Boolean(value.done), snoozedUntil: value.snoozed_until || "", at: value.at },
+      {
+        done: Boolean(value.done),
+        snoozedUntil: value.snoozed_until || "",
+        at: value.at,
+        inCalendar: Boolean(value.in_calendar),
+      },
     ]),
   );
 }
@@ -563,6 +592,7 @@ export async function saveItemState(
       key,
       done: state?.done ?? false,
       snoozed_until: state?.snoozedUntil ?? "",
+      in_calendar: state?.inCalendar ?? false,
     },
     { timeoutMs: 10_000 },
   );
@@ -612,6 +642,8 @@ export interface SetupInfo {
   token: string;
   /** True once the imported flow's HTTP address is saved. */
   flow_url_saved?: boolean;
+  /** True when the downloadable flow sends one small image per email (posters). */
+  flow_sends_images?: boolean;
 }
 
 export function fetchSetup(signal?: AbortSignal): Promise<SetupInfo> {

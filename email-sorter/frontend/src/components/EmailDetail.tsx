@@ -1,6 +1,7 @@
 import { useId, useState, type ComponentProps, type RefObject } from "react";
-import { ArrowLeft, CalendarClock, ExternalLink, Mail } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, CalendarPlus, ExternalLink, Mail, Sparkles } from "lucide-react";
 
+import { addsItself, deadlineKey } from "../domain/calendar";
 import type { InboxEmail, ReplyDraft } from "../domain/email";
 import type { ActionKey, CategoryKey } from "../domain/taxonomy";
 import { senderInitials } from "../domain/inbox";
@@ -8,7 +9,7 @@ import { formatDeadline, formatFullDate } from "../lib/format";
 import { CategoryBadge } from "./CategoryBadge";
 import { cleanBody } from "../domain/cleanBody";
 import { keyFacts } from "../domain/keyFacts";
-import { WHEN, labelValue, markWhen, toBlocks } from "../domain/readable";
+import { labelValue, markWhen, toBlocks } from "../domain/readable";
 import type { Block } from "../domain/readable";
 import { emailLinks } from "../domain/links";
 import { CorrectionControl } from "./CorrectionControl";
@@ -32,8 +33,10 @@ interface EmailDetailProps {
   onUndoCorrection: (id: string) => Promise<void>;
   onRemoveRule: (id: string) => Promise<void>;
   onDraftReply: (id: string, signal?: AbortSignal) => Promise<ReplyDraft>;
-  onSendReply: (id: string, reply: string, token?: string) => Promise<void>;
   headingRef: RefObject<HTMLHeadingElement | null>;
+  /** Is this date (item key) in the student's calendar? Canvas due dates always are. */
+  isInCalendar?: (key: string) => boolean;
+  onToggleCalendar?: (key: string, inCalendar: boolean) => void;
   className?: string;
 }
 
@@ -45,10 +48,13 @@ export function EmailDetail({
   onUndoCorrection,
   onRemoveRule,
   onDraftReply,
-  onSendReply,
   headingRef,
+  isInCalendar,
+  onToggleCalendar,
   className = "",
 }: EmailDetailProps) {
+  // Which email's draft panel is open (it closes when another email is opened).
+  const [draftFor, setDraftFor] = useState<string | null>(null);
   if (!email) {
     return (
       <section
@@ -85,13 +91,23 @@ export function EmailDetail({
   // The message without signature, footer and quoted history (for the facts strip).
   const readableText = cleanBody(bodyParagraphs).main.join("\n");
   // Posters and job digests have their own cards with these facts.
-  const facts =
-    email.poster || email.jobs
-      ? []
-      : keyFacts(subject, readableText, {
-          hasDateCard: dates.length > 0,
-          when: readableText.match(WHEN)?.[0],
-        });
+  const facts = email.poster || email.jobs ? [] : keyFacts(subject, readableText);
+  // A job digest is an automated alert: no reply. The button sits beside the email's
+  // link button ("Open link"); pressing it drafts and opens the panel just below.
+  const canReply = !email.jobs;
+  const draftOpen = draftFor === email.id;
+  const replyButton =
+    canReply && !draftOpen ? (
+      <button
+        type="button"
+        onClick={() => setDraftFor(email.id)}
+        className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-semibold text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+      >
+        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+        Draft a reply
+      </button>
+    ) : null;
+  const showFacts = !(email.jobs || (email.event && !email.poster));
   // A meeting link already sits in the facts strip as "Join Zoom".
   const meeting = facts.find((fact) => fact.kind === "meeting")?.href;
   const links = emailLinks(email).filter((link) => link.url !== meeting);
@@ -169,15 +185,23 @@ export function EmailDetail({
           </p>
         )}
 
-        {email.jobs ? null : <FactsStrip facts={facts} link={email.poster ? undefined : links[0]} />}
+        {/* The job list or the event card already shows these facts; the reply button stays. */}
+        {showFacts ? (
+          <FactsStrip facts={facts} link={email.poster ? undefined : links[0]} extra={replyButton} />
+        ) : replyButton ? (
+          <div className="mt-2 flex">{replyButton}</div>
+        ) : null}
+        {canReply && draftOpen ? (
+          <DraftReply key={`draft-${email.id}`} email={email} onDraft={onDraftReply} autoStart />
+        ) : null}
 
         {dates.length > 0 ? (
           <div className="mt-2 flex items-start gap-2 rounded-lg bg-highlight-soft px-3 py-1.5">
             <CalendarClock className="mt-[3px] h-3.5 w-3.5 shrink-0 text-highlight-dark" aria-hidden="true" />
             <ul className="flex min-w-0 flex-1 flex-col gap-1">
               {dates.map((item, index) => (
-                <li key={`${item.date}-${index}`}>
-                  <details className="group">
+                <li key={`${item.date}-${index}`} className="flex items-start gap-2">
+                  <details className="group min-w-0 flex-1">
                     <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 text-[13px] [&::-webkit-details-marker]:hidden">
                       <span className="font-semibold text-ink">{item.label}</span>
                       <span className="text-ink">{formatDeadline(item)}</span>
@@ -193,6 +217,15 @@ export function EmailDetail({
                       {item.evidence ? `Found in: “${item.evidence}”` : ""}
                     </p>
                   </details>
+                  <CalendarChoice
+                    automatic={addsItself(email, item)}
+                    added={isInCalendar?.(deadlineKey(email.id, index)) ?? false}
+                    onToggle={
+                      onToggleCalendar
+                        ? (on) => onToggleCalendar(deadlineKey(email.id, index), on)
+                        : undefined
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -204,8 +237,8 @@ export function EmailDetail({
 
         {bodyParagraphs.length > 0 && email.jobs ? (
           // The job list above is the useful part; the flattened digest text folds away.
-          <details className="mt-4 rounded-xl border border-line px-3.5 py-2">
-            <summary className="flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
+          <details className={FOLD}>
+            <summary className={FOLD_SUMMARY}>
               Show the original email
             </summary>
             <div className="space-y-3 pb-2 text-[13px] leading-5 break-words text-ink/80">
@@ -221,8 +254,8 @@ export function EmailDetail({
         ) : null}
 
         {links.length > 1 && !email.jobs ? (
-          <details className="mt-3 rounded-xl border border-line px-3.5 py-2">
-            <summary className="flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
+          <details className={FOLD}>
+            <summary className={FOLD_SUMMARY}>
               {links.length - 1} more link{links.length === 2 ? "" : "s"} in this email
             </summary>
             <ul className="flex flex-col gap-1 pb-1">
@@ -243,8 +276,8 @@ export function EmailDetail({
         ) : null}
 
         {ocrText ? (
-          <details className="mt-4 rounded-xl border border-line px-3.5 py-2">
-            <summary className="flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink">
+          <details className={FOLD}>
+            <summary className={FOLD_SUMMARY}>
               Show text read from the image
             </summary>
             <p className="mt-1 pb-2 text-[13px] leading-5 whitespace-pre-wrap text-ink/80">
@@ -252,16 +285,6 @@ export function EmailDetail({
             </p>
           </details>
         ) : null}
-
-        {/* After reading comes replying. A job digest is an automated alert: no reply. */}
-        {email.jobs ? null : (
-          <DraftReply
-            key={`draft-${email.id}`}
-            email={email}
-            onDraft={onDraftReply}
-            onSend={onSendReply}
-          />
-        )}
       </article>
     </section>
   );
@@ -340,10 +363,12 @@ function LinkedText({ text }: { text: string }) {
   );
 }
 
+// The folded cards (original email, signature, earlier messages, links, image text):
+// one compact row when closed.
 const FOLD =
-  "mt-3 rounded-xl border border-line px-3.5 py-2 [&[open]>summary]:mb-1";
+  "mt-1.5 rounded-lg border border-line px-3 [&[open]]:pb-1 [&[open]>summary]:mb-0.5";
 const FOLD_SUMMARY =
-  "flex min-h-9 cursor-pointer items-center text-[13px] text-muted hover:text-ink";
+  "flex min-h-7 cursor-pointer items-center text-[12.5px] text-muted hover:text-ink";
 
 /**
  * The message itself first; the signature, footer boilerplate and quoted older
@@ -450,5 +475,55 @@ function RichText({ text }: { text: string }) {
         ),
       )}
     </>
+  );
+}
+
+
+/**
+ * Whether a date from this email is in the calendar and to-do list. Canvas due dates
+ * go in by themselves; any other date is the student's choice.
+ */
+function CalendarChoice({
+  automatic,
+  added,
+  onToggle,
+}: {
+  automatic: boolean;
+  added: boolean;
+  onToggle?: (inCalendar: boolean) => void;
+}) {
+  if (automatic) {
+    return (
+      <span
+        className="inline-flex shrink-0 items-center gap-1 text-[12px] text-muted"
+        title="Canvas assignments are added to your calendar automatically"
+      >
+        <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
+        In calendar
+      </span>
+    );
+  }
+  if (!onToggle) {
+    return null;
+  }
+  return (
+    <button
+      type="button"
+      aria-pressed={added}
+      onClick={() => onToggle(!added)}
+      title={added ? "Remove from your calendar and to-do list" : "Add to your calendar and to-do list"}
+      className={`inline-flex min-h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[12px] font-medium focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+        added
+          ? "border-accent bg-accent text-white hover:bg-accent-dark"
+          : "border-line bg-surface text-ink hover:bg-surface-muted"
+      }`}
+    >
+      {added ? (
+        <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
+      ) : (
+        <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
+      )}
+      {added ? "In calendar" : "Add to calendar"}
+    </button>
   );
 }

@@ -21,6 +21,14 @@ export function isCanvasEmail(email: InboxEmail): boolean {
   );
 }
 
+/**
+ * A Canvas assignment notice: Canvas ends it with "View assignment" (an announcement
+ * ends with "View announcement" instead). Only these go into the calendar by themselves.
+ */
+export function isCanvasAssignment(email: InboxEmail): boolean {
+  return /\bview\s+assignment\b/i.test(`${email.subject}\n${email.body}\n${email.preview}`);
+}
+
 /** Drop a leading course code so "[DSS5105] DSS5105 final exam" is not repeated. */
 export function titleWithoutCourse(subject: string): string {
   const cleaned = subject

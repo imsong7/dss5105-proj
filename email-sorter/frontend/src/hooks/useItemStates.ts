@@ -27,7 +27,7 @@ export function useItemStates() {
       // Optimistic: the row disappears at once and returns if saving fails.
       setStates((current) => {
         const copy = { ...current };
-        if (next && (next.done || next.snoozedUntil)) {
+        if (next && (next.done || next.snoozedUntil || next.inCalendar)) {
           copy[key] = next;
         } else {
           delete copy[key];
@@ -54,17 +54,36 @@ export function useItemStates() {
     [states],
   );
 
+  /** The new state for ``key``, keeping the other marks; ``null`` when nothing is left. */
+  const merged = useCallback(
+    (key: string, change: Partial<ItemState>): ItemState | null => {
+      const next: ItemState = { ...(states[key] ?? { done: false, snoozedUntil: "" }), ...change };
+      return next.done || next.snoozedUntil || next.inCalendar ? next : null;
+    },
+    [states],
+  );
+
   const setDone = useCallback(
     (key: string, done: boolean) =>
-      update(key, done ? { done: true, snoozedUntil: "", at: new Date().toISOString() } : null),
-    [update],
+      update(
+        key,
+        merged(key, done ? { done: true, snoozedUntil: "", at: new Date().toISOString() } : { done: false }),
+      ),
+    [merged, update],
   );
 
   const snooze = useCallback(
-    (key: string, until: string) =>
-      update(key, until ? { done: false, snoozedUntil: until } : null),
-    [update],
+    (key: string, until: string) => update(key, merged(key, { done: false, snoozedUntil: until })),
+    [merged, update],
   );
+
+  /** Put an email's date in the calendar and to-do list, or take it out. */
+  const setInCalendar = useCallback(
+    (key: string, inCalendar: boolean) => update(key, merged(key, { inCalendar })),
+    [merged, update],
+  );
+
+  const isInCalendar = useCallback((key: string) => states[key]?.inCalendar === true, [states]);
 
   /** Hidden from Today: done, or snoozed to a later day. */
   const isHidden = useCallback(
@@ -77,7 +96,7 @@ export function useItemStates() {
 
   const isDone = useCallback((key: string) => states[key]?.done === true, [states]);
 
-  return { states, error, setDone, snooze, isHidden, isDone };
+  return { states, error, setDone, snooze, isHidden, isDone, setInCalendar, isInCalendar };
 }
 
 export type ItemStates = ReturnType<typeof useItemStates>;

@@ -58,3 +58,26 @@ def clean(text: str, limit: int | None = None) -> str:
     text = re.sub(r"[ \t]+([,.;:!?])", r"\1", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text).strip()
     return text[:limit] if limit else text
+
+
+_OUTLOOK_HOSTS = ("outlook.office365.com", "outlook.office.com", "outlook.live.com")
+
+
+def outlook_link(web_link: str = "", item_id: str = "") -> str:
+    """A link that opens the message in Outlook on the web, or "".
+
+    A ``webLink`` from Microsoft is used when it points at Outlook; otherwise one is built
+    from the message's Outlook item id, in the same form Graph uses for ``webLink``.
+    Nothing else is ever returned, so the link cannot lead anywhere but Outlook.
+    """
+    from urllib.parse import quote, urlparse
+
+    link = (web_link or "").strip()
+    parsed = urlparse(link)
+    if parsed.scheme == "https" and (parsed.hostname or "").lower() in _OUTLOOK_HOSTS:
+        return link[:2000]
+    item_id = (item_id or "").strip()
+    if not item_id or item_id.startswith("<") or len(item_id) > 500:
+        return ""  # an internet message id ("<...@...>") cannot be opened in Outlook
+    return f"https://outlook.office365.com/owa/?ItemID={quote(item_id, safe='')}&exvsurl=1&viewmodel=ReadMessageItem"
+

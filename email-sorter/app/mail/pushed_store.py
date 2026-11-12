@@ -10,6 +10,7 @@ do not create copies.
 
 import atexit
 import logging
+import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -38,6 +39,9 @@ class PushedStore:
         self.max_total = self.max_items * TOTAL_FACTOR
         self._items: OrderedDict[tuple[str, str], Email] = OrderedDict()
         self._lock = Lock()
+        # Held while taking a snapshot AND writing it, so an older snapshot can
+        # never be written after a newer one.
+        self._write_lock = Lock()
         self.path = Path(path) if path else None
         self._timer: Timer | None = None
         if self.path:
@@ -66,16 +70,17 @@ class PushedStore:
         """Write everything to disk now. Never raises: saving must not break a push."""
         if not self.path:
             return
-        with self._lock:
-            self._timer = None
-            rows = [
-                {"owner": owner, "email": email.model_dump(), "ocr_checked": email._ocr_checked}
-                for (owner, _), email in self._items.items()
-            ]
-        try:
-            write_json_atomic(self.path, rows)
-        except Exception:
-            log.exception("Could not save pushed mail.")
+        with self._write_lock:
+            with self._lock:
+                self._timer = None
+                rows = [
+                    {"owner": owner, "email": email.model_dump(), "ocr_checked": email._ocr_checked}
+                    for (owner, _), email in self._items.items()
+                ]
+            try:
+                write_json_atomic(self.path, rows)
+            except Exception:
+                log.exception("Could not save pushed mail.")
 
     def add(self, email: Email, owner: str = "") -> tuple[Email, bool]:
         """Store ``email`` for ``owner`` and return ``(email, duplicate)``."""
@@ -178,23 +183,53 @@ def _when(value) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
-class RefreshState:
-    """What each account's flow has already delivered, so refreshes can be incremental.
+_SLACK = timedelta(days=1)  # time zones: Outlook may compare dates in local time
 
-    ``started`` is called when a refresh is sent to the flow. The flow ends with a call
-    to ``done`` only if every step succeeded, so a half-finished run never counts as
-    synced. After that, a later refresh only needs mail newer than ``synced_through``.
+
+def _outside(received: datetime | None, since: str, before: str) -> bool:
+    """Is ``received`` clearly outside the slice ``[since, before]`` (whole dates, with a day of slack)?"""
+    if received is None:
+        return False
+    day = received.astimezone(timezone.utc).date()
+    try:
+        if since and day < datetime.fromisoformat(since).date() - _SLACK:
+            return True
+        if before and day > datetime.fromisoformat(before).date() + _SLACK:
+            return True
+    except ValueError:
+        return False
+    return False
+
+
+class RefreshState:
+    """Refresh runs of each account's flow, and how much of the mailbox is known to be synced.
+
+    A run gets an id before the flow is called; the flow sends that id with every
+    pushed email and with its final "done" call, and calls "done" only when every
+    push succeeded (delivery). Each pushed email also says which date slice it came
+    from and that slice's ``top`` limit. A slice that returned as many emails as its
+    limit may have left older mail behind (retrieval may be incomplete), so such a
+    run is reported as incomplete and does not move the incremental checkpoint.
+
+    Saved state per owner: ``synced_since``/``synced_through`` (the requested window
+    known complete) and ``last`` (the last run's report). Runs in progress live in
+    memory only: after a restart their callbacks are treated as stale.
     """
 
     # Mail that arrived while a refresh was reading is covered by this overlap.
+    # It only widens later queries; it is never recorded as synced coverage.
     MARGIN = timedelta(days=1)
+    # A run whose "done" call has not come by then counts as lost; a new one may start.
+    PENDING_TIMEOUT = timedelta(minutes=15)
 
     def __init__(self, path: Path | str | None = None):
         self.path = Path(path) if path else None
         self._lock = Lock()
         self._data: dict = read_json(self.path, {}) if self.path else {}
+        self._pending: dict[str, dict] = {}
 
     def _save(self) -> None:
+        """Call with the lock held, so snapshots are written in order."""
         if not self.path:
             return
         try:
@@ -202,51 +237,152 @@ class RefreshState:
         except Exception:
             log.exception("Could not save refresh state.")
 
-    def started(self, owner: str, since: datetime, incremental: bool, now: datetime | None = None) -> None:
-        now = now or datetime.now(timezone.utc)
-        with self._lock:
-            rec = self._data.setdefault(normalize_owner(owner), {})
-            rec["pending"] = {
-                "since": _iso(since), "started": _iso(now), "incremental": incremental,
-                "first_arrival": None, "received": 0,
-            }
+    def _live_pending(self, owner: str, now: datetime) -> dict | None:
+        """The run in progress, or ``None``; a run past the timeout is closed as lost."""
+        pending = self._pending.get(owner)
+        if pending and now - _when(pending["started"]) > self.PENDING_TIMEOUT:
+            self._finish(owner, pending, now, status="timed_out")
+            return None
+        return pending
 
-    def arrival(self, owner: str, now: datetime | None = None) -> None:
+    def _finish(self, owner: str, pending: dict, now: datetime, status: str, **extra) -> dict:
+        started = _when(pending["started"])
+        first = _when(pending["first_arrival"])
+        rec = self._data.setdefault(owner, {})
+        rec["last"] = {
+            "refresh_id": pending["id"],
+            "status": status,
+            "incremental": pending["incremental"],
+            "started": pending["started"],
+            "ended": _iso(now),
+            "duration_s": round((now - started).total_seconds(), 1),
+            "first_email_after_s": round((first - started).total_seconds(), 1) if first else None,
+            "emails_pushed": len(pending["ids"]),
+            **extra,
+        }
+        self._pending.pop(owner, None)
+        self._save()
+        return dict(rec["last"])
+
+    def begin(self, owner: str, requested: datetime, incremental: bool,
+              now: datetime | None = None) -> tuple[str, bool]:
+        """Start a run (before the flow is called). Returns ``(refresh_id, created)``.
+
+        ``requested`` is the window start the student asked for, recorded as coverage
+        if the run completes; the query sent to the flow may start later (incremental).
+        A run already in progress is returned instead of starting a second one.
+        """
         now = now or datetime.now(timezone.utc)
+        owner = normalize_owner(owner)
         with self._lock:
-            pending = self._data.get(normalize_owner(owner), {}).get("pending")
+            pending = self._live_pending(owner, now)
             if pending:
-                pending["received"] += 1
-                pending["first_arrival"] = pending["first_arrival"] or _iso(now)
-
-    def done(self, owner: str, now: datetime | None = None) -> dict | None:
-        """Mark the pending refresh complete. Returns its timings, or ``None`` if none was pending."""
-        now = now or datetime.now(timezone.utc)
-        with self._lock:
-            rec = self._data.setdefault(normalize_owner(owner), {})
-            pending = rec.pop("pending", None)
-            started = _when(pending["started"]) if pending else None
-            if not pending or not started:
-                return None
-            first = _when(pending["first_arrival"])
-            # An incremental run only covers newer mail: the covered start stays as before.
-            rec["synced_since"] = rec["synced_since"] if pending["incremental"] and "synced_since" in rec else pending["since"]
-            rec["synced_through"] = pending["started"]
-            rec["last"] = {
-                "incremental": pending["incremental"],
-                "started": pending["started"],
-                "done_at": _iso(now),
-                "duration_s": round((now - started).total_seconds(), 1),
-                "first_email_after_s": round((first - started).total_seconds(), 1) if first else None,
-                "emails_pushed": pending["received"],
+                return pending["id"], False
+            refresh_id = uuid.uuid4().hex
+            self._pending[owner] = {
+                "id": refresh_id, "requested": _iso(requested), "started": _iso(now),
+                "incremental": incremental, "first_arrival": None, "ids": {}, "slices": {},
+                "legacy_pushes": 0,
             }
-            self._save()
-            return dict(rec["last"])
+            return refresh_id, True
+
+    def failed(self, owner: str, refresh_id: str, reason: str, now: datetime | None = None) -> None:
+        """The flow could not be started: close the run without touching coverage."""
+        now = now or datetime.now(timezone.utc)
+        owner = normalize_owner(owner)
+        with self._lock:
+            pending = self._pending.get(owner)
+            if pending and pending["id"] == refresh_id:
+                self._finish(owner, pending, now, status="failed", reason=reason)
+
+    def arrival(self, owner: str, email_id: str, refresh_id: str | None = None,
+                slice_info: dict | None = None, now: datetime | None = None,
+                received: datetime | None = None) -> None:
+        """Count one pushed email towards the run it belongs to (stale ids are ignored)."""
+        now = now or datetime.now(timezone.utc)
+        owner = normalize_owner(owner)
+        with self._lock:
+            pending = self._live_pending(owner, now)
+            if not pending:
+                return
+            if refresh_id is None:
+                pending["legacy_pushes"] += 1  # a flow imported before refresh ids existed
+            elif refresh_id != pending["id"]:
+                return
+            pending["first_arrival"] = pending["first_arrival"] or _iso(now)
+            pending["ids"][email_id] = True
+            if refresh_id and slice_info and slice_info.get("index") is not None:
+                bucket = pending["slices"].setdefault(
+                    slice_info["index"], {"ids": {}, "outside": {}, "limit": None, "since": "", "before": ""}
+                )
+                bucket["ids"][email_id] = True
+                for key in ("limit", "since", "before"):
+                    if slice_info.get(key) not in (None, ""):
+                        bucket[key] = slice_info[key]
+                if _outside(received, bucket["since"], bucket["before"]):
+                    bucket["outside"][email_id] = True
+
+    def done(self, owner: str, refresh_id: str | None, now: datetime | None = None) -> dict:
+        """The flow's final call. Returns ``{"status": ..., "refresh": report or None}``.
+
+        ``delivered``: every retrieved email was pushed. ``complete``: no slice reached
+        its limit. Only a delivered and complete run moves the synced window forward.
+        """
+        now = now or datetime.now(timezone.utc)
+        owner = normalize_owner(owner)
+        with self._lock:
+            pending = self._pending.get(owner)  # a late but genuine "done" is still accepted
+            if not pending:
+                return {"status": "no_refresh", "refresh": None}
+            if refresh_id is not None and refresh_id != pending["id"]:
+                return {"status": "stale", "refresh": None}
+            if refresh_id is None:
+                # Old flow: it cannot say which run this was or whether a slice was cut off.
+                report = self._finish(owner, pending, now, status="done", delivered=True,
+                                      complete=None, slices=[],
+                                      reason="flow has no refresh id; download and import it again")
+                return {"status": "unverified", "refresh": report}
+
+            slices = []
+            for index, bucket in sorted(pending["slices"].items()):
+                count, limit = len(bucket["ids"]), bucket["limit"]
+                slices.append({
+                    "index": index, "count": count, "limit": limit,
+                    "truncated": limit is None or count >= limit,
+                    # Mail dated outside the slice: Outlook did not apply the date range.
+                    "outside": len(bucket.get("outside", {})),
+                    "since": bucket["since"], "before": bucket["before"],
+                })
+            complete = not any(item["truncated"] or item["outside"] for item in slices)
+            rec = self._data.setdefault(owner, {})
+            if complete:
+                # An incremental run only covers newer mail: the covered start stays as before.
+                if not (pending["incremental"] and "synced_since" in rec):
+                    rec["synced_since"] = pending["requested"]
+                rec["synced_through"] = pending["started"]
+                # Checkpoints saved by older versions never checked for cut-off slices.
+                rec["verified"] = True
+            report = self._finish(owner, pending, now, status="done", delivered=True,
+                                  complete=complete, slices=slices)
+            return {"status": "ok", "refresh": report}
 
     def last(self, owner: str) -> dict | None:
         with self._lock:
             last = self._data.get(normalize_owner(owner), {}).get("last")
             return dict(last) if last else None
+
+    def status(self, owner: str, now: datetime | None = None) -> dict:
+        """What the dashboard shows: a run in progress (if any) and the last finished run."""
+        now = now or datetime.now(timezone.utc)
+        owner = normalize_owner(owner)
+        with self._lock:
+            pending = self._live_pending(owner, now)
+            running = {
+                "refresh_id": pending["id"], "started": pending["started"],
+                "emails_pushed": len(pending["ids"]),
+            } if pending else None
+            last = self._data.get(owner, {}).get("last")
+            return {"running": running, "last": dict(last) if last else None}
 
     def incremental_since(self, owner: str, requested: datetime, has_mail: bool) -> datetime | None:
         """Newer start date for a refresh, or ``None`` when a full read is needed."""
@@ -254,8 +390,8 @@ class RefreshState:
             rec = self._data.get(normalize_owner(owner), {})
             synced_since = _when(rec.get("synced_since"))
             through = _when(rec.get("synced_through"))
-        if not has_mail or not synced_since or not through:
-            return None  # nothing delivered yet, or the saved mail is gone
+        if not has_mail or not synced_since or not through or not rec.get("verified"):
+            return None  # nothing verified delivered yet, or the saved mail is gone
         if requested < synced_since - self.MARGIN:
             return None  # the window grew: older mail was never read
         newer = through - self.MARGIN

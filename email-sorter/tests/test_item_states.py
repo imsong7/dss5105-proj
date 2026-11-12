@@ -22,6 +22,16 @@ class ItemStateTests(unittest.TestCase):
         self.assertIsNone(self.store.set("a", {"key": "m1", "done": False}))
         self.assertNotIn("m1", self.store.list("a"))
 
+    def test_in_calendar_mark_is_kept_on_its_own_and_with_done(self):
+        self.store.set("a", {"key": "m1", "in_calendar": True})
+        self.assertTrue(self.store.list("a")["m1"]["in_calendar"])
+        # Marking it done keeps it in the calendar when the client sends both.
+        self.store.set("a", {"key": "m1", "done": True, "in_calendar": True})
+        self.assertEqual(
+            (self.store.list("a")["m1"]["done"], self.store.list("a")["m1"]["in_calendar"]), (True, True)
+        )
+        self.assertIsNone(self.store.set("a", {"key": "m1"}))  # nothing left: the record goes
+
     def test_private_per_owner(self):
         self.store.set("a", {"key": "m1", "done": True})
         self.assertEqual(self.store.list("b"), {})

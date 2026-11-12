@@ -21,9 +21,11 @@ from app.classifiers.sender_rules import category_by_rule, coursework_by_rule, s
 from app.config import ROOT, settings
 from app.extract import poster as poster_module
 from app.extract.calendar import ACADEMIC_CALENDAR_LABEL, extract_deadlines, load_academic_calendar
+from app.extract.events import parse_event
 from app.extract.listings import parse_jobs
 from app.extract.ocr import ocr_status, prepare_text
 from app.mail.providers import AuthError, MailQuery, ProviderError, build_provider
+from app.mail.pushed_store import refresh_state
 from app.mail.text_utils import without_link_addresses
 from app.routes.common import error, parse_window, request_user, sorter, token_session
 from app.schemas import Classification, Email
@@ -238,6 +240,9 @@ def emails():
     serialized_emails = []
     for email in items:
         serialized = email.model_dump()
+        if serialized.get("poster") and serialized["poster"].get("has_image"):
+            # A saved email can outlive its preview (older saves kept previews in memory only).
+            serialized["poster"] = {**serialized["poster"], "has_image": poster_module.thumbs.has(owner, email.id)}
         serialized["saved_classification"] = saved_result(
             email.id, email.sender, backend_name, corrections, rules, cache
         )
@@ -251,15 +256,21 @@ def emails():
         serialized["deadline_candidates"] = found
         # A job digest becomes a list of jobs (None for other mail).
         serialized["jobs"] = parse_jobs(email.body, email.subject)
+        # An event announced in the text becomes an event card (a poster's card wins).
+        serialized["event"] = None if email.poster or serialized["jobs"] else parse_event(email)
         serialized_emails.append(serialized)
-    return jsonify({
+    body = {
         "emails": serialized_emails,
         "window": {
             "since": since.isoformat() if since else None,
             "before": before.isoformat() if before else None,
             "limit": limit,
         },
-    })
+    }
+    if data.get("provider") == "powerautomate":
+        # Whether the flow is still sending, and whether its last run got everything.
+        body["sync"] = refresh_state.status(owner)
+    return jsonify(body)
 
 
 def _rule_result(email: Email) -> tuple[Classification, str] | None:

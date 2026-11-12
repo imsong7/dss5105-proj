@@ -24,10 +24,15 @@ export function useCalendarView(
   emails: readonly InboxEmail[],
   academicEvents: readonly AcademicEvent[] = [],
   personalEvents: readonly PersonalEvent[] = [],
+  /** Dates the student put in the calendar from the Inbox (Canvas due dates need not). */
+  isInCalendar?: (key: string) => boolean,
 ) {
   const today = todayKey();
   const [showAcademic, setShowAcademic] = useState(true);
-  const deadlines = useMemo(() => buildDeadlines(emails, personalEvents), [emails, personalEvents]);
+  const deadlines = useMemo(
+    () => buildDeadlines(emails, personalEvents, isInCalendar),
+    [emails, personalEvents, isInCalendar],
+  );
 
   const courses = useMemo(() => courseLegend(deadlines), [deadlines]);
 

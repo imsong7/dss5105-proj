@@ -22,7 +22,7 @@
     <span class="connect-step">Step 2 of 2</span>
   </div>
   <h1>Connect your Outlook{% if name %}, {{ name }}{% endif %}</h1>
-  <p class="sub">Choose how your mail reaches the app. You can change this later.</p>
+  <p class="sub">Pick how your mail gets here. You can change it later.</p>
 
   {% if error %}<p class="login-error" role="alert">{{ error }}</p>{% endif %}
   {% if notice %}<p class="connect-notice" role="status">{{ notice }}</p>{% endif %}
@@ -34,15 +34,15 @@
     </summary>
     <ol class="connect-steps">
       <li>
-        <strong>Download your flow.</strong> It already has your address, email and private token, so do not share the file.
+        <strong>Download your flow.</strong> Already set up for you; don't share it. {% if flow_sends_images %}Sends each email's text and one small image (for posters).{% else %}Sends each email's text only (no images).{% endif %}
         <a class="btn btn-primary connect-download" href="{{ url_for('account.setup_flow_package') }}" download="inbox-sorter-flow.zip">{{ icon("mail", class="icon", size=16) }} Download my flow (.zip)</a>
       </li>
       <li>
-        <strong>Import it.</strong> In <a href="https://make.powerautomate.com/manage/flows" target="_blank" rel="noopener noreferrer">Power Automate</a>:
-        My flows → Import → Import Package (Legacy) → upload the .zip → next to <em>Your Outlook connection</em> choose <em>Select during import</em> and pick your account → Import. Then open the flow and turn it on.
+        <strong>Import it</strong> in <a href="https://make.powerautomate.com/manage/flows" target="_blank" rel="noopener noreferrer">Power Automate</a>:
+        My flows → Import → Import Package (Legacy) → upload the .zip → pick your account at <em>Your Outlook connection</em> → Import. Turn the flow on.
       </li>
       <li>
-        <strong>Paste the flow's address.</strong> In the flow, open the first step <em>When a HTTP request is received</em> and copy its HTTP URL.
+        <strong>Paste its address.</strong> Copy the HTTP URL from <em>When a HTTP request is received</em>.
         {% if flow_saved %}<span class="connect-saved">Saved ✓</span>{% endif %}
         <form method="post" action="{{ url_for('account.register_connect') }}" class="connect-url" autocomplete="off">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -53,7 +53,7 @@
         </form>
       </li>
     </ol>
-    <p class="connect-note">The HTTP steps are a Power Automate premium feature. If it asks for a licence, use a token instead.</p>
+    <p class="connect-note">Needs a Power Automate premium feature. No licence? Use a token.</p>
   </details>
 
   <details class="connect-option">
@@ -61,9 +61,9 @@
       <span class="connect-title">Outlook token</span>
       <span class="connect-tag">Quick · lasts about an hour</span>
     </summary>
-    <p class="connect-text">No flow to build. Each visit you paste a token from
+    <p class="connect-text">No setup. Each visit, paste a token from
       <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer">Graph Explorer</a>
-      (sign in, open the <strong>Access token</strong> tab, copy it). The app asks for it when it opens.</p>
+      (<strong>Access token</strong> tab).</p>
     <form method="post" action="{{ url_for('account.register_connect') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="action" value="token">

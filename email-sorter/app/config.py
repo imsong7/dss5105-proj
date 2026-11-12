@@ -23,6 +23,8 @@ class Settings:
     # Pushed mail and refresh bookkeeping are saved here so a restart does not lose
     # them. An empty value turns saving off (tests do that).
     pushed_mail_file: str = os.getenv("PUSHED_MAIL_FILE", str(ROOT / "private" / "pushed_mail.json"))
+    # Poster previews are saved here too, so a saved email's poster still shows after a restart.
+    poster_thumb_dir: str = os.getenv("POSTER_THUMB_DIR", str(ROOT / "private" / "poster_thumbs"))
     refresh_state_file: str = os.getenv("REFRESH_STATE_FILE", str(ROOT / "private" / "refresh_state.json"))
     # After one complete refresh, later refreshes only ask the flow for newer mail.
     flow_incremental: bool = os.getenv("FLOW_INCREMENTAL", "1") != "0"

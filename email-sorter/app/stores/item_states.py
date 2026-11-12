@@ -42,6 +42,8 @@ class ItemStateStore:
             raise StateError("Missing item key.")
 
         done = bool(payload.get("done"))
+        # The student put this email's date in their calendar (only Canvas due dates go there by themselves).
+        in_calendar = bool(payload.get("in_calendar"))
         snoozed = str(payload.get("snoozed_until") or "").strip()
         if snoozed:
             try:
@@ -53,12 +55,13 @@ class ItemStateStore:
             data = read_json(self.path, {})
             states = data.setdefault(owner, {})
             states.pop(key, None)
-            if not done and not snoozed:
+            if not done and not snoozed and not in_calendar:
                 write_json_atomic(self.path, data)
                 return None
             record = {
                 "done": done,
                 "snoozed_until": snoozed,
+                "in_calendar": in_calendar,
                 "at": datetime.now(timezone.utc).isoformat(),
             }
             states[key] = record

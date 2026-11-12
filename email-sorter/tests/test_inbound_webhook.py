@@ -190,16 +190,18 @@ class InboundWebhookTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 200)
-        post.assert_called_once_with(
-            REFRESH_URL,
-            json={
-                "owner": ACCOUNT_A,
-                "since": "2026-09-28T00:00:00+00:00",
-                "before": "2026-10-28T23:59:59.999000+00:00",
-            },
-            timeout=15,
-            allow_redirects=False,
-        )
+        post.assert_called_once()
+        self.assertEqual(post.call_args.args, (REFRESH_URL,))
+        self.assertEqual(post.call_args.kwargs["timeout"], 15)
+        self.assertFalse(post.call_args.kwargs["allow_redirects"])
+        sent = dict(post.call_args.kwargs["json"])
+        # The run id is made before the flow is called and comes back in the response.
+        self.assertEqual(sent.pop("refreshId"), response.get_json()["refresh_id"])
+        self.assertEqual(sent, {
+            "owner": ACCOUNT_A,
+            "since": "2026-09-28T00:00:00+00:00",
+            "before": "2026-10-28T23:59:59.999000+00:00",
+        })
 
     def test_refresh_rejects_when_no_url_is_configured(self):
         response = self.client.post(

@@ -165,7 +165,7 @@ if __name__ == "__main__":
             print(f"  This Mac only: http://127.0.0.1:{port}")
         print(f"{line}\n")
 
-    # Bound to localhost only: your emails never leave this machine.
+    # Bound to localhost by default; only --tunnel (ngrok) makes the app reachable from outside.
     try:
         app.run(host=args.host, port=port, debug=args.debug)
     finally:

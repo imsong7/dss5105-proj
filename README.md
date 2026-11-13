@@ -1,6 +1,12 @@
-# DSS5105 — Email Classification Project
+# NusBox — DSS5105 Track 4, Group 13
 
-This repository compares four ways to sort a student's email:
+NusBox is an email assistant for NUS students. It reads a student's Outlook
+mail, sorts each message into a **category** and an **action**, scores its
+priority, and pulls out deadlines, events and job posts into a Today page and a
+calendar.
+
+The repository also holds the model work behind it: four ways to classify the
+same emails, and one evaluation that compares them.
 
 | Method | Folder | What it uses |
 |---|---|---|
@@ -9,10 +15,8 @@ This repository compares four ways to sort a student's email:
 | Llama | `email-sorter/` | Llama 3.1 8B through Ollama (built into the app) |
 | Claude | `claude/` | Anthropic Claude with sender rules and guardrails |
 
-`email-sorter/` is the shared Flask app: it hosts the dashboard, the mail
-sources, and every classifier backend. `evaluation/` scores all four methods
-on the same emails. `email-sorter/llm-reply/` is an optional utility that drafts replies for
-emails the Claude action classifier marks as `Needs a reply`; it never sends.
+The app ships with `hybrid_claude`: the classical-ML model picks the category
+and Claude picks the action.
 
 ---
 
@@ -23,41 +27,31 @@ Use one virtual environment at the repo root.
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+make install                       # Python packages + frontend packages
 
 cp email-sorter/.env.example email-sorter/.env
 python email-sorter/run.py
-# open http://127.0.0.1:5000
+# open http://127.0.0.1:5001
 ```
 
-If port 5000 is already in use (macOS Control Center uses it), add
-`--port 5001`:
+`run.py` rebuilds the React frontend when its code has changed, so it needs
+`npm` (Node 22) and `make install` done once.
+
+### Defaults
+
+- **Port:** `5001` (macOS AirPlay Receiver uses 5000).
+- **Mail source:** `powerautomate`. Students sign up or sign in, then connect
+  Outlook with their own Power Automate flow or a pasted Microsoft Graph token.
+- **Backend:** `hybrid_claude`.
+- **ngrok:** off. The live machine shares the app with `--tunnel`.
+
+For a quick local test without accounts, paste a Graph token instead:
 
 ```bash
-python email-sorter/run.py --port 5001
+python email-sorter/run.py --provider graphtoken
 ```
 
-A fresh clone includes the trained encoder heads but not the classical-ML
-artifacts (`classical-ml/artifacts/`, gitignored) or `data/labels.csv`. Until
-you train those, start with `--backend encoder`, or use
-`--backend llama` after `ollama pull llama3.1:8b`.
-
-### Default behaviour
-
-- **Mail source:** `graphtoken` — paste a Microsoft Graph token in the dashboard
-  popup. No app login is needed.
-- **Backend:** `hybrid_claude` — classical-ML category + Claude action.
-- **Home page:** the React dashboard at `/`.
-
-For Power Automate instead:
-
-```bash
-python email-sorter/run.py --port 5001 --provider powerautomate
-```
-
-That mode adds a per-user app login and starts ngrok automatically.
-
-### Requirements for each backend
+### Backend requirements
 
 | Backend | Needs |
 |---|---|
@@ -68,8 +62,10 @@ That mode adds a per-user app login and starts ngrok automatically.
 | `llama` | `ollama pull llama3.1:8b` and Ollama running |
 | `claude` | `ANTHROPIC_API_KEY` in `claude/.env` |
 
-The app shows which backend is ready on the dashboard. If a model is missing,
-train it with the commands below or choose another backend.
+A fresh clone includes the trained encoder heads but not the classical-ML
+artifacts (`classical-ml/artifacts/`, gitignored) or `data/labels.csv`. Until
+you train those, start with `--backend encoder`. The dashboard shows which
+backend is ready.
 
 ---
 
@@ -102,118 +98,64 @@ See [`classical-ml/README.md`](classical-ml/README.md).
 
 ### Claude
 
-Add the key to `claude/.env`:
-
 ```bash
 echo 'ANTHROPIC_API_KEY=sk-ant-...' > claude/.env
 ```
 
-The Claude backend is already wired into the app; no separate dashboard is
-needed. See [`claude/README.md`](claude/README.md).
-
-### Reply drafts
-
-`email-sorter/llm-reply/` drafts replies for emails classified as `Needs a reply` and writes
-local `.json` / `.eml` drafts only. It filters offline by default (local ML or
-keywords) and uses an LLM only to generate the draft; the Claude action
-classifier is optional. It needs `ANTHROPIC_API_KEY` in `email-sorter/llm-reply/.env` unless
-you use Ollama. It never sends or modifies the mailbox. See
-[`email-sorter/llm-reply/README.md`](email-sorter/llm-reply/README.md).
+See [`claude/README.md`](claude/README.md).
 
 ---
 
 ## Results
 
-All committed comparison tables are in
-[`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md):
+All comparison tables are in
+[`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md): the classical-ML model
+comparison, the synthetic-data ablation, the encoder-head comparison, the
+shared encoder-vs-ML holdout, and the four-method quality and operational
+results.
 
-- classical-ML model comparison (8 models, category and action),
-- synthetic-data ablation,
-- encoder-head comparison,
-- shared encoder-vs-ML holdout,
-- four-method quality and operational results (older run plus the latest
-  Claude figures).
-
-For a fresh comparison:
+To run the comparison again:
 
 ```bash
 python evaluation/quality.py --model all
 python evaluation/performance.py --model all
 ```
 
-These commands cover all four families. Claude calls cost money, so use
-`--claude-limit N` to cap them. Run either script with `--help` to see all
-options.
+Claude calls cost money, so use `--claude-limit N` to cap them.
 
 ---
 
 ## Folder map
 
 ```
-email-sorter/     Flask app, dashboard, auth, mail sources, backends
-text-encoders/    BGE/E5 heads and DistilBERT fine-tunes
-classical-ml/     TF-IDF + LinearSVC / ComplementNB
-claude/           Claude backend (rules -> Claude -> guardrails)
-email-sorter/llm-reply/  Optional reply-draft generator (inside the app folder)
-evaluation/       Shared quality and operational evaluation
-data/             Shared synthetic.csv and local labels.csv (labels gitignored)
-requirements.txt  One dependency file for the whole repo
+email-sorter/            NusBox app: Flask backend, React frontend, sign-in pages, tests
+email-sorter/llm-reply/  Reply-draft generator and its evaluation
+text-encoders/           BGE/E5 heads and DistilBERT fine-tunes
+classical-ml/            TF-IDF + LinearSVC / ComplementNB
+claude/                  Claude backend (rules -> Claude -> guardrails)
+evaluation/              Shared quality and operational evaluation
+data/                    synthetic.csv, NUS academic calendar (labels.csv is gitignored)
+docs/                    Result tables
 ```
 
-Details:
+More detail:
 
-- [`email-sorter/README.md`](email-sorter/README.md) — app setup, mail sources,
-  Power Automate, login, dashboard, API.
-- [`text-encoders/README.md`](text-encoders/README.md) — encoder training.
-- [`classical-ml/README.md`](classical-ml/README.md) — classical ML training.
-- [`claude/README.md`](claude/README.md) — Claude backend.
-- [`evaluation/README.md`](evaluation/README.md) — quality and performance
-  evaluation for all four methods.
-- [`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md) — all result tables.
+- [`email-sorter/README.md`](email-sorter/README.md): app settings, mail
+  sources, Power Automate, accounts, backends, API.
+- [`email-sorter/frontend/README.md`](email-sorter/frontend/README.md): the
+  React app.
+- [`evaluation/README.md`](evaluation/README.md): how the four methods are
+  scored.
 
 ---
 
-## Tests
+## Checks
 
-With the virtual environment active, `make` runs the common tasks from the repo root:
+With the virtual environment active:
 
 ```bash
 make test    # all Python tests (app, Claude backend, reply drafts)
 make lint    # ruff: undefined names and unused imports
 make build   # typecheck and build the frontend
 make check   # lint + test + build, the same as CI
-```
-
-Or run each part yourself:
-
-```bash
-# app
-(cd email-sorter && pytest -q)
-
-# Claude backend
-(cd claude && pytest -q)
-
-# reply drafts
-(cd email-sorter/llm-reply && python -m unittest discover -s tests)
-(cd email-sorter/llm-reply && python eval_replies.py --use-ideal)
-
-# evaluation
-python -m unittest evaluation.test_evaluation
-```
-
----
-
-## Working with git
-
-```bash
-git switch main
-git pull origin main
-git switch -c feature/your-name
-
-# after making changes
-git add .
-git commit -m "Describe your changes"
-git fetch origin
-git merge origin/main
-git push -u origin feature/your-name
 ```

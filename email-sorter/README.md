@@ -1,7 +1,9 @@
-# Email sorter app
+# NusBox app
 
-A Flask dashboard that loads recent email, classifies each message into one
-**category** and one **action**, and shows the result in a table and calendar.
+A Flask backend and a React dashboard (`frontend/`). The app loads a student's
+recent email, classifies each message into one **category** and one
+**action**, and shows the results on the Today, Inbox, Calendar and course
+pages.
 
 The app supports four classifier families (text encoders, classical ML, Llama,
 Claude) and two mail sources (a pasted Microsoft Graph token, or mail pushed by
@@ -44,14 +46,11 @@ Run from the repo root:
 
 ```bash
 python email-sorter/run.py
-# open the ngrok link it prints, or http://127.0.0.1:5001 on this Mac
+# open http://127.0.0.1:5001 (with --tunnel, also the ngrok link it prints)
 ```
 
-Dashboard v2 is the default home page. The older page is still available:
-
-```bash
-python email-sorter/run.py -version 1
-```
+`run.py` rebuilds the React app into `static/app/` when `frontend/` has
+changed. That needs `npm install` in `frontend/` once; `--no-build` skips it.
 
 ---
 
@@ -180,7 +179,8 @@ Changing **Time window** only filters mail that is already loaded.
 
 #### Notes
 
-- Pushed mail lives in memory (newest 500 by default) and is cleared on restart.
+- Pushed mail keeps the newest 500 per account by default and is saved to
+  `private/pushed_mail.json`, so a restart keeps it.
 - Duplicate message ids are ignored per person.
 - HTML bodies are converted to text; attachments are not processed by this path.
 - Only `POST /api/inbound/outlook` accepts pushes. Opening it in a browser
@@ -250,18 +250,23 @@ reason.
 
 ---
 
-## Dashboard workflow
+## Dashboard
 
-1. Load the newest messages up to **Max emails**.
-2. Choose a **Time window**; this filters the loaded messages locally.
-3. Press **Start classification** to classify only the visible window.
+- **Today:** what is due, upcoming events, and the emails that need action,
+  ordered by priority. Each email shows why it got its priority, and the
+  student can change it.
+- **Inbox:** every loaded email with its category, action and priority, plus
+  filters, a time window and search. A wrong label can be corrected.
+- **Calendar:** deadlines and events found in emails, the NUS academic
+  calendar, and the student's own events. It can be subscribed to or exported
+  as an `.ics` feed.
+- **Courses and jobs:** mail grouped by course code, and job posts that can be
+  saved.
+- **Replies:** for emails that need a reply, Claude drafts one. It is sent only
+  when the student presses send.
 
-The same loaded set feeds the **Calendar** tab:
-
-- Canvas assignment notifications are parsed for explicit deadlines.
-- The NUS academic calendar is shown as separate context labels.
-- Dates use Singapore time and English formatting.
-- The app never writes to your calendar or mailbox.
+Dates use Singapore time. The app never changes the student's mailbox or
+Outlook calendar.
 
 Inline-image OCR is optional. Install Tesseract:
 
@@ -279,7 +284,7 @@ are read; ordinary attachments and linked images are ignored.
 
 | Route | Purpose |
 |---|---|
-| `GET /` | Dashboard v2 (default) |
+| `GET /` | React dashboard (`static/app/`) |
 | `GET /api/backends` | Backends, labels, readiness |
 | `GET /api/taxonomy` | Category/action labels |
 | `GET /api/health?backend=` | Readiness for one backend |
@@ -288,6 +293,9 @@ are read; ordinary attachments and linked images are ignored.
 | `POST /api/inbound/outlook` | Power Automate push (webhook token, no login needed) |
 | `GET /api/inbound/diagnostics` | This account's recent push attempts (signed-in session) |
 | `POST /api/inbound/refresh` | Trigger this account's flow (signed-in session) |
+| `GET/POST /api/events`, `/api/item-states`, `/api/saved-jobs` | Personal events, done/snoozed items, saved jobs |
+| `GET /api/feed`, `GET /feed/<name>` | Calendar feed settings and the `.ics` subscription |
+| `POST /api/draft-reply`, `POST /api/send-reply` | Draft a reply with Claude; send it on the student's request |
 
 ---
 
@@ -304,14 +312,15 @@ are read; ordinary attachments and linked images are ignored.
 | `app/accounts.py` | Login page, sessions, and account lookup |
 | `app/config.py`, `app/schemas.py`, `app/taxonomy.py` | Settings, data shapes, and the category/action labels |
 | `app/ngrok.py` | Automatic ngrok tunnel |
-| `templates/` | Dashboard pages |
-| `static/` | JavaScript and CSS |
+| `frontend/` | React + TypeScript dashboard, built into `static/app/` (see [`frontend/README.md`](frontend/README.md)) |
+| `templates/` | Sign-in, sign-up and Connect Outlook pages, error page |
+| `static/` | CSS and logo for those pages; `static/app/` is the built dashboard (gitignored) |
 | `static/vendor/tabler/` | Locally hosted Tabler CSS + license (no build step) |
 
 ### UI kit and licenses
 
-The dashboard uses selected components from the open-source **Tabler** UI kit
-(vendored, version-pinned, no remote scripts).
+The sign-in pages use selected components from the open-source **Tabler** UI
+kit (vendored, version-pinned, no remote scripts).
 
 - Tabler CSS: **v1.7.3** (`@tabler/core`), MIT — hosted at
   `static/vendor/tabler/tabler.min.css`. Attribution and integrity hash in
@@ -321,10 +330,8 @@ The dashboard uses selected components from the open-source **Tabler** UI kit
 - Icons are a small set of **Tabler Icons v3.50.0** (MIT) inlined as plain SVG
   (`templates/_icons.html`); no icon webfont is loaded.
 - `static/style.css` loads **after** `tabler.min.css` and stays the override
-  layer. App-only class names are prefixed (`.v2-*`, `.cal-*`, `.calendar-*`,
-  `.academic-*`, `.dashboard-*`, `.tag-pill`) to avoid Tabler/Bootstrap
-  component collisions; a Tabler token bridge in `style.css` maps the adopted
-  pieces to this app's palette and system font stack.
+  layer; it maps the adopted pieces to this app's palette and system font
+  stack.
 - No external fonts, analytics, or remote scripts are added.
 
 ## Tests

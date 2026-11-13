@@ -5,6 +5,8 @@ mail, sorts each message into a **category** and an **action**, scores its
 priority, and pulls out deadlines, events and job posts into a Today page and a
 calendar.
 
+**Demo video:** https://www.youtube.com/watch?v=0EzU1bLHZIA
+
 The repository also holds the model work behind it: four ways to classify the
 same emails, and one evaluation that compares them (see
 [The four methods](#the-four-methods)). The app ships with `hybrid_claude`: the

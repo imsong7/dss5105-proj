@@ -22,7 +22,6 @@ from zoneinfo import ZoneInfo
 
 STAR_TEXT = {1: "★☆☆☆☆", 2: "★★☆☆☆", 3: "★★★☆☆",
              4: "★★★★☆", 5: "★★★★★"}
-TEXT_STAR = {v: k for k, v in STAR_TEXT.items()}
 
 
 @dataclass

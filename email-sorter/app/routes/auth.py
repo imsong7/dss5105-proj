@@ -46,7 +46,7 @@ def _new_csrf(key: str) -> str:
     return session[key]
 
 
-def _csrf_ok(key: str, expected: str) -> bool:
+def _csrf_ok(expected: str) -> bool:
     supplied = str(request.form.get("csrf_token") or "")
     return bool(expected) and secrets.compare_digest(supplied, expected)
 
@@ -86,7 +86,7 @@ def login():
             **_login_page_flags(),
         ), status
 
-    if not _csrf_ok("login_csrf", expected):
+    if not _csrf_ok(expected):
         return fail("Your form expired. Please try again.")
     limiter = current_app.extensions["login_limiter"]
     client = client_address()
@@ -128,7 +128,7 @@ def login_token():
 
     if not token_login_enabled():
         return fail("Signing in with a token is turned off here.", 403)
-    if not _csrf_ok("login_csrf", expected):
+    if not _csrf_ok(expected):
         return fail("Your form expired. Please try again.")
     limiter = current_app.extensions["login_limiter"]
     client = client_address()
@@ -206,7 +206,7 @@ def register():
     code = str(request.form.get("code") or "").strip()
     keep = {"email": email, "name": name}
 
-    if not _csrf_ok("signup_csrf", session.get("signup_csrf", "")):
+    if not _csrf_ok(session.get("signup_csrf", "")):
         return _render_signup("Your form expired. Please try again.", 400, **keep)
 
     limiter = current_app.extensions["signup_limiter"]

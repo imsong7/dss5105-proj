@@ -54,13 +54,17 @@ class LoginLimiter:
         while bucket and now - bucket[0] >= self.window:
             bucket.popleft()
 
-    def wait_seconds(self, email: str, client: str) -> int:
-        """Seconds until sign-in is allowed again; ``0`` when it is allowed now."""
+    def wait_seconds(self, email: str | None, client: str) -> int:
+        """Seconds until sign-in is allowed again; ``0`` when it is allowed now.
+
+        ``email=None`` (a token sign-in, a sign-up) checks only the client limit,
+        so failures from different people are never pooled under one key.
+        """
         now = self._clock()
         with self._lock:
             waits = []
             for bucket, limit in (
-                (self._emails.get(email), self.per_email),
+                (self._emails.get(email) if email else None, self.per_email),
                 (self._clients.get(client), self.per_client),
             ):
                 if bucket is None:
@@ -70,10 +74,11 @@ class LoginLimiter:
                     waits.append(self.window - (now - bucket[0]))
             return int(max(waits)) + 1 if waits else 0
 
-    def record_failure(self, email: str, client: str) -> None:
+    def record_failure(self, email: str | None, client: str) -> None:
         now = self._clock()
         with self._lock:
-            self._emails[email].append(now)
+            if email:
+                self._emails[email].append(now)
             self._clients[client].append(now)
 
     def record_success(self, email: str) -> None:
@@ -402,7 +407,7 @@ def install_multiuser(app) -> None:
     app.extensions["login_limiter"] = LoginLimiter()
     # Accounts made from one address are capped per hour, so nobody can create
     # them in bulk. Typos do not count; a campus network shares one address.
-    app.extensions["signup_limiter"] = LoginLimiter(per_email=10**6, per_client=10, window=60 * 60)
+    app.extensions["signup_limiter"] = LoginLimiter(per_client=10, window=60 * 60)
 
     app.secret_key = _session_secret(app)
     app.config.update(

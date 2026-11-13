@@ -29,6 +29,17 @@ class LoginLimiterTests(unittest.TestCase):
         self.assertGreater(self.limiter.wait_seconds("fresh@x", "9.9.9.9"), 0)
         self.assertEqual(self.limiter.wait_seconds("fresh@x", "2.2.2.2"), 0)
 
+    def test_without_an_email_only_the_client_is_limited(self):
+        # Token sign-ins have no email: failures from different people must not add up.
+        for index in range(4):
+            self.limiter.record_failure(None, f"1.1.1.{index}")
+        self.assertEqual(self.limiter.wait_seconds(None, "9.9.9.9"), 0)
+
+        for _ in range(5):
+            self.limiter.record_failure(None, "9.9.9.9")
+        self.assertGreater(self.limiter.wait_seconds(None, "9.9.9.9"), 0)
+        self.assertEqual(self.limiter.wait_seconds(None, "2.2.2.2"), 0)
+
     def test_success_clears_the_email(self):
         for _ in range(3):
             self.limiter.record_failure("a@x", "1.1.1.1")

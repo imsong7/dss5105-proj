@@ -132,19 +132,19 @@ def login_token():
         return fail("Your form expired. Please try again.")
     limiter = current_app.extensions["login_limiter"]
     client = client_address()
-    wait = limiter.wait_seconds("", client)
+    wait = limiter.wait_seconds(None, client)
     if wait:
         return fail(f"Too many failed attempts. {_wait_message(wait)}", 429)
     if not token or len(token) > 8000:
         return fail("Paste the access token from Graph Explorer.", 400)
     settings = signup_settings()
     if settings["code"] and not secrets.compare_digest(code, settings["code"]):
-        limiter.record_failure("", client)
+        limiter.record_failure(None, client)
         return fail("That sign-up code is not right.", 400)
     try:
         email, name = graph_identity(token)
     except GraphLoginError as exc:
-        limiter.record_failure("", client)
+        limiter.record_failure(None, client)
         return fail(str(exc))
     domain = email.rsplit("@", 1)[-1]
     if settings["domains"] and domain not in settings["domains"]:
@@ -211,7 +211,7 @@ def register():
 
     limiter = current_app.extensions["signup_limiter"]
     client = client_address()
-    wait = limiter.wait_seconds("", client)
+    wait = limiter.wait_seconds(None, client)
     if wait:
         return _render_signup(f"Too many sign-ups from here. {_wait_message(wait)}", 429, **keep)
     problem = _signup_problem(email, password, confirm, code, settings)
@@ -234,7 +234,7 @@ def register():
         stored[email] = record
         write_accounts(path, stored)
         accounts[email] = record
-    limiter.record_failure("", client)
+    limiter.record_failure(None, client)
 
     sign_in(email)
     # Step 2 of sign-up: connect Outlook before opening the app.

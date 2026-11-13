@@ -355,6 +355,22 @@ class LoginPageTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.client.get("/api/session").status_code, 401)
 
+    def test_bad_tokens_from_other_people_do_not_lock_out_token_sign_in(self):
+        rejected = MagicMock(status_code=401, content=b"{}")
+        for index in range(6):  # more than the per-email limit (5), each from its own address
+            page = self.client.get("/login").get_data(as_text=True)
+            csrf = re.search(r'name="csrf_token" value="([^"]+)"', page).group(1)
+            with patch("app.accounts.requests.get", return_value=rejected):
+                response = self.client.post(
+                    "/login/token",
+                    data={"token": "expired", "csrf_token": csrf, "next": "/"},
+                    headers={"X-Forwarded-For": f"10.0.0.{index}"},
+                )
+            self.assertEqual(response.status_code, 401)
+
+        response, _ = self.token_sign_in()          # someone else, with a good token
+        self.assertEqual(response.status_code, 302)
+
     def test_token_sign_in_can_be_turned_off(self):
         with patch.dict(os.environ, {"ALLOW_TOKEN_LOGIN": "0"}):
             self.assertNotIn("Use an Outlook token instead", self.client.get("/login").get_data(as_text=True))

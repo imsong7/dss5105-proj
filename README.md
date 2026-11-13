@@ -20,6 +20,50 @@ and Claude picks the action.
 
 ---
 
+## How it works
+
+```
+Outlook mailbox
+  ├─ pasted Microsoft Graph token ──── the app reads the mail itself
+  └─ the student's Power Automate flow ── pushes each email to /api/inbound/outlook
+                     │
+                     ▼
+Flask backend (email-sorter/app)
+  1. date, event, job and poster extraction (no model needed)
+  2. sender and course rules       (free shortcuts, e.g. Canvas notifications)
+  3. classifier backend            (hybrid_claude: ML category + Claude action, stars, date)
+  4. the student's own corrections and sender rules always win; results are cached
+                     │
+                     ▼
+React dashboard (email-sorter/frontend)
+  Today · Inbox · Calendar (+ .ics feed) · course pages · job posts · reply drafts
+```
+
+## Labels
+
+Every email gets one category and one action.
+
+| Category | Meaning |
+|---|---|
+| Medical | Health, clinic or hospital messages, appointments, insurance, vaccination, counselling, medical certificates |
+| Promotional | Marketing, offers, discounts, newsletters, sales, advertising of events or products |
+| Career related | Jobs, internships, recruiters, career fairs, CV or interview help, networking |
+| Canvas | Automated notifications from the Canvas learning platform: announcements, assignment due dates, grades, discussion posts |
+| General | Everyday university or personal messages: announcements, timetables, campus notices, lecturers, classmates |
+| Others | Anything that clearly fits none of the above |
+
+| Action | Meaning |
+|---|---|
+| Needs action | The reader must do something other than write back: fill a form, submit, register, pay, sign, upload |
+| Needs a reply | A person is asking a question or expecting a written response |
+| Reminder | Contains a date or time limit but asks for no specific action or reply |
+| Further review | Informational, automated or promotional; nothing needs to be done now |
+
+The labels and their descriptions live in `email-sorter/app/taxonomy.py`
+(and `claude/config.yaml` for the Claude prompt).
+
+---
+
 ## Quick start
 
 Needs **Python 3.10+** (CI uses 3.12) and **Node 22** with `npm`. Use one
@@ -149,6 +193,32 @@ python evaluation/performance.py --model all
 ```
 
 Claude calls cost money, so use `--claude-limit N` to cap them.
+
+---
+
+## Privacy and data
+
+The app handles real student mail, so this is where that mail goes.
+
+- **Sent to Anthropic (Claude API):** with the `hybrid_claude` or `claude`
+  backend, each email's subject and text (up to 4,000 characters together) and
+  its received date are sent to classify it. A reply draft sends the email (up to 8,000
+  characters) and the student's name. The `encoder`, `ml` and `llama`
+  backends run entirely on this computer.
+- **Stays on this computer:** accounts, pushed mail, results, corrections,
+  events and settings are files under `email-sorter/private/` (gitignored;
+  the accounts file is readable only by the user running the app). Poster
+  images are read locally (Tesseract and OpenCV).
+- **Kept in memory only:** Microsoft Graph tokens. A pasted token stays in the
+  browser tab and goes with each request; a token used to sign in or to send a
+  reply is kept in server memory for at most two hours. Tokens are never
+  written to disk.
+- **The mailbox is read, not changed.** The only thing the app sends from it
+  is a reply, and only when the student presses Send.
+- **Reachable from outside only with `--tunnel`.** The app listens on
+  `127.0.0.1`; ngrok exposes it (with sign-in) so Power Automate and phones can
+  reach it. The `.ics` calendar feed is readable by anyone with its secret
+  link, which the student can rotate.
 
 ---
 

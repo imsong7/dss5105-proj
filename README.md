@@ -6,17 +6,9 @@ priority, and pulls out deadlines, events and job posts into a Today page and a
 calendar.
 
 The repository also holds the model work behind it: four ways to classify the
-same emails, and one evaluation that compares them.
-
-| Method | Folder | What it uses |
-|---|---|---|
-| Text encoders | `text-encoders/` | Frozen BGE / E5 heads, plus DistilBERT fine-tunes |
-| Classical ML | `classical-ml/` | TF-IDF + LinearSVC / ComplementNB |
-| Llama | `email-sorter/` | Llama 3.1 8B through Ollama (built into the app) |
-| Claude | `claude/` | Anthropic Claude with sender rules and guardrails |
-
-The app ships with `hybrid_claude`: the classical-ML model picks the category
-and Claude picks the action.
+same emails, and one evaluation that compares them (see
+[The four methods](#the-four-methods)). The app ships with `hybrid_claude`: the
+classical-ML model picks the category and Claude picks the action.
 
 ---
 
@@ -109,25 +101,29 @@ a warning). The category and action labels play no part in the stars. The
 weights and limits are in `claude/config.yaml` (`priority`); the code is
 `claude/src/priority.py`.
 
-## Why the default is hybrid_claude
+## Privacy and data
 
-Each task goes to the method that did best on it in the evaluations (accuracy
-on the labelled student emails):
+The app handles real student mail, so this is where that mail goes.
 
-| Method | Category | Action |
-|---|---:|---:|
-| Classical ML (TF-IDF + LinearSVC / ComplementNB) | **0.886** | 0.806 |
-| Text encoders (BGE / E5 heads) | 0.864 | 0.843 |
-| Llama 3.1 8B | 0.720 | 0.776 |
-| Claude | 0.833 | **0.888** |
-
-The category model is also free and runs in under a millisecond, so only the
-action (and the stars and date, from the same call) needs Claude. The first
-three rows are the committed out-of-fold run (n=132 category, n=134 action);
-the Claude row is from a separate run on the Claude integration branch, and
-the `hybrid_claude` combination has not been scored as one system. Details and
-caveats are in [`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md)
-(section 8).
+- **Sent to Anthropic (Claude API):** with the `hybrid_claude` or `claude`
+  backend, each email's subject and text (up to 4,000 characters together) and
+  its received date are sent to classify it. A reply draft sends the email (up
+  to 8,000 characters) and the student's name. The `encoder`, `ml` and `llama`
+  backends run entirely on this computer.
+- **Stays on this computer:** accounts, pushed mail, results, corrections,
+  events and settings are files under `email-sorter/private/` (gitignored;
+  the accounts file is readable only by the user running the app). Poster
+  images are read locally (Tesseract and OpenCV).
+- **Kept in memory only:** Microsoft Graph tokens. A pasted token stays in the
+  browser tab and goes with each request; a token used to sign in or to send a
+  reply is kept in server memory for at most two hours. Tokens are never
+  written to disk.
+- **The mailbox is read, not changed.** The only thing the app sends from it
+  is a reply, and only when the student presses Send.
+- **Reachable from outside only with `--tunnel`.** The app listens on
+  `127.0.0.1`; ngrok exposes it (with sign-in) so Power Automate and phones can
+  reach it. The `.ics` calendar feed is readable by anyone with its secret
+  link, which the student can rotate.
 
 ---
 
@@ -206,6 +202,27 @@ yourself you need the private `data/labels.csv` (see
 
 ---
 
+## The four methods
+
+Each task goes to the method that did best on it in the evaluations (accuracy
+on the labelled student emails):
+
+| Method | Folder | Category | Action |
+|---|---|---:|---:|
+| Classical ML: TF-IDF + LinearSVC / ComplementNB | `classical-ml/` | **0.886** | 0.806 |
+| Text encoders: frozen BGE / E5 heads, plus DistilBERT fine-tunes | `text-encoders/` | 0.864 | 0.843 |
+| Llama 3.1 8B through Ollama (built into the app) | `email-sorter/` | 0.720 | 0.776 |
+| Claude with sender rules and guardrails | `claude/` | 0.833 | **0.888** |
+
+That is why the default is `hybrid_claude`: classical ML for the category and
+Claude for the action. The category model is also free and runs in under a
+millisecond, so only the action (and the stars and date, from the same call)
+needs Claude. The first three rows are the committed out-of-fold run (n=132
+category, n=134 action); the Claude row is from a separate run on the Claude
+integration branch, and the `hybrid_claude` combination has not been scored as
+one system. Details and caveats are in
+[`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md) (section 8).
+
 ## Training the methods
 
 Both trained methods need the private `data/labels.csv`.
@@ -249,32 +266,6 @@ from:
 ```bash
 cd classical-ml && PYTHONPATH=src python -m experiments compare   # also: tune, ablation
 ```
-
----
-
-## Privacy and data
-
-The app handles real student mail, so this is where that mail goes.
-
-- **Sent to Anthropic (Claude API):** with the `hybrid_claude` or `claude`
-  backend, each email's subject and text (up to 4,000 characters together) and
-  its received date are sent to classify it. A reply draft sends the email (up
-  to 8,000 characters) and the student's name. The `encoder`, `ml` and `llama`
-  backends run entirely on this computer.
-- **Stays on this computer:** accounts, pushed mail, results, corrections,
-  events and settings are files under `email-sorter/private/` (gitignored;
-  the accounts file is readable only by the user running the app). Poster
-  images are read locally (Tesseract and OpenCV).
-- **Kept in memory only:** Microsoft Graph tokens. A pasted token stays in the
-  browser tab and goes with each request; a token used to sign in or to send a
-  reply is kept in server memory for at most two hours. Tokens are never
-  written to disk.
-- **The mailbox is read, not changed.** The only thing the app sends from it
-  is a reply, and only when the student presses Send.
-- **Reachable from outside only with `--tunnel`.** The app listens on
-  `127.0.0.1`; ngrok exposes it (with sign-in) so Power Automate and phones can
-  reach it. The `.ics` calendar feed is readable by anyone with its secret
-  link, which the student can rotate.
 
 ---
 

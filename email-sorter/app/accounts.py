@@ -390,9 +390,8 @@ def _load_accounts(path: Path, signup_enabled: bool) -> dict:
 def install_multiuser(app) -> None:
     """Load the accounts, require sign-in on every request, and add the sign-in pages."""
     from app.routes.auth import bp as auth_pages  # noqa: PLC0415 - the pages import this module
-    configured = os.getenv("MULTIUSER_CONFIG_FILE", "").strip()
-    if not configured:
-        raise RuntimeError("Set MULTIUSER_CONFIG_FILE to your private accounts JSON file.")
+    # Default: private/multiuser.json, created empty on first start when sign-up is on.
+    configured = os.getenv("MULTIUSER_CONFIG_FILE", "").strip() or "private/multiuser.json"
     path = Path(configured).expanduser()
     if not path.is_absolute():
         path = Path(app.root_path).parent / path

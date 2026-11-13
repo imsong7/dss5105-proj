@@ -41,7 +41,7 @@ def frontend_is_stale() -> bool:
 
 def build_frontend_if_needed() -> None:
     """Rebuild the React app when its code is newer than the build, so
-    `python run.py` always serves the current screens (e.g. the Figma work)."""
+    `python run.py` always serves the current screens."""
     if not frontend_is_stale():
         return
     npm = shutil.which("npm")

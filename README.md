@@ -22,7 +22,8 @@ and Claude picks the action.
 
 ## Quick start
 
-Use one virtual environment at the repo root.
+Needs **Python 3.10+** (CI uses 3.12) and **Node 22** with `npm`. Use one
+virtual environment at the repo root.
 
 ```bash
 python -m venv .venv
@@ -35,7 +36,33 @@ python email-sorter/run.py
 ```
 
 `run.py` rebuilds the React frontend when its code has changed, so it needs
-`npm` (Node 22) and `make install` done once.
+`npm` and `make install` done once.
+
+To run only the app (no model training or evaluation), install the much
+lighter `requirements-app.txt` instead of `requirements.txt`:
+
+```bash
+pip install -r requirements-app.txt
+(cd email-sorter/frontend && npm ci)
+```
+
+### Trying it from a fresh clone
+
+Two things are not in the repository: the Anthropic API key, and the
+classical-ML model, which is trained on labelled student email and kept
+private (`classical-ml/artifacts/` is gitignored).
+
+- **Without either:** the app still runs. On the sign-in page choose
+  "Use an Outlook token instead" and paste a Graph Explorer token (or sign up
+  at `/register`). Mail loads with its deadlines, calendar, course pages and
+  job posts, which do not need a model; sorting says the model is not ready.
+  Only NUS addresses are accepted by default; set `ALLOWED_EMAIL_DOMAINS` in
+  `email-sorter/.env` for others.
+- **With an `ANTHROPIC_API_KEY`** in `claude/.env`: start with
+  `--backend claude` to sort, rate and draft replies with Claude alone.
+- **Without a key, with the full `requirements.txt`:** `--backend encoder`
+  uses the committed encoder heads (it downloads the BGE/E5 encoders from
+  Hugging Face on first use).
 
 ### Defaults
 

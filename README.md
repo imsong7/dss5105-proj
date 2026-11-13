@@ -1,11 +1,11 @@
 # NusBox — DSS5105 Track 4, Group 13
+**Demo video:** https://www.youtube.com/watch?v=0EzU1bLHZIA
 
 NusBox is an email assistant for NUS students. It reads a student's Outlook
 mail, sorts each message into a **category** and an **action**, scores its
 priority, and pulls out deadlines, events and job posts into a Today page and a
 calendar.
 
-**Demo video:** https://www.youtube.com/watch?v=0EzU1bLHZIA
 
 The repository also holds the model work behind it: four ways to classify the
 same emails, and one evaluation that compares them (see

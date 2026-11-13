@@ -282,7 +282,7 @@ The app handles real student mail, so this is where that mail goes.
 
 ```
 email-sorter/            NusBox app: Flask backend, React frontend, sign-in pages, tests
-email-sorter/llm-reply/  Reply-draft generator and its evaluation
+email-sorter/llm-reply/  Reply drafts used by the app (Claude), plus their evaluation
 text-encoders/           BGE/E5 heads and DistilBERT fine-tunes
 classical-ml/            TF-IDF + LinearSVC / ComplementNB
 claude/                  Claude backend (rules -> Claude -> guardrails)

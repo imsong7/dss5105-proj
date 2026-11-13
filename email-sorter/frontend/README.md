@@ -48,7 +48,7 @@ npm run dev        # http://127.0.0.1:5173
 ## Visual language
 
 Minimal, Apple-inspired: the SF system font stack, white surfaces with hairline
-borders instead of drop shadows, a segmented control for Inbox ⇄ Calendar,
+borders instead of drop shadows, a view switcher for Today, Inbox and Calendar,
 sentence-case field labels, borderless gray chips that fill blue when selected,
 and one accent per interaction state.
 
@@ -82,8 +82,8 @@ or an external calendar.
 
 ## Accessibility
 
-- Each view exposes exactly one `h1` (`Inbox` / `Calendar`), with page sections
-  under `h2`.
+- Each view exposes exactly one `h1` (Today, Inbox, Calendar or the course
+  code), with page sections under `h2`.
 - Every interactive control is at least 44×44 CSS px, including filter chips,
   quick filters, the view switcher, search/sort fields, and the calendar month
   controls.
@@ -95,7 +95,10 @@ or an external calendar.
 
 ## Limitations
 
-- Calendar dates come from a regex extractor, so only explicit dates with a cue
-  such as "due" or "exam" are found.
-- Personal events have no recurrence, reminders, or external calendar sync.
+- Before an email is classified, calendar dates come from a regex extractor, so
+  only explicit dates with a cue such as "due" or "exam" are found. Once Claude
+  has sorted an email, the date, time and place it read replace them (Canvas
+  assignments keep the dates from the notification).
+- Personal events have no recurrence or reminders. Other calendars can
+  subscribe to the read-only `.ics` feed or import a downloaded file.
 - The time band is sent to the server (`since`/`before`, at least the last 30 days so Today and Calendar stay filled), up to 500 messages per load.

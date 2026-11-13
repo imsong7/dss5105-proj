@@ -72,7 +72,7 @@ LLM_PROVIDER=ollama LLM_MODEL=llama3.1 python generate_replies.py --limit 5
 | --- | --- |
 | `--filter needs-reply \| all` | Filter mode; default `needs-reply` |
 | `--classifier keywords \| ml \| claude` | 4-class action classifier; default `ml` when a model is available, otherwise `keywords` (both offline) |
-| `--claude-config` | Path to `claude/config.yaml`; default `../claude/config.yaml` |
+| `--claude-config` | Path to `claude/config.yaml`; default `claude/config.yaml` at the repo root |
 | `--ml-model` | Joblib path used by `--classifier ml` |
 | `--include-actions` | Also reply to `Needs an action` emails |
 | `--include-noreply` | Do not skip noreply senders |

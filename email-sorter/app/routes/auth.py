@@ -27,6 +27,7 @@ from app.accounts import (
     users,
     write_accounts,
 )
+from app.mail.text_utils import strip_bearer
 
 bp = Blueprint("auth", __name__)
 
@@ -110,9 +111,7 @@ def login_token():
     """Sign in with a Graph token instead of an account."""
     next_url = safe_next(request.form.get("next"))
     expected = session.get("login_csrf", "")
-    token = "".join(str(request.form.get("token") or "").split())
-    if token.lower().startswith("bearer"):
-        token = token[6:]
+    token = "".join(strip_bearer(str(request.form.get("token") or "")).split())
     code = str(request.form.get("code") or "").strip()
     csrf_token = _new_csrf("login_csrf")
 

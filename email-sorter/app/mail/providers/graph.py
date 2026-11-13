@@ -4,7 +4,7 @@ from urllib.parse import quote
 import requests
 
 from app.mail.providers.base import AuthError, EmailProvider, InlineImage, MailQuery, ProviderError
-from app.mail.text_utils import clean, outlook_link, strip_html
+from app.mail.text_utils import clean, outlook_link, strip_bearer, strip_html
 from app.schemas import Email
 
 GRAPH_URL = "https://graph.microsoft.com/v1.0/me/messages"
@@ -27,7 +27,8 @@ def _received_filter(query: MailQuery) -> str | None:
     return " and ".join(clauses) or None
 
 
-def _graph_error(response: requests.Response) -> str:
+def graph_error(response: requests.Response) -> str:
+    """Graph's own error message from a failed response (short, safe to show)."""
     try:
         message = response.json().get("error", {}).get("message")
     except (ValueError, AttributeError):
@@ -62,9 +63,7 @@ class GraphProvider(EmailProvider):
     name = "outlook"
 
     def __init__(self, token: str):
-        token = (token or "").strip()
-        if token.lower().startswith("bearer "):
-            token = token[7:].strip()
+        token = strip_bearer(token)
         if not token:
             raise AuthError("Paste a Microsoft Graph access token first.")
         self.token = token
@@ -129,7 +128,7 @@ class GraphProvider(EmailProvider):
         if not response.ok:
             raise ProviderError(
                 f"Graph returned {response.status_code} while listing inline images: "
-                f"{_graph_error(response)}"
+                f"{graph_error(response)}"
             )
 
         images = []
@@ -156,7 +155,7 @@ class GraphProvider(EmailProvider):
             if not content_response.ok:
                 raise ProviderError(
                     f"Graph returned {content_response.status_code} while downloading "
-                    f"inline image: {_graph_error(content_response)}"
+                    f"inline image: {graph_error(content_response)}"
                 )
             data = content_response.content
             if not data:

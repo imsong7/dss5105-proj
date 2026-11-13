@@ -11,6 +11,14 @@ LINK_IN_TEXT = re.compile(r"<(https?://[^>\s]+)>")
 _OPEN, _CLOSE = "\x02", "\x03"  # stand-ins, so the tag stripper leaves the address
 
 
+_BEARER = re.compile(r"(?i)^bearer\s+")
+
+
+def strip_bearer(token: str | None) -> str:
+    """A pasted access token without spaces around it or a leading "Bearer "."""
+    return _BEARER.sub("", (token or "").strip()).strip()
+
+
 def unwrap_safelink(url: str) -> str:
     """Outlook "Safe Links" wrap every address; keep the real one."""
     parsed = urlparse(url)

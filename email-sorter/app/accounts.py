@@ -24,6 +24,8 @@ from flask import (
     url_for,
 )
 
+from app.mail.text_utils import strip_bearer
+
 # ---- failed sign-in limit ---------------------------------------------------
 # Failures are counted per email and per client address in a sliding window.
 # While either is over its limit, sign-in is refused, even with the right
@@ -167,9 +169,7 @@ def session_graph_token() -> str:
 
 def remember_session_graph_token(token: str) -> None:
     """Keep a send token in server memory under the signed-in session."""
-    token = (token or "").strip()
-    if token.lower().startswith("bearer "):
-        token = token[7:].strip()
+    token = strip_bearer(token)
     if not token:
         return
     previous = session.get(TOKEN_SESSION_KEY, "")

@@ -282,7 +282,6 @@ class RefreshState:
             self._pending[owner] = {
                 "id": refresh_id, "requested": _iso(requested), "started": _iso(now),
                 "incremental": incremental, "first_arrival": None, "ids": {}, "slices": {},
-                "legacy_pushes": 0,
             }
             return refresh_id, True
 
@@ -305,9 +304,8 @@ class RefreshState:
             pending = self._live_pending(owner, now)
             if not pending:
                 return
-            if refresh_id is None:
-                pending["legacy_pushes"] += 1  # a flow imported before refresh ids existed
-            elif refresh_id != pending["id"]:
+            # No refresh id: a flow imported before ids existed. It still counts towards the run.
+            if refresh_id is not None and refresh_id != pending["id"]:
                 return
             pending["first_arrival"] = pending["first_arrival"] or _iso(now)
             pending["ids"][email_id] = True

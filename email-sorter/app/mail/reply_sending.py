@@ -6,6 +6,8 @@ from email.utils import parseaddr
 
 import requests
 
+from app.mail.providers.graph import graph_error
+from app.mail.text_utils import strip_bearer
 from app.schemas import Email
 
 GRAPH_SEND_URL = "https://graph.microsoft.com/v1.0/me/sendMail"
@@ -17,14 +19,6 @@ class ReplySendError(Exception):
     def __init__(self, message: str, status_code: int = 502):
         super().__init__(message)
         self.status_code = status_code
-
-
-def _graph_error(response: requests.Response) -> str:
-    try:
-        message = response.json().get("error", {}).get("message")
-    except (ValueError, AttributeError):
-        message = None
-    return str(message or response.reason or "Unknown Graph error")[:300]
 
 
 def _reply_subject(subject: str) -> str:
@@ -43,9 +37,7 @@ def _recipient(sender: str) -> tuple[str, str]:
 
 def send_reply(email: Email, reply: str, token: str) -> dict:
     """Send ``reply`` to the original sender and return a small receipt."""
-    token = (token or "").strip()
-    if token.lower().startswith("bearer "):
-        token = token[7:].strip()
+    token = strip_bearer(token)
     if not token:
         raise ReplySendError(
             "Paste a Microsoft Graph token with Mail.Send permission before sending.",
@@ -90,7 +82,7 @@ def send_reply(email: Email, reply: str, token: str) -> dict:
         )
     if not response.ok:
         raise ReplySendError(
-            f"Microsoft Graph returned {response.status_code}: {_graph_error(response)}",
+            f"Microsoft Graph returned {response.status_code}: {graph_error(response)}",
             502,
         )
 

@@ -49,6 +49,11 @@ Thumbs.db
 
 CHANGES.md
 
+# Demo-video material (sample emails, push script, logo / fireworks animations,
+# reference images): kept locally, not part of the app
+email-sorter/demo/
+/logo_login.jpeg
+
 # React build served by Flask (npm run build in email-sorter/frontend)
 email-sorter/static/app/
 

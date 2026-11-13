@@ -144,21 +144,19 @@ pip install -r requirements-app.txt
 
 ### Trying it from a fresh clone
 
-Two things are not in the repository: the Anthropic API key, and the
-classical-ML model, which is trained on labelled student email and kept
-private (`classical-ml/artifacts/` is gitignored).
+The default backend needs an Anthropic API key and the classical-ML model,
+and neither is in the repository (the model is trained on private student
+mail). Without them:
 
-- **Without either:** the app still runs. On the sign-in page choose
-  "Use an Outlook token instead" and paste a Graph Explorer token (or sign up
-  at `/register`). Mail loads with its deadlines, calendar, course pages and
-  job posts, which do not need a model; sorting says the model is not ready.
-  Only NUS addresses are accepted by default; set `ALLOWED_EMAIL_DOMAINS` in
-  `email-sorter/.env` for others.
-- **With an `ANTHROPIC_API_KEY`** in `claude/.env`: start with
-  `--backend claude` to sort, rate and draft replies with Claude alone.
-- **Without a key, with the full `requirements.txt`:** `--backend encoder`
-  uses the committed encoder heads (it downloads the BGE/E5 encoders from
-  Hugging Face on first use).
+| You have | Start with | What works |
+|---|---|---|
+| Nothing | `python email-sorter/run.py` | Everything except sorting: deadlines, calendar, course pages, job posts |
+| `ANTHROPIC_API_KEY` in `claude/.env` | `--backend claude` | Everything, with Claude alone |
+| Full `requirements.txt` | `--backend encoder` | Free sorting with the committed encoder heads (downloads BGE/E5 on first run) |
+
+To sign in, choose "Use an Outlook token instead" and paste a Graph Explorer
+token. Only NUS addresses are accepted unless `ALLOWED_EMAIL_DOMAINS` is set in
+`email-sorter/.env`.
 
 ### Defaults
 

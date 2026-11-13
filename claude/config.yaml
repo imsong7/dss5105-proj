@@ -1,4 +1,4 @@
-# Inbox Sorter configuration (Claude backend used by email-sorter).
+# NusBox configuration (Claude backend used by email-sorter).
 # Labels, definitions and settings live here, not in code.
 
 # Category A: topic. One per email. These definitions are sent to Claude, so make them precise.

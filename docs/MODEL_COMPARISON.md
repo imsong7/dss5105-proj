@@ -16,7 +16,7 @@ Source files are listed under each table.
 | `hybrid` | LinearSVC (`C=10`, balanced) | text-encoder `e5-small-multi` head |
 | `ml` | LinearSVC (`C=10`, balanced) | BalancedComplementNB (`alpha=3`) |
 | `encoder` | `bge-small-en` head | `e5-small-multi` head |
-| `llm` | Llama 3.1 8B via Ollama | Llama 3.1 8B via Ollama |
+| `llama` | Llama 3.1 8B via Ollama | Llama 3.1 8B via Ollama |
 | `claude` | Claude `claude-haiku-5-5` | Claude `claude-haiku-5-5` |
 
 The two ML artifacts are task-specific:
@@ -151,27 +151,29 @@ The action/both sample sizes are too small to rank the models.
 
 ---
 
-## 8. Four-method evaluation — older run on this branch
+## 8. Four-method evaluation — committed run (2026-10-30)
 
-These artifacts predate the Claude integration and the current default backend.
-The ML action row is **real-data only**, so it is not the production
-`complement_nb_balanced + synthetic` result.
+Out-of-fold (5 folds) on the labelled emails: n=132 for category (Canvas
+sender-rule rows excluded), n=134 for action, n=131 for both. The encoder and
+ML action rows train on real + synthetic folds; Llama is the app's pretrained
+inference. This run predates the Claude integration and the current default
+backend.
 
 Source: `evaluation/results/quality_summary.csv`
 
 | Method | Category accuracy | Category macro F1 | Action accuracy | Action macro F1 | Both exact match |
 |---|---:|---:|---:|---:|---:|
-| encoder | 0.864 | 0.844 | 0.784 | 0.697 | 0.695 |
-| ml | 0.886 | 0.867 | 0.373 | 0.392 | 0.336 |
-| llm | 0.720 | 0.648 | 0.776 | 0.652 | 0.580 |
+| encoder | 0.864 | 0.844 | 0.843 | 0.735 | 0.748 |
+| ml | 0.886 | 0.867 | 0.806 | 0.693 | 0.718 |
+| llama | 0.720 | 0.648 | 0.776 | 0.652 | 0.580 |
 
 Source: `evaluation/results/performance_summary.csv`
 
 | Backend | Warm p50 | Peak memory | Invalid rate | Consistency |
 |---|---:|---:|---:|---:|
-| encoder | 69.7 ms | 1122 MB | — | 1.000 |
-| ml | 1.06 ms | 797 MB | — | 1.000 |
-| llama | 12,622 ms | 6321 MB | 0.000 | 1.000 |
+| encoder | 33.9 ms | 883 MB | — | 1.000 |
+| ml | 0.56 ms | 667 MB | — | 1.000 |
+| llama | 4,038 ms | 6205 MB | 0.000 | 1.000 |
 
 Claude is not in these old artifacts. The current evaluator supports
 `--model claude`, so rerun the scripts for a fresh four-method comparison.

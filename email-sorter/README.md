@@ -84,30 +84,20 @@ python email-sorter/run.py --port 5001 --provider powerautomate
   `USE_NGROK=1` in `.env`) using `agile-problem-luxury.ngrok-free.dev`;
   `--ngrok-domain other.ngrok-free.dev` picks another reserved domain.
 
-The first time, create the private account file:
+Accounts live in `private/multiuser.json` (`MULTIUSER_CONFIG_FILE`), created
+empty on the first start. Students create their own account at `/register`
+and then see their **webhook token** in the Connect Outlook guide.
+
+To add an account by hand instead (an admin task, not needed for sign-up):
 
 ```bash
 cd email-sorter
 python configure_multiuser.py
 ```
 
-It asks for:
-
-- the account email,
-- an app-only password (16+ characters),
-- an optional Power Automate trigger URL.
-
-It writes `private/multiuser.json` with `600` permissions and prints the
-account's **webhook token**. To print a token again:
-
-```bash
-cd email-sorter
-python - <<'PY'
-import json, pathlib
-accounts = json.loads(pathlib.Path("private/multiuser.json").read_text())
-print(accounts["you@u.nus.edu"]["webhook_token"])
-PY
-```
+It asks for the account email, an app-only password (8+ characters) and an
+optional Power Automate trigger URL, writes the account with `600`
+permissions, and prints its webhook token.
 
 #### Power Automate flow
 
@@ -162,9 +152,9 @@ match that account, the push is rejected.
 #### Triggering a backfill
 
 A flow that starts with **When an HTTP request is received** can be started by
-the dashboard. Put its URL in the account's `refresh_url` field (rerun
-`configure_multiuser.py` or edit `private/multiuser.json`) and restart the
-app. The trigger body may include:
+the dashboard. Paste its HTTP URL into the Connect Outlook guide (it is saved
+as the account's `refresh_url`; no restart needed). The trigger body may
+include:
 
 ```json
 {

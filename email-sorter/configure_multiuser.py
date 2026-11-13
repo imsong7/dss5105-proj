@@ -1,4 +1,9 @@
-"""Run from email-sorter: python configure_multiuser.py"""
+"""Add one account by hand: python configure_multiuser.py (run from email-sorter/).
+
+Students normally sign up themselves at /register; this is for an admin who
+wants to create an account without the sign-up page. It never replaces an
+existing account. A flow URL can be saved later in the app's Connect Outlook guide.
+"""
 import getpass
 import json
 import os
@@ -16,8 +21,8 @@ if len(name) > 40 or any(ord(char) < 32 for char in name):
     raise SystemExit("Use a display name of at most 40 characters.")
 password = getpass.getpass("New app-only password (not your Outlook password): ")
 confirm = getpass.getpass("Repeat password: ")
-if len(password) < 16 or password != confirm:
-    raise SystemExit("Use a matching password of at least 16 characters.")
+if len(password) < 8 or password != confirm:
+    raise SystemExit("Use a matching password of at least 8 characters (the same rule as sign-up).")
 url = getpass.getpass("Power Automate HTTPS trigger URL (blank = disable refresh): ").strip()
 if url and not url.startswith("https://"):
     raise SystemExit("An HTTPS URL is required.")

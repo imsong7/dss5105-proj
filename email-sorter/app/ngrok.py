@@ -1,8 +1,8 @@
-"""Start and stop the ngrok tunnel used by the Power Automate mail source.
+"""Start and stop the ngrok tunnel (``run.py --tunnel`` or ``USE_NGROK=1``).
 
-The tunnel is only needed when Power Automate has to reach the app from the
-cloud. It is skipped for ``--provider graphtoken``, where the app makes
-outbound Graph requests instead.
+Power Automate needs the tunnel to push mail to the app from the cloud, and it
+lets phones open the app. Graph-token mode does not need it; run.py still
+starts it when asked, with a warning that that mode has no sign-in.
 """
 
 from __future__ import annotations

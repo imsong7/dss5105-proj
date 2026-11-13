@@ -1,8 +1,4 @@
-.venv/
-email_cl/
-.env
-__pycache__/
-*.pyc
+# Accounts, tokens and saved mail: never commit
 /private/
 # Power Automate exports hold a real webhook token
 *.zip

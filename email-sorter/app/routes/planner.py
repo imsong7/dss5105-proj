@@ -8,10 +8,8 @@ from __future__ import annotations
 
 from flask import Blueprint, abort, current_app, jsonify, request
 
-from app.extract.event_from_email import ExtractionError, extract_event
 from app.routes.common import error, forwarded_proto, request_user
-from app.schemas import Email
-from app.stores import calendar_feed, email_events, saved_jobs, user_events
+from app.stores import calendar_feed, saved_jobs, user_events
 from app.stores import item_states as item_state_module
 from app.stores.calendar_feed import FeedError
 from app.stores.item_states import StateError
@@ -35,32 +33,6 @@ def create_event():
     except EventError as exc:
         return error(str(exc), 400)
     return jsonify(event), 201
-
-
-@bp.post("/api/events/scan")
-def scan_email_for_event():
-    """What Claude finds in one email: ``{"event": {...}}`` or ``{"event": null}``.
-
-    Each email is read once; the answer is kept. Nothing is added to the calendar here.
-    """
-    data = request.get_json(silent=True)
-    try:
-        email = Email(**data["email"])
-    except Exception:
-        return error("Expected a JSON object with an email.", 400)
-
-    owner = request_user()
-    known, event = email_events.email_event_store.get(owner, email.id)
-    if known:
-        return jsonify({"event": event})
-    try:
-        event = extract_event(email)
-    except ExtractionError as exc:
-        if exc.status_code != 422:
-            return error(str(exc), exc.status_code)  # not stored: try again later
-        event = None  # Claude read it and there is no event
-    email_events.email_event_store.put(owner, email.id, event)
-    return jsonify({"event": event})
 
 
 @bp.put("/api/events/<event_id>")

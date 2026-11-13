@@ -15,7 +15,6 @@ import pytest
 from app.stores import (
     calendar_feed,
     classification_store,
-    email_events,
     item_states,
     profiles,
     saved_jobs,
@@ -27,9 +26,6 @@ from app.stores import (
 def isolated_private_stores(tmp_path, monkeypatch):
     monkeypatch.setattr(
         user_events, "event_store", user_events.EventStore(tmp_path / "events.json")
-    )
-    monkeypatch.setattr(
-        email_events, "email_event_store", email_events.EmailEventStore(tmp_path / "email_events.json")
     )
     monkeypatch.setattr(
         saved_jobs, "saved_job_store", saved_jobs.SavedJobStore(tmp_path / "saved_jobs.json")

@@ -122,7 +122,6 @@ class HybridClassifierTests(unittest.TestCase):
             health = client.get("/api/health?backend=hybrid").get_json()
 
         self.assertTrue(health["backend_ready"])
-        self.assertTrue(health["hybrid_ready"])
         ml_ready.assert_any_call(("category",))
         encoder_ready.assert_any_call(("action",))
 
@@ -136,7 +135,6 @@ class HybridClassifierTests(unittest.TestCase):
             health = client.get("/api/health?backend=hybrid").get_json()
 
         self.assertFalse(health["backend_ready"])
-        self.assertFalse(health["hybrid_ready"])
 
 
 if __name__ == "__main__":

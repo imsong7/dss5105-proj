@@ -154,7 +154,6 @@ class MLClassifierTests(unittest.TestCase):
         ml_backend = next(item for item in backends if item["id"] == "ml")
         self.assertFalse(ml_backend["ready"])
         self.assertFalse(health["backend_ready"])
-        self.assertFalse(health["ml_ready"])
 
     def test_sender_rule_skips_ml_classification(self):
         classifier = MLClassifier.__new__(MLClassifier)

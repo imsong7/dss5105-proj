@@ -122,10 +122,11 @@ def backends():
 
 @bp.get("/api/health")
 def health():
-    # The UI polls readiness for whichever backend it has selected.
+    """Whether the backend the UI has selected can classify right now."""
     state = sorter()
     requested = state.backend_name(request.args.get("backend"))
-    ollama_up, ollama_ready = _ollama_status()
+    # Only Llama needs a network check (is Ollama running?); the others check files and keys.
+    ollama_ready = _ollama_status()[1] if requested == "llama" else False
     backend_ready = _backend_ready(
         requested,
         ollama_ready,
@@ -135,16 +136,6 @@ def health():
         "backend": requested,
         "default_backend": state.backend_name(),
         "backend_ready": backend_ready,
-        "ollama_up": ollama_up,
-        "ollama": ollama_ready,
-        "ollama_ready": ollama_ready,
-        "model": settings.ollama_model,
-        "model_ready": ollama_ready,
-        "encoder_ready": _encoder_ready(),
-        "ml_ready": _ml_ready(),
-        "hybrid_ready": _ml_ready(("category",)) and _encoder_ready(("action",)),
-        "hybrid_claude_ready": _ml_ready(("category",)) and claude_ready(),
-        "claude_ready": claude_ready(),
         "ocr": ocr_status(),
     })
 

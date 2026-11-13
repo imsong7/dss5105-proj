@@ -94,4 +94,3 @@ class ClaudeServerTests(unittest.TestCase):
         claude_backend = next(item for item in backends if item["id"] == "claude")
         self.assertFalse(claude_backend["ready"])
         self.assertFalse(health["backend_ready"])
-        self.assertFalse(health["claude_ready"])

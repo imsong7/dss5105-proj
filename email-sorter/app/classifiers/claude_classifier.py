@@ -222,6 +222,7 @@ class ClaudeClassifier(BaseClassifier):
             reason=reason,
             priority=self._priority(result),
             event=getattr(result, "event", None),
+            fallback=result.source == "fallback",
         )
         postprocess_ms = int((time.perf_counter() - t_postprocess) * 1000)
 

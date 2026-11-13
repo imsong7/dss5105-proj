@@ -58,6 +58,30 @@ class ClassifyApiTests(unittest.TestCase):
         self.assertTrue(second["cached"])
         self.assertEqual(second["reply_nature"], "needs_action")
 
+    def test_failed_model_call_is_reported_and_not_cached(self):
+        answers = [
+            Classification(content_category="others", reply_nature="no_immediate_action",
+                           deadline=None, reason="classification failed: 429", fallback=True),
+            Classification(content_category="general", reply_nature="needs_action",
+                           deadline=None, reason="Model."),
+        ]
+
+        def classify(email):
+            self.stub.calls += 1
+            return answers[self.stub.calls - 1]
+
+        self.stub.classify = classify
+        failed = self.client.post("/api/classify", json={"email": EMAIL, "backend": "llama"})
+        self.assertEqual(failed.status_code, 503)
+        self.assertIn("try again", failed.get_json()["error"])
+        self.assertEqual(store.classify_cache.all_for("", "llama"), {})
+
+        retried = self.classify()                   # the retry asks the model again
+        self.assertEqual(self.stub.calls, 2)
+        self.assertEqual(retried["reply_nature"], "needs_action")
+        self.assertNotIn("fallback", retried)
+        self.assertNotIn("cached", retried)
+
     def test_hand_set_stars_win_over_the_model_and_can_be_reset(self):
         self.stub.classify = lambda email: Classification(
             content_category="general", reply_nature="needs_action", deadline=None, reason="Model.",

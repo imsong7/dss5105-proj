@@ -51,6 +51,9 @@ class Classification(BaseModel):
     priority: dict | None = Field(default=None, description="Star rating and why, or null when unrated.")
     # The date, time and place Claude read in the email: {"date", "time", "location"}.
     event: dict | None = Field(default=None, description="Date the email asks for, or null.")
+    # True when the model call failed and the labels are only the safe default. The app
+    # neither caches nor shows such a result; it reports a failure the student can retry.
+    fallback: bool = Field(default=False, exclude=True)
 
     @staticmethod
     def _norm(value) -> str:

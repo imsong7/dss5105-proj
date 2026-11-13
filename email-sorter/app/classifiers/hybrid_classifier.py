@@ -73,4 +73,5 @@ class HybridClaudeClassifier(BaseClassifier):
             reason=f"Hybrid: ML category + Claude action ({action.reason})",
             priority=action.priority,  # the same Claude call also rated the email
             event=action.event,        # and read the date, time and place
+            fallback=action.fallback,  # Claude failed: the action is only the safe default
         )

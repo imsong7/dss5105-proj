@@ -367,6 +367,20 @@ def classify():
             result = selected.classify(email)
             model_name = getattr(selected, "model_name", backend_name)
         model_ms = _ms_since(t_model)
+        if result.fallback:
+            # The model call failed (network, rate limit, bad answer). Its placeholder
+            # labels are not cached, so the email is sorted again on the next try.
+            log_event(
+                "classify_error",
+                backend=backend_name,
+                error=f"fallback: {result.reason[:200]}",
+                total_ms=_ms_since(t_total),
+            )
+            logging.warning("classification fell back for one email: %s", result.reason[:200])
+            return error(
+                "The model could not sort this email right now. Please try again in a moment.",
+                503,
+            )
         out = result.model_dump()
         out["duration_ms"] = model_ms
         out["backend"] = backend_name

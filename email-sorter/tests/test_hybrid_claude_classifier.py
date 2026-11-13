@@ -25,6 +25,7 @@ class HybridClaudeTests(unittest.TestCase):
                 reason="asks a question",
                 priority={"stars": 4},
                 event={"date": "2026-11-20", "time": "14:00", "location": "LT19"},
+                fallback=False,
             )
         )
 

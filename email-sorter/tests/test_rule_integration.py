@@ -91,13 +91,13 @@ class SenderRuleIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(self.stub_classifier.calls, 0)
 
-    def test_taxonomy_displays_rule_category_as_canva(self):
+    def test_taxonomy_displays_rule_category_as_canvas(self):
         response = self.client.get("/api/taxonomy")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get_json()["content"]["canva"]["label"],
-            "Canva",
+            "Canvas",
         )
 
     def test_unmatched_sender_keeps_backend_category(self):

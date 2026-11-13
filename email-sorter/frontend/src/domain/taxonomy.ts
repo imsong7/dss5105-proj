@@ -10,7 +10,7 @@ export const CONTENT_CATEGORIES = {
   medical: "Medical",
   promotional: "Promotional",
   career: "Career related",
-  canva: "Canva",
+  canva: "Canvas", // key kept for saved data; it means the Canvas LMS
   general: "General",
   others: "Others",
 } as const;

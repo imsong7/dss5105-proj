@@ -15,8 +15,9 @@ CONTENT_CATEGORIES = {
         "desc": "Jobs, internships, recruiters, career fairs, CV or interview help, networking, professional development.",
     },
     "canva": {
-        "label": "Canva",
-        "desc": "Anything sent by or about Canva: design invites, shared designs, comments, team or licence notices.",
+        # The key stays "canva" (saved results and trained models use it); it means Canvas.
+        "label": "Canvas",
+        "desc": "Automated notifications from the Canvas learning platform (instructure.com): announcements, assignment due dates, grades, discussion posts.",
     },
     "general": {
         "label": "General",

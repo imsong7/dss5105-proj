@@ -208,38 +208,21 @@ yourself you need the private `data/labels.csv` (see
 
 ## Training the methods
 
-### Text encoders
+Both trained methods need the private `data/labels.csv`.
 
 ```bash
-python text-encoders/train.py --check-only
-python text-encoders/train.py --task category
-python text-encoders/train.py --task action --synthetic data/synthetic.csv
+# Text encoders: category and action heads (synthetic rows go to action only)
+python text-encoders/train.py --synthetic data/synthetic.csv
+
+# Classical ML: category and action models
+cd classical-ml && PYTHONPATH=src python -m train_email_ml
 ```
 
-Models are written to `text-encoders/models/{task}_{head,full}/`. See
-[`text-encoders/README.md`](text-encoders/README.md).
-
-### Classical ML
-
-```bash
-cd classical-ml
-PYTHONPATH=src python -m data_tools convert-labels
-PYTHONPATH=src python -m train_email_ml
-PYTHONPATH=src python -m experiments compare
-PYTHONPATH=src python -m experiments tune
-PYTHONPATH=src python -m experiments ablation
-```
-
-Models and reports go to `classical-ml/artifacts/` and `classical-ml/reports/`.
-See [`classical-ml/README.md`](classical-ml/README.md).
-
-### Claude
-
-```bash
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > claude/.env
-```
-
-See [`claude/README.md`](claude/README.md).
+Models go to `text-encoders/models/` and `classical-ml/artifacts/`. Claude is
+not trained: its prompt, sender rules and guardrails are in
+`claude/config.yaml`. Each folder's README has the other options
+([`text-encoders`](text-encoders/README.md),
+[`classical-ml`](classical-ml/README.md), [`claude`](claude/README.md)).
 
 ---
 
@@ -259,6 +242,13 @@ python evaluation/performance.py --model all
 ```
 
 Claude calls cost money, so use `--claude-limit N` to cap them.
+
+The classical-ML reports (model comparison, tuning, synthetic ablation) come
+from:
+
+```bash
+cd classical-ml && PYTHONPATH=src python -m experiments compare   # also: tune, ablation
+```
 
 ---
 

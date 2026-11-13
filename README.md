@@ -20,6 +20,27 @@ and Claude picks the action.
 
 ---
 
+## Features
+
+- **Today page:** what is due, upcoming events, and the emails that need
+  something. Items can be marked done or snoozed.
+- **Priority stars with reasons:** each email gets 1 to 5 stars, the inbox can
+  be sorted by them, "Why?" shows what they came from, and the student can set
+  them by hand.
+- **Corrections that stick:** fixing a label can also create a rule for that
+  sender, so their next emails are sorted the same way without a model call.
+- **Dates from mail:** deadlines, exams and events go to the calendar, which
+  other calendar apps can subscribe to (`.ics`) or import.
+- **Posters:** text and QR codes are read from image-only emails.
+- **Job digests:** a careers newsletter becomes a list of jobs that can be
+  saved.
+- **Course pages:** mail grouped by course code, with Canvas notifications.
+- **Reply drafts:** Claude drafts a reply to emails that need one, marks the
+  blanks the student must fill in, and sends only when the student presses
+  Send.
+- **Incremental sync:** after one complete Power Automate refresh, later
+  refreshes only fetch newer mail.
+
 ## How it works
 
 ```
@@ -61,6 +82,52 @@ Every email gets one category and one action.
 
 The labels and their descriptions live in `email-sorter/app/taxonomy.py`
 (and `claude/config.yaml` for the Claude prompt).
+
+## Priority stars
+
+In the same call that picks the action, Claude scores three things about the
+email's content, each from 0 to 3:
+
+- **consequence:** what happens if it is ignored,
+- **urgency:** how soon it matters. When the email gives a deadline, urgency
+  is counted from the day it arrived: overdue or within 2 days = 3, within a
+  week = 2, within 30 days = 1, later = 0,
+- **relevance:** from mass marketing (0) to something addressed to the student
+  personally (3).
+
+A fixed formula turns them into stars, so the same scores always give the
+same stars:
+
+```
+score = 2.0 × consequence + 1.5 × urgency + 1.0 × relevance      (0 to 13.5)
+stars: 5 ≥ 11.5 · 4 ≥ 9 · 3 ≥ 6 · 2 ≥ 3 · otherwise 1
+```
+
+Then three guardrails apply: a serious email due within a week gets at least
+4 stars, mass marketing at most 3, and a likely phishing email at most 2 (with
+a warning). The category and action labels play no part in the stars. The
+weights and limits are in `claude/config.yaml` (`priority`); the code is
+`claude/src/priority.py`.
+
+## Why the default is hybrid_claude
+
+Each task goes to the method that did best on it in the evaluations (accuracy
+on the labelled student emails):
+
+| Method | Category | Action |
+|---|---:|---:|
+| Classical ML (TF-IDF + LinearSVC / ComplementNB) | **0.886** | 0.806 |
+| Text encoders (BGE / E5 heads) | 0.864 | 0.843 |
+| Llama 3.1 8B | 0.720 | 0.776 |
+| Claude | 0.833 | **0.888** |
+
+The category model is also free and runs in under a millisecond, so only the
+action (and the stars and date, from the same call) needs Claude. The first
+three rows are the committed out-of-fold run (n=132 category, n=134 action);
+the Claude row is from a separate run on the Claude integration branch, and
+the `hybrid_claude` combination has not been scored as one system. Details and
+caveats are in [`docs/MODEL_COMPARISON.md`](docs/MODEL_COMPARISON.md)
+(section 8).
 
 ---
 

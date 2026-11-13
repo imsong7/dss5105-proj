@@ -133,10 +133,9 @@ python email-sorter/run.py --provider graphtoken
 | `llama` | `ollama pull llama3.1:8b` and Ollama running |
 | `claude` | `ANTHROPIC_API_KEY` in `claude/.env` |
 
-A fresh clone includes the trained encoder heads but not the classical-ML
-artifacts (`classical-ml/artifacts/`, gitignored) or `data/labels.csv`. Until
-you train those, start with `--backend encoder`. The dashboard shows which
-backend is ready.
+The dashboard shows which backend is ready. To train the classical-ML models
+yourself you need the private `data/labels.csv` (see
+[`classical-ml/README.md`](classical-ml/README.md)).
 
 ---
 
@@ -202,8 +201,8 @@ The app handles real student mail, so this is where that mail goes.
 
 - **Sent to Anthropic (Claude API):** with the `hybrid_claude` or `claude`
   backend, each email's subject and text (up to 4,000 characters together) and
-  its received date are sent to classify it. A reply draft sends the email (up to 8,000
-  characters) and the student's name. The `encoder`, `ml` and `llama`
+  its received date are sent to classify it. A reply draft sends the email (up
+  to 8,000 characters) and the student's name. The `encoder`, `ml` and `llama`
   backends run entirely on this computer.
 - **Stays on this computer:** accounts, pushed mail, results, corrections,
   events and settings are files under `email-sorter/private/` (gitignored;

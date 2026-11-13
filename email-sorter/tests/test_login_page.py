@@ -192,14 +192,15 @@ class LoginPageTests(unittest.TestCase):
 
         self.assertEqual(login.headers["Location"], "/")
 
-    def test_existing_basic_auth_still_works_for_tooling(self):
+    def test_basic_auth_credentials_are_not_accepted(self):
+        # Only the login page signs people in, so its attempt limit cannot be bypassed.
         response = self.client.post(
             "/api/emails",
             json={"provider": "powerautomate", "credentials": {}, "count": 10},
             auth=(ACCOUNT_A, PASSWORD),
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
 
     def test_repeated_wrong_passwords_lock_the_account_for_a_while(self):
         with patch("app.routes.auth.time.sleep"):

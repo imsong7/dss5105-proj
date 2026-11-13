@@ -23,7 +23,6 @@ from flask import (
     session,
     url_for,
 )
-from werkzeug.security import check_password_hash
 
 # ---- failed sign-in limit ---------------------------------------------------
 # Failures are counted per email and per client address in a sliding window.
@@ -310,20 +309,6 @@ def session_owner() -> str:
     return email if email in users() or (email and is_token_session()) else ""
 
 
-def basic_owner() -> str:
-    # Tooling (tests, scripts) may still send HTTP Basic credentials.
-    # We never advertise the Basic scheme, so browsers show the login
-    # page instead of the popup.
-    auth = request.authorization
-    owner = str(auth.username or "").strip().lower() if auth else ""
-    record = users().get(owner)
-    valid = bool(
-        auth and auth.type.lower() == "basic" and record
-        and check_password_hash(record["password_hash"], auth.password or "")
-    )
-    return owner if valid else ""
-
-
 def sign_in(email: str) -> None:
     """Start a fresh session for ``email`` (rotated, so a pre-login id is never reused)."""
     session.clear()
@@ -336,7 +321,9 @@ def _require_identity():
     # Calendar apps cannot sign in, so the feed is guarded by its secret token.
     if request.path in PUBLIC_PATHS or request.path.startswith("/feed/") or request.endpoint == "static":
         return None
-    owner = session_owner() or basic_owner()
+    # Only a session from the sign-in pages counts, so every password check goes
+    # through their attempt limit (no HTTP Basic credentials on API calls).
+    owner = session_owner()
     if not owner:
         if request.path.startswith("/api/") or request.method == "POST":
             return jsonify(error="Please sign in again.", login_url=url_for("auth.login")), 401

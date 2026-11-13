@@ -15,6 +15,7 @@ from app.config import settings
 from app.mail.pushed_store import PushedStore, RefreshState, pushed_store
 from app.schemas import Email
 from app.server import create_app
+from tests.helpers import sign_in_as
 from tests.test_inbound_webhook import ACCOUNT_A, PASSWORD, REFRESH_URL, TOKEN_A, graph_message
 
 T0 = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
@@ -269,10 +270,11 @@ class RefreshEndpointTests(unittest.TestCase):
         pushed_store.clear()
         self.addCleanup(pushed_store.clear)
         self.client = create_app(backend="llama", provider="powerautomate").test_client()
+        sign_in_as(self.client, ACCOUNT_A)
 
     def refresh(self, body=None, status=202):
         with patch("app.routes.inbound.requests.post", return_value=MagicMock(status_code=status)) as post:
-            response = self.client.post("/api/inbound/refresh", json=body or {}, auth=(ACCOUNT_A, PASSWORD))
+            response = self.client.post("/api/inbound/refresh", json=body or {})
         return response, post
 
     def push(self, refresh_id, message_id="<abc@example.com>", slice_index="0", slice_top="100"):
@@ -312,7 +314,7 @@ class RefreshEndpointTests(unittest.TestCase):
         self.assertFalse(report["complete"])
         self.assertEqual(report["slices"][0]["count"], 2)
         self.assertFalse(self.refresh({})[0].get_json()["incremental"])
-        diag = self.client.get("/api/inbound/diagnostics", auth=(ACCOUNT_A, PASSWORD)).get_json()
+        diag = self.client.get("/api/inbound/diagnostics").get_json()
         self.assertFalse(diag["last_refresh"]["complete"])
 
     def test_a_second_refresh_while_running_does_not_call_the_flow_again(self):
@@ -347,8 +349,7 @@ class RefreshEndpointTests(unittest.TestCase):
         self.push(rid)
 
         def sync():
-            return self.client.post("/api/emails", json={"provider": "powerautomate", "count": 10},
-                                    auth=(ACCOUNT_A, PASSWORD)).get_json()["sync"]
+            return self.client.post("/api/emails", json={"provider": "powerautomate", "count": 10}).get_json()["sync"]
 
         running = sync()["running"]
         self.assertEqual((running["refresh_id"], running["emails_pushed"]), (rid, 1))
@@ -375,7 +376,7 @@ class RefreshEndpointTests(unittest.TestCase):
 
     def test_diagnostics_show_the_last_refresh(self):
         self.full_cycle()
-        data = self.client.get("/api/inbound/diagnostics", auth=(ACCOUNT_A, PASSWORD)).get_json()
+        data = self.client.get("/api/inbound/diagnostics").get_json()
         self.assertEqual(data["last_refresh"]["emails_pushed"], 1)
         self.assertIn("duration_s", data["last_refresh"])
         self.assertIsNone(data["refresh"]["running"])

@@ -17,6 +17,7 @@ from app.schemas import Email
 from app.mail.providers import build_provider
 from app.mail.providers.base import MailQuery
 from app.server import create_app
+from tests.helpers import sign_in_as
 
 ACCOUNT_A = "alice@example.com"
 ACCOUNT_B = "bob@example.com"
@@ -77,6 +78,7 @@ class InboundWebhookTests(unittest.TestCase):
         self.client = create_app(
             backend="llama", provider="powerautomate"
         ).test_client()
+        sign_in_as(self.client, ACCOUNT_A)
 
     def push(self, payload=None, token=TOKEN_A, path="/api/inbound/outlook", headers=None):
         request_headers = {"X-Webhook-Token": token}
@@ -86,11 +88,11 @@ class InboundWebhookTests(unittest.TestCase):
             path, json=payload or graph_message(), headers=request_headers
         )
 
-    def fetch(self, auth=(ACCOUNT_A, PASSWORD)):
+    def fetch(self, user=ACCOUNT_A):
+        sign_in_as(self.client, user)
         return self.client.post(
             "/api/emails",
             json={"provider": "powerautomate", "credentials": {}, "count": 10},
-            auth=auth,
         )
 
     def test_valid_token_stores_and_normalises_the_message(self):
@@ -130,14 +132,14 @@ class InboundWebhookTests(unittest.TestCase):
         self.push(graph_message("<alice@example.com>"), token=TOKEN_A)
         self.push(graph_message("<bob@example.com>"), token=TOKEN_B)
 
-        alice = self.fetch((ACCOUNT_A, PASSWORD)).get_json()["emails"]
-        bob = self.fetch((ACCOUNT_B, PASSWORD)).get_json()["emails"]
+        alice = self.fetch(ACCOUNT_A).get_json()["emails"]
+        bob = self.fetch(ACCOUNT_B).get_json()["emails"]
 
         self.assertEqual([item["id"] for item in alice], ["<alice@example.com>"])
         self.assertEqual([item["id"] for item in bob], ["<bob@example.com>"])
 
     def test_api_requires_authentication(self):
-        self.assertEqual(self.fetch(auth=None).status_code, 401)
+        self.assertEqual(self.fetch(None).status_code, 401)
 
     def test_x_user_email_must_match_the_token(self):
         response = self.push(
@@ -158,7 +160,7 @@ class InboundWebhookTests(unittest.TestCase):
     def test_diagnostics_lists_this_accounts_attempts(self):
         self.push()
         response = self.client.get(
-            "/api/inbound/diagnostics", auth=(ACCOUNT_A, PASSWORD)
+            "/api/inbound/diagnostics"
         )
 
         self.assertEqual(response.status_code, 200)
@@ -171,7 +173,7 @@ class InboundWebhookTests(unittest.TestCase):
         with patch("app.routes.inbound.requests.post", return_value=upstream) as post, patch(
             "app.routes.inbound.settings", replace(settings, flow_refresh_top=300)
         ):
-            self.client.post("/api/inbound/refresh", json={}, auth=(ACCOUNT_A, PASSWORD))
+            self.client.post("/api/inbound/refresh", json={})
 
         self.assertEqual(post.call_args.kwargs["json"]["top"], 300)
 
@@ -186,7 +188,6 @@ class InboundWebhookTests(unittest.TestCase):
                     "since": "2026-09-28T00:00:00.000Z",
                     "before": "2026-10-28T23:59:59.999Z",
                 },
-                auth=(ACCOUNT_A, PASSWORD),
             )
 
         self.assertEqual(response.status_code, 200)
@@ -204,9 +205,8 @@ class InboundWebhookTests(unittest.TestCase):
         })
 
     def test_refresh_rejects_when_no_url_is_configured(self):
-        response = self.client.post(
-            "/api/inbound/refresh", json={}, auth=(ACCOUNT_B, PASSWORD)
-        )
+        sign_in_as(self.client, ACCOUNT_B)
+        response = self.client.post("/api/inbound/refresh", json={})
 
         self.assertEqual(response.status_code, 503)
 
@@ -215,7 +215,7 @@ class InboundWebhookTests(unittest.TestCase):
             "app.routes.inbound.requests.post", return_value=MagicMock(status_code=401)
         ):
             response = self.client.post(
-                "/api/inbound/refresh", json={}, auth=(ACCOUNT_A, PASSWORD)
+                "/api/inbound/refresh", json={}
             )
 
         self.assertEqual(response.status_code, 502)
@@ -227,7 +227,7 @@ class InboundWebhookTests(unittest.TestCase):
             side_effect=requests.ConnectionError("boom"),
         ):
             response = self.client.post(
-                "/api/inbound/refresh", json={}, auth=(ACCOUNT_A, PASSWORD)
+                "/api/inbound/refresh", json={}
             )
 
         self.assertEqual(response.status_code, 502)

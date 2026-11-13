@@ -39,19 +39,25 @@ class MultiuserAuthTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
 
-    def test_wrong_password_denied(self):
-        response = self.client.get("/who", auth=("a@example.com", "wrong"))
+    def sign_in_as(self, email):
+        with self.client.session_transaction() as session:
+            session[security.SESSION_OWNER_KEY] = email
+
+    def test_basic_auth_is_not_a_sign_in(self):
+        response = self.client.get("/who", auth=("a@example.com", "alpha-password-123"))
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
 
     def test_identity_and_refresh_bound(self):
-        response = self.client.get("/who", auth=("a@example.com", "alpha-password-123"))
+        self.sign_in_as("a@example.com")
+        response = self.client.get("/who")
         self.assertEqual(response.get_json(), {"owner": "a@example.com", "refresh": "https://example.com/a"})
         self.assertEqual(response.headers["Cache-Control"], "no-store")
 
     def test_header_spoof_denied(self):
-        response = self.client.get("/who", auth=("a@example.com", "alpha-password-123"), headers={"X-User-Email": "b@example.com"})
+        self.sign_in_as("a@example.com")
+        response = self.client.get("/who", headers={"X-User-Email": "b@example.com"})
         self.assertEqual(response.status_code, 403)
 
     def test_webhook_token_binds_owner(self):

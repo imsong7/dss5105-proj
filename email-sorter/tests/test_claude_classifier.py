@@ -81,7 +81,7 @@ class ClaudeBackendTests(unittest.TestCase):
 
 class ClaudeServerTests(unittest.TestCase):
     def test_api_advertises_claude_and_reports_readiness(self):
-        # This branch adds HTTP Basic auth; skip it for this endpoint test.
+        # Skip the sign-in for this endpoint test.
         with patch("app.server.install_multiuser", lambda app: None):
             client = create_app(backend="claude").test_client()
         with (

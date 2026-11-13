@@ -1,0 +1,29 @@
+# Only what the NusBox app needs to run with its default backend (hybrid_claude),
+# both mail sources, poster reading and reply drafts. Much lighter than
+# requirements.txt (no torch, transformers or research tools):
+#     pip install -r requirements-app.txt
+#
+# For the encoder, hybrid or llama backends, the model training and the
+# evaluation, install requirements.txt instead.
+
+# Web app and mail sources
+flask>=3.0
+requests>=2.31
+python-dotenv>=1.0
+pydantic>=2.6
+
+# Classical-ML category model (used by hybrid_claude and ml)
+scikit-learn>=1.3
+pandas>=2.0
+numpy>=1.26
+joblib>=1.3
+
+# Claude backend and reply drafts
+anthropic>=0.40
+pyyaml>=6.0
+beautifulsoup4>=4.12
+
+# Poster and image reading
+Pillow>=10.0
+# QR codes on posters (optional; without it no QR links are read)
+opencv-python-headless>=4.8

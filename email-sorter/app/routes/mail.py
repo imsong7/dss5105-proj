@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import logging
 import socket
@@ -62,10 +63,17 @@ def _ollama_status() -> tuple[bool, bool]:
         return True, False
 
 
+def _installed(*modules: str) -> bool:
+    """Whether these packages can be imported (requirements-app.txt leaves some out)."""
+    return all(importlib.util.find_spec(name) is not None for name in modules)
+
+
 def _encoder_ready(tasks: tuple[str, ...] | str = ("category", "action")) -> bool:
-    """Encoder heads are usable when the requested head files and manifests exist."""
+    """Encoder heads are usable when torch is installed and the head files and manifests exist."""
     if isinstance(tasks, str):
         tasks = (tasks,)
+    if not _installed("torch", "transformers"):
+        return False
     models_dir = ROOT.parent / "text-encoders" / "models"
     return all(
         (models_dir / f"{task}_head" / filename).is_file()
@@ -77,7 +85,7 @@ def _encoder_ready(tasks: tuple[str, ...] | str = ("category", "action")) -> boo
 def _backend_ready(name: str, ollama_ready: bool, *, loaded: bool = False) -> bool | None:
     """Return readiness for a backend, or ``None`` when it cannot be checked cheaply."""
     if name == "llama":
-        return ollama_ready
+        return ollama_ready and _installed("langchain_core", "langchain_ollama")
     if name == "encoder":
         return _encoder_ready()
     if name == "ml":

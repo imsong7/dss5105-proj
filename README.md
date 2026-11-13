@@ -131,8 +131,29 @@ python email-sorter/run.py
 # open http://127.0.0.1:5001
 ```
 
+Without `make` (usual on Windows), run what `make install` does, and copy the
+`.env` file with `copy` instead of `cp`:
+
+```bash
+pip install -r requirements.txt
+cd email-sorter/frontend && npm ci && cd ../..
+```
+
 `run.py` rebuilds the React frontend when its code has changed, so it needs
-`npm` and `make install` done once.
+`npm` and the install above done once.
+
+**Optional: Tesseract** reads the text on poster images. Without it the app
+still runs, and image-only emails are sorted from their sender and subject.
+
+```bash
+brew install tesseract              # macOS
+sudo apt install tesseract-ocr      # Ubuntu / Debian
+# Windows: install from https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+If it is installed somewhere unusual, set `TESSERACT_CMD` in
+`email-sorter/.env` to its path. The dashboard sidebar shows whether image
+reading is ready.
 
 To run only the app (no model training or evaluation), install the much
 lighter `requirements-app.txt` instead of `requirements.txt`:
@@ -154,8 +175,18 @@ mail). Without them:
 | `ANTHROPIC_API_KEY` in `claude/.env` | `--backend claude` | Everything, with Claude alone |
 | Full `requirements.txt` | `--backend encoder` | Free sorting with the committed encoder heads (downloads BGE/E5 on first run) |
 
-To sign in, choose "Use an Outlook token instead" and paste a Graph Explorer
-token. Only NUS addresses are accepted unless `ALLOWED_EMAIL_DOMAINS` is set in
+To sign in with your own Outlook mail:
+
+1. Open [Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer)
+   and sign in with your Outlook (NUS) account.
+2. Under **Modify permissions**, consent to `Mail.Read` (and `Mail.Send` to
+   send replies).
+3. Open the **Access token** tab and copy the token.
+4. On the app's sign-in page, choose "Use an Outlook token instead" and paste
+   it.
+
+The token expires after about an hour; paste a fresh one when asked. Only NUS
+addresses are accepted unless `ALLOWED_EMAIL_DOMAINS` is set in
 `email-sorter/.env`.
 
 ### Defaults
